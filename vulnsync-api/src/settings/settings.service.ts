@@ -42,7 +42,7 @@ export class SettingsService {
     };
   }
 
-  async create(dto: CreateIntegrationSettingDto, userId: string) {
+  async create(dto: CreateIntegrationSettingDto) {
     const exists = await this.prisma.integrationSetting.findFirst({
       where: { type: dto.type },
     });
@@ -55,10 +55,6 @@ export class SettingsService {
       data: dto,
     });
 
-    await this.logs.log('CREATE_INTEGRATION_SETTING', userId, undefined, {
-      type: dto.type,
-    });
-
     return {
       id: setting.id,
       type: setting.type,
@@ -66,7 +62,7 @@ export class SettingsService {
     };
   }
 
-  async update(id: string, dto: UpdateIntegrationSettingDto, userId: string) {
+  async update(id: string, dto: UpdateIntegrationSettingDto) {
     const setting = await this.prisma.integrationSetting.findUnique({
       where: { id },
     });
@@ -80,10 +76,6 @@ export class SettingsService {
       data: dto,
     });
 
-    await this.logs.log('UPDATE_INTEGRATION_SETTING', userId, undefined, {
-      id,
-    });
-
     return {
       id: updated.id,
       type: updated.type,
@@ -91,13 +83,9 @@ export class SettingsService {
     };
   }
 
-  async delete(id: string, userId: string) {
+  async delete(id: string) {
     await this.prisma.integrationSetting.delete({
       where: { id },
-    });
-
-    await this.logs.log('DELETE_INTEGRATION_SETTING', userId, undefined, {
-      id,
     });
 
     return { status: 'DELETED' };

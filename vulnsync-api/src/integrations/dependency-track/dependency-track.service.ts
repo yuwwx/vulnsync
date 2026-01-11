@@ -12,10 +12,8 @@ export class DependencyTrackService {
     private logs: LogsService,
   ) {}
 
-  async getProjects(userId: string) {
+  async getProjects() {
     const projects = await this.depTrackClient.getProjects();
-
-    await this.logs.log('DEPTRACK_GET_PROJECTS', userId);
 
     return projects;
   }
@@ -23,7 +21,6 @@ export class DependencyTrackService {
   async importProjectFindings(
     projectUuid: string,
     defectDojoProductId: number,
-    userId: string,
   ) {
     const report = await this.depTrackClient.exportFindings(projectUuid);
 
@@ -38,11 +35,6 @@ export class DependencyTrackService {
     };
 
     await this.defectDojoClient.importScan(payload);
-
-    await this.logs.log('DEPTRACK_IMPORTED_TO_DEFECTDOJO', userId, undefined, {
-      projectUuid,
-      defectDojoProductId,
-    });
 
     return { status: 'IMPORTED' };
   }

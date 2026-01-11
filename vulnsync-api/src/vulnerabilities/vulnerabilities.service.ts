@@ -14,12 +14,12 @@ export class VulnerabilitiesService {
     private logs: LogsService,
   ) {}
 
-  async getProducts(userId: string) {
-    return this.defectDojo.getProducts(userId);
+  async getProducts() {
+    return this.defectDojo.getProducts();
   }
 
-  async getVulnerabilities(productName: string, userId: string) {
-    const findings = await this.defectDojo.getFindings(productName, userId);
+  async getVulnerabilities(productName: string) {
+    const findings = await this.defectDojo.getFindings(productName);
 
     const externalIds = findings.map((f) => f.id.toString());
 
@@ -43,10 +43,6 @@ export class VulnerabilitiesService {
         status: sync ? (sync.status as SyncStatus) : SyncStatus.NOT_SENT,
         jiraIssueKey: sync?.jiraIssueKey ?? undefined,
       };
-    });
-
-    await this.logs.log('GET_VULNERABILITIES', userId, undefined, {
-      productName,
     });
 
     return result;

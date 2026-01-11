@@ -28,7 +28,7 @@ export class SettingsController {
 
   @Post()
   create(@Body() dto: CreateIntegrationSettingDto, @Req() req) {
-    return this.service.create(dto, req.user.id);
+    return this.service.create(dto);
   }
 
   @Patch(':id')
@@ -37,11 +37,11 @@ export class SettingsController {
     @Body() dto: UpdateIntegrationSettingDto,
     @Req() req,
   ) {
-    return this.service.update(id, dto, req.user.id);
+    return this.service.update(id, dto);
   }
 
   @Delete(':id')
   delete(@Param('id') id: string, @Req() req) {
-    return this.service.delete(id, req.user.id);
+    return this.service.delete(id);
   }
 }

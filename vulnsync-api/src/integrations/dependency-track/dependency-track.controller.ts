@@ -9,7 +9,7 @@ export class DependencyTrackController {
 
   @Get('projects')
   getProjects(@Req() req) {
-    return this.service.getProjects(req.user.id);
+    return this.service.getProjects();
   }
 
   @Post('import')
@@ -17,7 +17,6 @@ export class DependencyTrackController {
     return this.service.importProjectFindings(
       dto.projectUuid,
       dto.defectDojoProductId,
-      req.user.id,
     );
   }
 }

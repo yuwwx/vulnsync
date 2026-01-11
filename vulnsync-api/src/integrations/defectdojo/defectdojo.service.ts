@@ -13,10 +13,8 @@ export class DefectDojoService {
     private logs: LogsService,
   ) {}
 
-  async getProducts(userId: string): Promise<DefectDojoProductDto[]> {
+  async getProducts(): Promise<DefectDojoProductDto[]> {
     const products = await this.client.getProducts();
-
-    await this.logs.log('DEFECTDOJO_GET_PRODUCTS', userId);
 
     const productsArray = Array.isArray(products) ? products : [products];
 
@@ -25,15 +23,8 @@ export class DefectDojoService {
     });
   }
 
-  async getFindings(
-    productName: string,
-    userId: string,
-  ): Promise<DefectDojoFindingDto[]> {
+  async getFindings(productName: string): Promise<DefectDojoFindingDto[]> {
     const findings = await this.client.getFindingsByProduct(productName);
-
-    await this.logs.log('DEFECTDOJO_GET_FINDINGS', userId, undefined, {
-      productName,
-    });
 
     const findingsArray = Array.isArray(findings) ? findings : [findings];
 

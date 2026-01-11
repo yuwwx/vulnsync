@@ -41,8 +41,8 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
 
   async validate(req: any, user: any) {
     if (!user) {
-      await this.logsService.log('LOGIN_FAILED', req.ip, user.id, {
-        username: user.username,
+      await this.logsService.log('LOGIN_FAILED', req.ip, undefined, {
+        username: undefined,
         userAgent: req.headers['user-agent'],
       });
 

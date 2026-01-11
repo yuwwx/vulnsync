@@ -6,7 +6,7 @@ import {
   CallHandler,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Observable, tap } from 'rxjs';
+import { catchError, Observable, tap } from 'rxjs';
 import { LOG_ACTION_KEY } from '../decorators/logAction.decorator';
 
 @Injectable()
@@ -25,11 +25,20 @@ export class LoggingInterceptor implements NestInterceptor {
       `${req.method} ${req.url}`;
 
     return next.handle().pipe(
-      tap(() => {
-        this.logsService.log(action, req.ip, user.id, {
+      tap(async () => {
+        await this.logsService.log(action, req.ip, user.id, {
+          result: 'SUCCESS',
           username: user.username,
           userAgent: req.headers['user-agent'],
         });
+      }),
+      catchError(async (err) => {
+        await this.logsService.log(action, req.ip, user.id, {
+          result: 'FAIL',
+          username: user.username,
+          userAgent: req.headers['user-agent'],
+        });
+        throw err;
       }),
     );
   }
