@@ -14,6 +14,7 @@ model User {
   password  String?
   ldapDn    String?
   createdAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model IntegrationSetting {
@@ -21,6 +22,8 @@ model IntegrationSetting {
   type     String
   baseUrl  String
   apiToken String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model JiraMapping {
@@ -29,6 +32,8 @@ model JiraMapping {
   projectKey  String
   issueType   String
   fields      Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model VulnerabilitySync {
@@ -38,6 +43,7 @@ model VulnerabilitySync {
   jiraIssueKey String?
   status       String   // SENT | NOT_SENT
   createdAt    DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([externalId, source])
 }
@@ -48,4 +54,5 @@ model Log {
   userId    String
   meta      Json?
   createdAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

@@ -5,6 +5,6 @@ import { DefectDojoService } from './defectdojo.service';
 
 @Module({
   providers: [DefectDojoClient, DefectDojoService],
-  exports: [DefectDojoService],
+  exports: [DefectDojoClient, DefectDojoService],
 })
 export class DefectDojoModule {}
