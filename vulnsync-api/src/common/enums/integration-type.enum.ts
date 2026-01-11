@@ -1,0 +1,5 @@
+export enum IntegrationType {
+  DEFECTDOJO = 'DEFECTDOJO',
+  DEPENDENCY_TRACK = 'DEPENDENCY_TRACK',
+  JIRA = 'JIRA',
+}

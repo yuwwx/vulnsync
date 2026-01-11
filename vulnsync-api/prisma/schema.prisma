@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client"
+  output     = "./generated"
+  moduleFormat = "cjs" 
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String?
+  ldapDn    String?
+  createdAt DateTime @default(now())
+}
+
+model IntegrationSetting {
+  id       String @id @default(uuid())
+  type     String
+  baseUrl  String
+  apiToken String
+}
+
+model JiraMapping {
+  id          String @id @default(uuid())
+  productType String
+  projectKey  String
+  issueType   String
+  fields      Json
+}
+
+model VulnerabilitySync {
+  id           String   @id @default(uuid())
+  externalId   String   // finding.id из DefectDojo
+  source       String   // DEFECTDOJO
+  jiraIssueKey String?
+  status       String   // SENT | NOT_SENT
+  createdAt    DateTime @default(now())
+
+  @@unique([externalId, source])
+}
+
+model Log {
+  id        String   @id @default(uuid())
+  action    String
+  userId    String
+  meta      Json?
+  createdAt DateTime @default(now())
+}
