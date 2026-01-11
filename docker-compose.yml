@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: vulnsync-postgres
+    environment:
+      POSTGRES_DB: vulnsync
+      POSTGRES_USER: vulnsync
+      POSTGRES_PASSWORD: vulnsync
+    ports:
+      - "5432:5432"
+    volumes:
+      - vulnsync-pgdata:/var/lib/postgresql
+
+  backend:
+    build:
+      context: ./vulnsync-api
+    container_name: vulnsync-api
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+
+volumes:
+  vulnsync-pgdata:

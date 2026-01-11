@@ -11,7 +11,7 @@ import { JiraModule } from './integrations/jira/jira.module';
 import { DependencyTrackModule } from './integrations/dependency-track/dependency-track.module';
 import { DefectDojoModule } from './integrations/defectdojo/defectdojo.module';
 
-import { AuthGuard } from './common/guards/auth.guard';
+import { JwtAuthGuard } from './common/guards/auth.guard';
 import { LogsModule } from './logs/logs.module';
 
 import { ConfigModule } from '@nestjs/config';
@@ -19,7 +19,7 @@ import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // process.env
+      isGlobal: true,
     }),
     LogsModule,
     PrismaModule,
@@ -33,7 +33,7 @@ import { ConfigModule } from '@nestjs/config';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: AuthGuard,
+      useClass: JwtAuthGuard,
     },
   ],
 })

@@ -39,7 +39,7 @@ export class DependencyTrackService {
 
     await this.defectDojoClient.importScan(payload);
 
-    await this.logs.log('DEPTRACK_IMPORTED_TO_DEFECTDOJO', userId, {
+    await this.logs.log('DEPTRACK_IMPORTED_TO_DEFECTDOJO', userId, undefined, {
       projectUuid,
       defectDojoProductId,
     });

@@ -45,7 +45,9 @@ export class VulnerabilitiesService {
       };
     });
 
-    await this.logs.log('GET_VULNERABILITIES', userId, { productName });
+    await this.logs.log('GET_VULNERABILITIES', userId, undefined, {
+      productName,
+    });
 
     return result;
   }
@@ -68,11 +70,6 @@ export class VulnerabilitiesService {
         status: SyncStatus.SENT,
         jiraIssueKey,
       },
-    });
-
-    await this.logs.log('VULNERABILITY_SENT_TO_JIRA', userId, {
-      findingId,
-      jiraIssueKey,
     });
   }
 }

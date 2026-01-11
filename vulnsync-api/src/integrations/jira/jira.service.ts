@@ -37,7 +37,7 @@ export class JiraService {
 
     await this.vulnerabilitiesService.markAsSent(findingId, issue.key, userId);
 
-    await this.logs.log('JIRA_ISSUE_CREATED', userId, {
+    await this.logs.log('JIRA_ISSUE_CREATED', userId, undefined, {
       findingId,
       issueKey: issue.key,
     });

@@ -31,7 +31,7 @@ export class DefectDojoService {
   ): Promise<DefectDojoFindingDto[]> {
     const findings = await this.client.getFindingsByProduct(productName);
 
-    await this.logs.log('DEFECTDOJO_GET_FINDINGS', userId, {
+    await this.logs.log('DEFECTDOJO_GET_FINDINGS', userId, undefined, {
       productName,
     });
 

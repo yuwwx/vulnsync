@@ -9,19 +9,19 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  password  String?
-  ldapDn    String?
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  username   String   @unique
+  password   String?
+  ldapDn     String?
+  createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
 
 model IntegrationSetting {
-  id       String @id @default(uuid())
-  type     String
-  baseUrl  String
-  apiToken String
+  id         String @id @default(uuid())
+  type       String
+  baseUrl    String
+  apiToken   String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -32,8 +32,8 @@ model JiraMapping {
   projectKey  String
   issueType   String
   fields      Json
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model VulnerabilitySync {
@@ -43,16 +43,17 @@ model VulnerabilitySync {
   jiraIssueKey String?
   status       String   // SENT | NOT_SENT
   createdAt    DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt    DateTime @updatedAt
 
   @@unique([externalId, source])
 }
 
 model Log {
-  id        String   @id @default(uuid())
-  action    String
-  userId    String
-  meta      Json?
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  action     String
+  ip         String?
+  userId     String?
+  meta       Json?
+  createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }

@@ -2,10 +2,23 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
+import { LogsService } from '@/logs/logs.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+    private logsService: LogsService,
+  ) {}
+
+  async login(user: any, req: any) {
+    const payload = { sub: user.id, username: user.username };
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
 
   async validateLocalUser(username: string, password: string) {
     const user = await this.prisma.user.findUnique({
@@ -36,12 +49,5 @@ export class AuthService {
     }
 
     return user;
-  }
-
-  async login(user: any) {
-    return {
-      id: user.id,
-      username: user.username,
-    };
   }
 }

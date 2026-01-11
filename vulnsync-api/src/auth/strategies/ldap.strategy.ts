@@ -4,11 +4,13 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import LdapStrategy from 'passport-ldapauth';
 import { AuthService } from '../auth.service';
 import { ConfigService } from '@nestjs/config';
+import { LogsService } from '@/logs/logs.service';
 
 @Injectable()
 export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
   constructor(
     private authService: AuthService,
+    private logsService: LogsService,
     config: ConfigService,
   ) {
     const LDAP_URL = config.get<string>('LDAP_URL');
@@ -26,6 +28,7 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
     }
 
     super({
+      passReqToCallback: true,
       server: {
         url: LDAP_URL,
         bindDN: LDAP_BIND_DN,
@@ -36,10 +39,20 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
     });
   }
 
-  async validate(user: any) {
+  async validate(req: any, user: any) {
     if (!user) {
+      await this.logsService.log('LOGIN_FAILED', req.ip, user.id, {
+        username: user.username,
+        userAgent: req.headers['user-agent'],
+      });
+
       throw new UnauthorizedException();
     }
+
+    await this.logsService.log('LOGIN', req.ip, user.id, {
+      username: user.username,
+      userAgent: req.headers['user-agent'],
+    });
 
     return this.authService.validateLdapUser(user.sAMAccountName, user.dn);
   }

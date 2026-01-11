@@ -55,7 +55,7 @@ export class SettingsService {
       data: dto,
     });
 
-    await this.logs.log('CREATE_INTEGRATION_SETTING', userId, {
+    await this.logs.log('CREATE_INTEGRATION_SETTING', userId, undefined, {
       type: dto.type,
     });
 
@@ -80,7 +80,9 @@ export class SettingsService {
       data: dto,
     });
 
-    await this.logs.log('UPDATE_INTEGRATION_SETTING', userId, { id });
+    await this.logs.log('UPDATE_INTEGRATION_SETTING', userId, undefined, {
+      id,
+    });
 
     return {
       id: updated.id,
@@ -94,7 +96,9 @@ export class SettingsService {
       where: { id },
     });
 
-    await this.logs.log('DELETE_INTEGRATION_SETTING', userId, { id });
+    await this.logs.log('DELETE_INTEGRATION_SETTING', userId, undefined, {
+      id,
+    });
 
     return { status: 'DELETED' };
   }
