@@ -5,7 +5,7 @@ export class CreateIntegrationSettingDto {
   @IsEnum(IntegrationType)
   type: IntegrationType;
 
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   baseUrl: string;
 
   @IsString()
