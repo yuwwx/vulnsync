@@ -1,7 +1,6 @@
-// dto/import-project.dto.ts
 import { IsUUID, IsNumber } from 'class-validator';
 
-export class ImportProjectDto {
+export class ExportProjectDto {
   @IsUUID()
   projectUuid: string;
 

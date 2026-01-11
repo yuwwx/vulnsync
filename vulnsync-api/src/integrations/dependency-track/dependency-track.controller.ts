@@ -1,20 +1,23 @@
 // dependency-track.controller.ts
 import { Controller, Get, Post, Body, Req } from '@nestjs/common';
 import { DependencyTrackService } from './dependency-track.service';
-import { ImportProjectDto } from './dto/import-project.dto';
+import { ExportProjectDto } from './dto/export-project.dto';
+import { LogAction } from '@/common/decorators/logAction.decorator';
 
 @Controller('dependency-track')
 export class DependencyTrackController {
   constructor(private service: DependencyTrackService) {}
 
+  @LogAction('DEPENDENCY_TRACK_GET_PROJECTS')
   @Get('projects')
-  getProjects(@Req() req) {
+  getProjects() {
     return this.service.getProjects();
   }
 
-  @Post('import')
-  importProject(@Body() dto: ImportProjectDto, @Req() req) {
-    return this.service.importProjectFindings(
+  @LogAction('DEPENDENCY_TRACK_EXPORT')
+  @Post('export')
+  importProject(@Body() dto: ExportProjectDto) {
+    return this.service.exportProjectFindings(
       dto.projectUuid,
       dto.defectDojoProductId,
     );
