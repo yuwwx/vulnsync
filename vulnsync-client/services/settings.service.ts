@@ -4,7 +4,10 @@ export interface IntegrationSetting {
   id?: string;
   type: string;
   baseUrl: string;
-  hasToken?: boolean; // приходит с бэка, не для отправки
+  hasSecret?: boolean;
+  apiToken?: string;
+  username?: string;
+  password?: string;
 }
 
 export const SettingsService = {
@@ -13,24 +16,31 @@ export const SettingsService = {
     return data;
   },
 
-  async save(setting: IntegrationSetting & { apiToken?: string }) {
-    const payload: { baseUrl: string; apiToken?: string } = {
-      baseUrl: setting.baseUrl,
-    };
-
-    if (setting.apiToken) {
-      payload.apiToken = setting.apiToken;
-    }
-
+  async save(setting: IntegrationSetting) {
     if (setting.id) {
+      const payload = {
+        baseUrl: setting.baseUrl,
+        apiToken: setting?.apiToken,
+        username: setting?.username,
+        password: setting?.password,
+      };
+
       const { data } = await api.patch(
         `/settings/integrations/${setting.id}`,
         payload
       );
       return data;
-    }
+    } else {
+      const payload = {
+        baseUrl: setting.baseUrl,
+        apiToken: setting?.apiToken,
+        username: setting?.username,
+        password: setting?.password,
+        type: setting?.type,
+      };
 
-    const { data } = await api.post("/settings/integrations", payload);
-    return data;
+      const { data } = await api.post("/settings/integrations", payload);
+      return data;
+    }
   },
 };

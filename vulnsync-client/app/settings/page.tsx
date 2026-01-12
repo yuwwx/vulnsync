@@ -16,7 +16,7 @@ import { normalizeIntegrations } from "@/mappers/integrations.mapper";
 import { toast } from "sonner";
 
 interface IntegrationUI extends IntegrationSetting {
-  apiTokenInput?: string;
+  apiToken?: string;
   username?: string;
   password?: string;
 }
@@ -31,17 +31,17 @@ type IntegrationField = {
 const INTEGRATION_FIELDS: Record<IntegrationType, IntegrationField[]> = {
   DEFECTDOJO: [
     { name: "baseUrl", label: "Base URL" },
-    { name: "apiTokenInput", label: "API Token", type: "password" },
+    { name: "apiToken", label: "API Token", type: "password" },
   ],
 
   DEPENDENCY_TRACK: [
     { name: "baseUrl", label: "Base URL" },
-    { name: "apiTokenInput", label: "API Token", type: "password" },
+    { name: "apiToken", label: "API Token", type: "password" },
   ],
 
   JIRA: [
     { name: "baseUrl", label: "Base URL" },
-    { name: "username", label: "Login" },
+    { name: "username", label: "Username" },
     { name: "password", label: "Password", type: "password" },
   ],
 };
@@ -63,10 +63,16 @@ export default function SettingsPage() {
         const withInput = Object.fromEntries(
           Object.entries(normalized).map(([type, setting]) => [
             type,
-            { ...setting, apiTokenInput: "" },
+            {
+              ...setting,
+              type,
+              apiToken: "",
+              username: "",
+              password: "",
+            },
           ])
         );
-        setData(withInput);
+        setData(withInput as any);
       })
       .catch(() => {
         setError("Failed to load integration settings");
@@ -89,20 +95,19 @@ export default function SettingsPage() {
     setSaving(type);
     try {
       const setting = data[type];
-      const fields = INTEGRATION_FIELDS[type];
 
       const payload: any = {
         id: setting.id,
-        type: setting.type,
+        type,
       };
 
-      for (const field of fields) {
-        if (field.name === "apiTokenInput") {
-          if (setting.apiTokenInput?.trim()) {
-            payload.apiToken = setting.apiTokenInput;
-          }
+      for (const field of INTEGRATION_FIELDS[type]) {
+        const value = (setting as any)[field.name];
+
+        if (field.name === "apiToken") {
+          if (value?.trim()) payload.apiToken = value;
         } else {
-          payload[field.name] = (setting as any)[field.name];
+          payload[field.name] = value;
         }
       }
 
@@ -110,7 +115,7 @@ export default function SettingsPage() {
 
       setData((prev) => ({
         ...prev,
-        [type]: { ...saved, apiTokenInput: "" },
+        [type]: { ...saved, apiToken: "" },
       }));
 
       toast.success(`Settings for ${type} saved`);
@@ -145,7 +150,7 @@ export default function SettingsPage() {
             <aside className="w-56 shrink-0 border rounded-md p-2 space-y-1">
               {INTEGRATIONS.map(({ type, label }) => {
                 const setting = data[type];
-                const configured = !!setting?.baseUrl && !!setting?.hasToken;
+                const configured = !!setting?.baseUrl && !!setting?.hasSecret;
 
                 return (
                   <button
@@ -189,6 +194,10 @@ export default function SettingsPage() {
                         }
                       />
                     ))}
+
+                    <pre className="text-xs bg-muted p-2 rounded">
+                      {JSON.stringify(data[activeIntegration], null, 2)}
+                    </pre>
 
                     <Button
                       onClick={() => save(activeIntegration)}

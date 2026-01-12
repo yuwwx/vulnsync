@@ -1,4 +1,4 @@
-import { IsEnum, IsString, IsUrl } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
 import { IntegrationType } from '@/common/enums/integration-type.enum';
 
 export class CreateIntegrationSettingDto {
@@ -8,6 +8,15 @@ export class CreateIntegrationSettingDto {
   @IsUrl({ require_tld: false })
   baseUrl: string;
 
+  @IsOptional()
   @IsString()
   apiToken: string;
+
+  @IsOptional()
+  @IsString()
+  username: string;
+
+  @IsOptional()
+  @IsString()
+  password: string;
 }

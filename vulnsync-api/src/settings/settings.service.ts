@@ -19,6 +19,7 @@ export class SettingsService {
         baseUrl: true,
         apiToken: true,
         updatedAt: true,
+        password: true,
       },
     });
 
@@ -27,7 +28,7 @@ export class SettingsService {
       type: s.type,
       baseUrl: s.baseUrl,
       updatedAt: s.updatedAt,
-      hasToken: !!s.apiToken,
+      hasSecret: !!s.apiToken || !!s.password,
     }));
   }
 
@@ -85,7 +86,7 @@ export class SettingsService {
       id: updated.id,
       type: updated.type,
       baseUrl: updated.baseUrl,
-      hasToken: !!updated.apiToken,
+      hasSecret: !!updated.apiToken || !!updated.password,
     };
   }
 

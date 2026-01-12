@@ -3,7 +3,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { JiraClient } from './jira.client';
 import { VulnerabilitiesService } from '@/vulnerabilities/vulnerabilities.service';
-import { LogsService } from '@/logs/logs.service';
 
 @Injectable()
 export class JiraService {
@@ -11,7 +10,6 @@ export class JiraService {
     private prisma: PrismaService,
     private jiraClient: JiraClient,
     private vulnerabilitiesService: VulnerabilitiesService,
-    private logs: LogsService,
   ) {}
 
   async createIssue(findingId: number, productId: string, userId: string) {

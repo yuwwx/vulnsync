@@ -1,11 +1,18 @@
 import { IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class UpdateIntegrationSettingDto {
-  @IsOptional()
   @IsUrl({ require_tld: false })
-  baseUrl?: string;
+  baseUrl: string;
 
   @IsOptional()
   @IsString()
-  apiToken?: string;
+  apiToken: string;
+
+  @IsOptional()
+  @IsString()
+  username: string;
+
+  @IsOptional()
+  @IsString()
+  password: string;
 }
