@@ -14,14 +14,14 @@ export class JiraService {
     private logs: LogsService,
   ) {}
 
-  async createIssue(findingId: number, productType: string, userId: string) {
+  async createIssue(findingId: number, productId: string, userId: string) {
     const mapping = await this.prisma.jiraMapping.findFirst({
-      where: { productType },
+      where: { productType: productId },
     });
 
     if (!mapping) {
       throw new BadRequestException(
-        `No Jira mapping for product type ${productType}`,
+        `No Jira mapping for product id ${productId}`,
       );
     }
 

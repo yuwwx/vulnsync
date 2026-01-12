@@ -7,11 +7,8 @@ export interface DefectDojoProduct {
 }
 
 export interface JiraIssuePayload {
-  projectKey: string;
-  summary: string;
-  description: string;
-  issueType: string;
-  [key: string]: any; // для кастомных полей
+  findingId: string;
+  productId: string;
 }
 
 export interface DependencyTrackProject {

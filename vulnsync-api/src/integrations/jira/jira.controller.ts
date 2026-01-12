@@ -13,7 +13,7 @@ export class JiraController {
   createIssue(@Body() dto: CreateJiraIssueDto, @Req() req) {
     return this.jiraService.createIssue(
       dto.findingId,
-      dto.productType,
+      dto.productId,
       req.user.id,
     );
   }

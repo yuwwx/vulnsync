@@ -55,7 +55,7 @@ export default function VulnerabilitiesPage() {
             key={p?.id}
             className={`p-2 rounded cursor-pointer ${
               selectedProduct === p?.id
-                ? "bg-primary text-white"
+                ? "bg-neutral-600 text-white"
                 : "hover:bg-muted"
             }`}
             onClick={() => loadVulnerabilities(p?.id)}
@@ -73,7 +73,7 @@ export default function VulnerabilitiesPage() {
         ) : error ? (
           <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
         ) : !selectedProduct ? (
-          <div className="text-gray-500">
+          <div className="text-neutral-500">
             Select a product to configure integrations.
           </div>
         ) : vulns.length === 0 && selectedProduct ? (
@@ -106,7 +106,10 @@ export default function VulnerabilitiesPage() {
                       size="sm"
                       disabled={v.status === "SENT"}
                       onClick={() =>
-                        VulnerabilitiesService.sendToJira(v.id).then(() => {
+                        IntegrationsService.createJiraIssue({
+                          findingId: v.id,
+                          productId: String(selectedProduct),
+                        }).then(() => {
                           setVulns((prev) =>
                             prev.map((item) =>
                               item.id === v.id
@@ -132,21 +135,21 @@ export default function VulnerabilitiesPage() {
 
 function SeverityBadge({ severity }: { severity: string }) {
   const colors: Record<string, string> = {
-    Info: "bg-gray-200 text-gray-800",
+    Info: "bg-neutral-200 text-neutral-800",
     Low: "bg-green-200 text-green-800",
     Medium: "bg-yellow-200 text-yellow-800",
     High: "bg-orange-200 text-orange-800",
     Critical: "bg-red-200 text-red-800",
   };
   return (
-    <Badge className={colors[severity] ?? "bg-gray-200"}>{severity}</Badge>
+    <Badge className={colors[severity] ?? "bg-neutral-200"}>{severity}</Badge>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     SENT: "bg-blue-200 text-blue-800",
-    NOT_SENT: "bg-gray-200 text-gray-800",
+    NOT_SENT: "bg-neutral-200 text-neutral-800",
   };
-  return <Badge className={colors[status] ?? "bg-gray-200"}>{status}</Badge>;
+  return <Badge className={colors[status] ?? "bg-neutral-200"}>{status}</Badge>;
 }

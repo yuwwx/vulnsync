@@ -38,7 +38,7 @@ export default function IntegrationsPage() {
             key={p.id}
             className={`p-2 rounded cursor-pointer ${
               selectedProduct === p.id
-                ? "bg-primary text-white"
+                ? "bg-neutral-600 text-white"
                 : "hover:bg-muted"
             }`}
             onClick={() => setSelectedProduct(p.id)}
@@ -55,7 +55,7 @@ export default function IntegrationsPage() {
         ) : error ? (
           <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
         ) : !selectedProduct ? (
-          <div className="text-gray-500">
+          <div className="text-neutral-500">
             Select a product to configure integrations.
           </div>
         ) : (

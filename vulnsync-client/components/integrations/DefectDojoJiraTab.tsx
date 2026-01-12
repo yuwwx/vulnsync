@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { MappingsService, JiraMapping } from "@/services/mappings.service";
 import { Product } from "@/services/vulnerabilities.service";
+import { toast } from "sonner";
 
 interface Props {
   product: Product;
@@ -139,8 +140,11 @@ export default function DefectDojoJiraTab({ product }: Props) {
         value: v as string,
       }));
       setFields(rows);
+
+      toast.success("Jira mapping saved successfully");
     } catch (err: any) {
       setError(err.message || "Failed to save mapping");
+      toast.error("Failed to save Jira mapping");
     } finally {
       setSaving(false);
     }
@@ -153,8 +157,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
       {error && (
         <div className="p-2 text-red-700 bg-red-100 rounded-md">{error}</div>
       )}
-
-      <div>
+      <div className="mt-2 flex flex-col gap-2">
         <label className="font-medium">Project Key</label>
         <Input
           value={mapping?.projectKey ?? ""}
@@ -166,8 +169,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
           </p>
         )}
       </div>
-
-      <div>
+      <div className="flex flex-col gap-2">
         <label className="font-medium">Issue Type</label>
         <Input
           value={mapping?.issueType ?? ""}
@@ -179,7 +181,6 @@ export default function DefectDojoJiraTab({ product }: Props) {
           </p>
         )}
       </div>
-
       {/* Таблица полей через Shadcn Table */}
       <Table>
         <TableHeader>
@@ -223,14 +224,11 @@ export default function DefectDojoJiraTab({ product }: Props) {
               </TableCell>
             </TableRow>
           ))}
-          <div className="mt-1">
-            <Button variant="ghost" onClick={addRow}>
-              + Add Field
-            </Button>
-          </div>
+          <Button variant="ghost" className="mt-2" onClick={addRow}>
+            + Add Field
+          </Button>
         </TableBody>
       </Table>
-
       <Button onClick={save} disabled={saving}>
         {saving ? "Saving…" : "Save Mapping"}
       </Button>
