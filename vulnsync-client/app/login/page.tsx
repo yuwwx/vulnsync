@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { AuthService } from '@/services/auth.service';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState } from "react";
+import { AuthService } from "@/services/auth.service";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   async function submit() {
     await AuthService.login({ username, password });
-    window.location.href = '/dashboard';
+    window.location.href = "/vulnerabilities";
   }
 
   return (

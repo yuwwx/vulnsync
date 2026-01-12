@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { AuthService } from '@/services/auth.service';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { AuthService } from "@/services/auth.service";
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/vulnerabilities', label: 'Vulnerabilities' },
-  { href: '/integrations', label: 'Integrations' },
-  { href: '/settings', label: 'Settings' },
+  { href: "/logs", label: "Logs" },
+  { href: "/vulnerabilities", label: "Vulnerabilities" },
+  { href: "/integrations", label: "Integrations" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export function Header() {
@@ -18,7 +18,7 @@ export function Header() {
 
   function logout() {
     AuthService.logout();
-    window.location.href = '/login';
+    window.location.href = "/login";
   }
 
   return (
@@ -26,7 +26,9 @@ export function Header() {
       <div className="container mx-auto flex h-14 items-center justify-between">
         {/* Logo */}
         <div className="font-bold text-lg">
-          VulnSync
+          <Link href="/" className="text-inherit no-underline hover:opacity-80">
+            VulnSync
+          </Link>
         </div>
 
         {/* Navigation */}
@@ -36,8 +38,8 @@ export function Header() {
               key={item.href}
               href={item.href}
               className={cn(
-                'text-sm font-medium text-muted-foreground hover:text-primary',
-                pathname.startsWith(item.href) && 'text-primary',
+                "text-sm font-medium text-muted-foreground hover:text-primary",
+                pathname.startsWith(item.href) && "text-primary"
               )}
             >
               {item.label}

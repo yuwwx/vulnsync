@@ -1,3 +1,123 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { INTEGRATIONS, IntegrationType } from "@/constants/integrations";
+import {
+  SettingsService,
+  IntegrationSetting,
+} from "@/services/settings.service";
+
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { normalizeIntegrations } from "@/mappers/integrations.mapper";
+
 export default function SettingsPage() {
-  return <h1 className="text-2xl font-bold">Settings</h1>;
+  const [data, setData] = useState<Record<IntegrationType, IntegrationSetting>>(
+    {} as any
+  );
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<IntegrationType | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    SettingsService.getAll()
+      .then((list) => {
+        const normalized = normalizeIntegrations(list);
+        setData(normalized);
+
+        if (!list || list.length === 0) {
+          setError("No integration settings found.");
+        }
+      })
+      .catch(() => {
+        setError("Failed to load integration settings.");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const update = (
+    type: IntegrationType,
+    field: keyof IntegrationSetting,
+    value: string
+  ) => {
+    setData((prev) => ({
+      ...prev,
+      [type]: { ...prev[type], [field]: value },
+    }));
+  };
+
+  const save = async (type: IntegrationType) => {
+    setSaving(type);
+    try {
+      const saved = await SettingsService.save(data[type]);
+      setData((prev) => ({ ...prev, [type]: saved }));
+    } catch {
+      setError(`Failed to save settings for ${type}`);
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  if (loading) return <div>Loading…</div>;
+
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-3xl font-bold">Settings</h1>
+
+      {error && (
+        <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
+      )}
+
+      <Tabs defaultValue={INTEGRATIONS[0].type}>
+        <TabsList>
+          {INTEGRATIONS.map(({ type, label }) => {
+            const setting = data[type];
+            const configured =
+              !!setting?.baseUrl && !!setting?.apiToken ? "✅" : "❌";
+
+            return (
+              <TabsTrigger key={type} value={type}>
+                {label} {configured}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        {INTEGRATIONS.map(({ type, label }) => {
+          const setting = data[type];
+
+          return (
+            <TabsContent key={type} value={type}>
+              <Card className="max-w-xl">
+                <CardHeader>
+                  <CardTitle>{label}</CardTitle>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <Input
+                    placeholder="Base URL"
+                    value={setting?.baseUrl ?? ""}
+                    onChange={(e) => update(type, "baseUrl", e.target.value)}
+                  />
+
+                  <Input
+                    type="password"
+                    placeholder="API Token"
+                    value={setting?.apiToken ?? ""}
+                    onChange={(e) => update(type, "apiToken", e.target.value)}
+                  />
+
+                  <Button onClick={() => save(type)} disabled={saving === type}>
+                    {saving === type ? "Saving…" : "Save"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })}
+      </Tabs>
+    </div>
+  );
 }

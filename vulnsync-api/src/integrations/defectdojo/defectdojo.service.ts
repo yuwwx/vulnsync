@@ -16,7 +16,11 @@ export class DefectDojoService {
   async getProducts(): Promise<DefectDojoProductDto[]> {
     const products = await this.client.getProducts();
 
-    const productsArray = Array.isArray(products) ? products : [products];
+    const productsArray = Array.isArray(products)
+      ? products
+      : products
+        ? [products]
+        : [];
 
     return plainToInstance(DefectDojoProductDto, productsArray, {
       excludeExtraneousValues: true,

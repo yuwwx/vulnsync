@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { LogsService, LogEntry } from '@/services/logs.service';
-import { LogsTable } from '@/components/dashboard/LogsTable';
+import { useEffect, useState } from "react";
+import { LogsService, LogEntry } from "@/services/logs.service";
+import { LogsTable } from "@/components/logs/LogsTable";
 
-export default function DashboardPage() {
+export default function LogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,7 +12,7 @@ export default function DashboardPage() {
   useEffect(() => {
     LogsService.getLatest()
       .then(setLogs)
-      .catch(() => setError('Failed to load logs'))
+      .catch(() => setError("Failed to load logs."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -21,12 +21,14 @@ export default function DashboardPage() {
   }
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return (
+      <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h1 className="text-2xl font-bold">Logs</h1>
 
       <div className="rounded-md border">
         <LogsTable logs={logs} />
