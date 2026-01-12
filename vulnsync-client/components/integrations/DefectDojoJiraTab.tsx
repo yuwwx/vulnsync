@@ -54,13 +54,15 @@ export default function DefectDojoJiraTab({ product }: Props) {
         };
         setMapping(map);
 
-        const rows: FieldRow[] = Object.entries(map.fields).map(([k, v]) => ({
-          key: k,
-          value: v as string,
-        }));
+        const rows: FieldRow[] = Object.entries(map.fields ?? {}).map(
+          ([k, v]) => ({
+            key: k,
+            value: v as string,
+          })
+        );
         setFields(rows);
       })
-      .catch((err) => setError(`Failed to load Jira mapping: ${err}`))
+      //.catch((err) => setError(`Failed to load Jira mapping: ${err}`))
       .finally(() => setLoading(false));
   }, [product?.id]);
 
@@ -163,7 +165,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
           value={mapping?.projectKey ?? ""}
           onChange={(e) => updateField("projectKey", e.target.value)}
         />
-        {!mapping?.projectKey.trim() && (
+        {!mapping?.projectKey?.trim() && (
           <p className="text-xs text-destructive mt-1">
             Project Key is required
           </p>
@@ -175,7 +177,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
           value={mapping?.issueType ?? ""}
           onChange={(e) => updateField("issueType", e.target.value)}
         />
-        {!mapping?.issueType.trim() && (
+        {!mapping?.issueType?.trim() && (
           <p className="text-xs text-destructive mt-1">
             Issue Type is required
           </p>
@@ -224,14 +226,16 @@ export default function DefectDojoJiraTab({ product }: Props) {
               </TableCell>
             </TableRow>
           ))}
-          <Button variant="ghost" className="mt-2" onClick={addRow}>
-            + Add Field
-          </Button>
         </TableBody>
       </Table>
-      <Button onClick={save} disabled={saving}>
-        {saving ? "Saving…" : "Save Mapping"}
-      </Button>
+      <div className="flex flex-col gap-3">
+        <Button variant="ghost" className="mt-2" onClick={addRow}>
+          + Add Field
+        </Button>
+        <Button onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save Mapping"}
+        </Button>
+      </div>
     </div>
   );
 }

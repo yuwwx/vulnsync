@@ -21,10 +21,10 @@ export interface DependencyTrackMapping {
 export const MappingsService = {
   async getJiraMapping(productType: string): Promise<JiraMapping | null> {
     try {
-      const { data } = await api.get<JiraMapping[]>(`/mappings/jira`, {
+      const { data } = await api.get<JiraMapping>(`/mappings/jira`, {
         params: { productType },
       });
-      return data.length ? data[0] : null;
+      return data;
     } catch (err) {
       console.error("Failed to fetch Jira mapping:", err);
       return null;

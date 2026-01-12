@@ -6,6 +6,7 @@ import {
   Post,
   Patch,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { JiraMappingsService } from './jira-mappings.service';
 import { LogAction } from '@/common/decorators/logAction.decorator';
@@ -16,9 +17,12 @@ import { UpdateJiraMappingDto } from './dto/update-jira-mapping.dto';
 export class JiraMappingsController {
   constructor(private service: JiraMappingsService) {}
 
-  @LogAction('JIRA_MAPPINGS_GET_ALL')
+  @LogAction('JIRA_MAPPINGS_GET')
   @Get()
-  getAll() {
+  get(@Query('productType') productType?: string) {
+    if (productType) {
+      return this.service.getByProductType(productType);
+    }
     return this.service.getAll();
   }
 

@@ -74,7 +74,7 @@ export default function VulnerabilitiesPage() {
           <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
         ) : !selectedProduct ? (
           <div className="text-neutral-500">
-            Select a product to configure integrations.
+            Select a product to send vulnerabilities.
           </div>
         ) : vulns.length === 0 && selectedProduct ? (
           <div>No vulnerabilities found for this product.</div>

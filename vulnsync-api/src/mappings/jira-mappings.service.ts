@@ -8,12 +8,18 @@ import { UpdateJiraMappingDto } from './dto/update-jira-mapping.dto';
 export class JiraMappingsService {
   constructor(private prisma: PrismaService) {}
 
-  // Получить все маппинги
   async getAll() {
     return this.prisma.jiraMapping.findMany();
   }
 
-  // Получить один маппинг по ID
+  async getByProductType(productType: string) {
+    const mapping = await this.prisma.jiraMapping.findFirst({
+      where: { productType },
+    });
+
+    return mapping || {};
+  }
+
   async getById(id: string) {
     const mapping = await this.prisma.jiraMapping.findUnique({ where: { id } });
     if (!mapping) {
@@ -22,7 +28,6 @@ export class JiraMappingsService {
     return mapping;
   }
 
-  // Создать маппинг
   async create(dto: CreateJiraMappingDto) {
     return this.prisma.jiraMapping.create({
       data: {
@@ -34,11 +39,8 @@ export class JiraMappingsService {
     });
   }
 
-  // Обновить маппинг
   async update(id: string, dto: UpdateJiraMappingDto) {
-    // Проверяем, что запись существует
     await this.getById(id);
-
     return this.prisma.jiraMapping.update({
       where: { id },
       data: {
@@ -49,11 +51,8 @@ export class JiraMappingsService {
     });
   }
 
-  // Удалить маппинг
   async delete(id: string) {
-    // Проверяем, что запись существует
     await this.getById(id);
-
     return this.prisma.jiraMapping.delete({ where: { id } });
   }
 }
