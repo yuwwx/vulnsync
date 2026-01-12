@@ -10,4 +10,10 @@ export class LogsService {
       data: { action, ip, userId, meta },
     });
   }
+
+  async findAll() {
+    return this.prisma.log.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
