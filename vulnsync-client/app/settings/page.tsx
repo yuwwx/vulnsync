@@ -11,14 +11,40 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { normalizeIntegrations } from "@/mappers/integrations.mapper";
-
-// Импортируем sonner
 import { toast } from "sonner";
 
 interface IntegrationUI extends IntegrationSetting {
   apiTokenInput?: string;
+  username?: string;
+  password?: string;
 }
+
+type IntegrationField = {
+  name: keyof IntegrationUI;
+  label: string;
+  type?: "text" | "password";
+  placeholder?: string;
+};
+
+const INTEGRATION_FIELDS: Record<IntegrationType, IntegrationField[]> = {
+  DEFECTDOJO: [
+    { name: "baseUrl", label: "Base URL" },
+    { name: "apiTokenInput", label: "API Token", type: "password" },
+  ],
+
+  DEPENDENCY_TRACK: [
+    { name: "baseUrl", label: "Base URL" },
+    { name: "apiTokenInput", label: "API Token", type: "password" },
+  ],
+
+  JIRA: [
+    { name: "baseUrl", label: "Base URL" },
+    { name: "username", label: "Login" },
+    { name: "password", label: "Password", type: "password" },
+  ],
+};
 
 export default function SettingsPage() {
   const [data, setData] = useState<Record<IntegrationType, IntegrationUI>>(
@@ -26,6 +52,8 @@ export default function SettingsPage() {
   );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<IntegrationType | null>(null);
+  const [activeIntegration, setActiveIntegration] =
+    useState<IntegrationType>("DEFECTDOJO");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,13 +67,9 @@ export default function SettingsPage() {
           ])
         );
         setData(withInput);
-
-        if (!list || list.length === 0) {
-          setError("No integration settings found.");
-        }
       })
-      .catch((err) => {
-        setError(`Failed to load integration settings: ${err}`);
+      .catch(() => {
+        setError("Failed to load integration settings");
       })
       .finally(() => setLoading(false));
   }, []);
@@ -65,10 +89,23 @@ export default function SettingsPage() {
     setSaving(type);
     try {
       const setting = data[type];
-      const payload = {
-        ...setting,
-        apiToken: setting.apiTokenInput?.trim() || undefined,
+      const fields = INTEGRATION_FIELDS[type];
+
+      const payload: any = {
+        id: setting.id,
+        type: setting.type,
       };
+
+      for (const field of fields) {
+        if (field.name === "apiTokenInput") {
+          if (setting.apiTokenInput?.trim()) {
+            payload.apiToken = setting.apiTokenInput;
+          }
+        } else {
+          payload[field.name] = (setting as any)[field.name];
+        }
+      }
+
       const saved = await SettingsService.save(payload);
 
       setData((prev) => ({
@@ -76,81 +113,108 @@ export default function SettingsPage() {
         [type]: { ...saved, apiTokenInput: "" },
       }));
 
-      // Показываем успешное уведомление
-      toast.success(`Settings for ${type} saved successfully!`);
-    } catch (err) {
-      // Показываем ошибку
+      toast.success(`Settings for ${type} saved`);
+    } catch {
       toast.error(`Failed to save settings for ${type}`);
     } finally {
       setSaving(null);
     }
   };
 
+  if (loading) return <div>Loading…</div>;
+
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Settings</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Settings</h1>
 
       {error && (
         <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
       )}
 
-      {loading ? (
-        <div>Loading...</div>
-      ) : (
-        <Tabs defaultValue={INTEGRATIONS[0].type}>
-          <TabsList>
-            {INTEGRATIONS.map(({ type, label }) => {
-              const setting = data[type];
-              const configured =
-                !!setting?.baseUrl && !!setting?.hasToken ? "✅" : "❌";
+      {/* Верхние вкладки */}
+      <Tabs defaultValue="integrations">
+        <TabsList>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
+          <TabsTrigger value="personal">Personal</TabsTrigger>
+        </TabsList>
 
-              return (
-                <TabsTrigger key={type} value={type}>
-                  {label} {configured}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+        {/* === INTEGRATIONS === */}
+        <TabsContent value="integrations">
+          <div className="flex gap-6">
+            {/* Sidebar */}
+            <aside className="w-56 shrink-0 border rounded-md p-2 space-y-1">
+              {INTEGRATIONS.map(({ type, label }) => {
+                const setting = data[type];
+                const configured = !!setting?.baseUrl && !!setting?.hasToken;
 
-          {INTEGRATIONS.map(({ type, label }) => {
-            const setting = data[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setActiveIntegration(type)}
+                    className={cn(
+                      "w-full text-left px-2 py-2 rounded-md text-sm hover:bg-muted",
+                      activeIntegration === type && "bg-muted font-medium"
+                    )}
+                  >
+                    {configured ? "✅" : "❌"} {label}
+                  </button>
+                );
+              })}
+            </aside>
 
-            return (
-              <TabsContent key={type} value={type}>
+            {/* Content */}
+            <div className="flex-1">
+              {activeIntegration && (
                 <Card className="max-w-xl">
                   <CardHeader>
-                    <CardTitle>{label}</CardTitle>
+                    <CardTitle>
+                      {
+                        INTEGRATIONS.find((i) => i.type === activeIntegration)
+                          ?.label
+                      }
+                    </CardTitle>
                   </CardHeader>
 
                   <CardContent className="space-y-4">
-                    <Input
-                      placeholder="Base URL"
-                      value={setting?.baseUrl ?? ""}
-                      onChange={(e) => update(type, "baseUrl", e.target.value)}
-                    />
-
-                    <Input
-                      type="password"
-                      placeholder="API Token"
-                      value={setting?.apiTokenInput ?? ""}
-                      onChange={(e) =>
-                        update(type, "apiTokenInput", e.target.value)
-                      }
-                    />
+                    {INTEGRATION_FIELDS[activeIntegration].map((field) => (
+                      <Input
+                        key={field.name}
+                        type={field.type ?? "text"}
+                        placeholder={field.label}
+                        value={
+                          (data[activeIntegration] as any)?.[field.name] ?? ""
+                        }
+                        onChange={(e) =>
+                          update(activeIntegration, field.name, e.target.value)
+                        }
+                      />
+                    ))}
 
                     <Button
-                      onClick={() => save(type)}
-                      disabled={saving === type}
+                      onClick={() => save(activeIntegration)}
+                      disabled={saving === activeIntegration}
                     >
-                      {saving === type ? "Saving…" : "Save"}
+                      {saving === activeIntegration ? "Saving…" : "Save"}
                     </Button>
                   </CardContent>
                 </Card>
-              </TabsContent>
-            );
-          })}
-        </Tabs>
-      )}
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* === PERSONAL === */}
+        <TabsContent value="personal">
+          <Card className="max-w-xl">
+            <CardHeader>
+              <CardTitle>Personal settings</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              Здесь могут быть настройки профиля, пароль, email и т.д.
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

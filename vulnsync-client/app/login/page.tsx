@@ -9,13 +9,14 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  async function submit() {
+  async function submit(e: React.FormEvent) {
+    e.preventDefault(); // ⛔️ чтобы не было перезагрузки страницы
     await AuthService.login({ username, password });
     window.location.href = "/vulnerabilities";
   }
 
   return (
-    <div className="flex h-screen items-center justify-center">
+    <form onSubmit={submit} className="flex items-center justify-center">
       <div className="w-96 space-y-4">
         <h1 className="text-xl font-bold">VulnSync</h1>
 
@@ -32,10 +33,11 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <Button onClick={submit} className="w-full">
+        {/* type="submit" — ключевой момент */}
+        <Button type="submit" className="w-full">
           Login
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

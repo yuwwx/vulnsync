@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AuthService } from "@/services/auth.service";
@@ -15,9 +16,16 @@ const navItems = [
 
 export function Header() {
   const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // проверяем токен на клиенте
+  useEffect(() => {
+    setIsAuthenticated(!!localStorage.getItem("access_token"));
+  }, []);
 
   function logout() {
     AuthService.logout();
+    setIsAuthenticated(false);
     window.location.href = "/login";
   }
 
@@ -25,32 +33,38 @@ export function Header() {
     <header className="border-b">
       <div className="container mx-auto flex h-14 items-center justify-between">
         {/* Logo */}
-        <div className="font-bold text-lg">
-          <Link href="/" className="text-inherit no-underline hover:opacity-80">
-            VulnSync
-          </Link>
-        </div>
+        <Link href="/" className="font-bold text-lg hover:opacity-80">
+          VulnSync
+        </Link>
 
-        {/* Navigation */}
-        <nav className="flex gap-6">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "text-sm font-medium text-muted-foreground hover:text-primary",
-                pathname.startsWith(item.href) && "text-primary"
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        {/* Navigation — только если вошёл */}
+        {isAuthenticated && (
+          <nav className="flex gap-6">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "text-sm font-medium text-muted-foreground hover:text-primary",
+                  pathname.startsWith(item.href) && "text-primary"
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        )}
 
-        {/* User actions */}
-        <Button variant="outline" size="sm" onClick={logout}>
-          Logout
-        </Button>
+        {/* Auth button */}
+        {isAuthenticated ? (
+          <Button variant="outline" size="sm" onClick={logout}>
+            Logout
+          </Button>
+        ) : (
+          <Button size="sm" asChild>
+            <Link href="/login">Login</Link>
+          </Button>
+        )}
       </div>
     </header>
   );
