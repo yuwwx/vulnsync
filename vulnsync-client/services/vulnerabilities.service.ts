@@ -17,7 +17,7 @@ export interface Vulnerability {
 export const VulnerabilitiesService = {
   async getVulnerabilities(productId: string): Promise<Vulnerability[]> {
     const { data } = await api.get<Vulnerability[]>(
-      `/vulnerabilities?productId=${productId}`
+      `/vulnerabilities/${productId}`
     );
     return data;
   },

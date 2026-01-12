@@ -8,8 +8,8 @@ export class VulnerabilitiesController {
   constructor(private service: VulnerabilitiesService) {}
 
   @LogAction('GET_VULNERABILITIES')
-  @Get(':productName')
-  getVulnerabilities(@Param('productName') productName: string, @Req() req) {
-    return this.service.getVulnerabilities(productName);
+  @Get(':productId')
+  getVulnerabilities(@Param('productId') productId: string) {
+    return this.service.getVulnerabilities(productId);
   }
 }

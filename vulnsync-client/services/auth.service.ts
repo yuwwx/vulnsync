@@ -9,6 +9,7 @@ export const AuthService = {
   async login(dto: LoginDto) {
     const { data } = await api.post("/auth/login", dto);
     localStorage.setItem("access_token", data.access_token);
+    localStorage.setItem("username", data.username);
     return data;
   },
 

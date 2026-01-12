@@ -11,6 +11,13 @@ export interface JiraMapping {
   updatedAt?: string;
 }
 
+export interface DependencyTrackMapping {
+  id?: string;
+  productId: string;
+  dtProject: string;
+  ddProduct: string;
+}
+
 export const MappingsService = {
   async getJiraMapping(productType: string): Promise<JiraMapping | null> {
     try {
@@ -47,5 +54,26 @@ export const MappingsService = {
   async getAllJiraMappings(): Promise<JiraMapping[]> {
     const { data } = await api.get<JiraMapping[]>("/mappings/jira");
     return data;
+  },
+
+  async getDependencyTrackMapping(productId: string) {
+    const { data } = await api.get(`/mappings/dependency-track/${productId}`);
+    return data as DependencyTrackMapping | null;
+  },
+
+  async createDependencyTrackMapping(mapping: DependencyTrackMapping) {
+    const { data } = await api.post("/mappings/dependency-track", mapping);
+    return data as DependencyTrackMapping;
+  },
+
+  async updateDependencyTrackMapping(
+    id: string,
+    mapping: DependencyTrackMapping
+  ) {
+    const { data } = await api.patch(
+      `/mappings/dependency-track/${id}`,
+      mapping
+    );
+    return data as DependencyTrackMapping;
   },
 };

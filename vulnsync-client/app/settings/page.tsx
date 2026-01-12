@@ -140,7 +140,7 @@ export default function SettingsPage() {
 
         {/* === INTEGRATIONS === */}
         <TabsContent value="integrations">
-          <div className="flex gap-6">
+          <div className="flex gap-4">
             {/* Sidebar */}
             <aside className="w-56 shrink-0 border rounded-md p-2 space-y-1">
               {INTEGRATIONS.map(({ type, label }) => {

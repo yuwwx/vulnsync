@@ -27,8 +27,8 @@ export class DefectDojoService {
     });
   }
 
-  async getFindings(productName: string): Promise<DefectDojoFindingDto[]> {
-    const findings = await this.client.getFindingsByProduct(productName);
+  async getFindings(productId: string): Promise<DefectDojoFindingDto[]> {
+    const findings = await this.client.getFindingsByProduct(productId);
 
     const findingsArray = Array.isArray(findings) ? findings : [findings];
 

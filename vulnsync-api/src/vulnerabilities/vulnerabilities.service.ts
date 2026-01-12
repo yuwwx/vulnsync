@@ -16,8 +16,8 @@ export class VulnerabilitiesService {
     return this.defectDojo.getProducts();
   }
 
-  async getVulnerabilities(productName: string) {
-    const findings = await this.defectDojo.getFindings(productName);
+  async getVulnerabilities(productId: string) {
+    const findings = await this.defectDojo.getFindings(productId);
 
     const externalIds = findings.map((f) => f.id.toString());
 

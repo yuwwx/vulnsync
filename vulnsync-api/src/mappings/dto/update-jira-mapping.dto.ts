@@ -4,6 +4,10 @@ import { IsString, IsOptional, IsObject } from 'class-validator';
 export class UpdateJiraMappingDto {
   @IsString()
   @IsOptional()
+  productType: string;
+
+  @IsString()
+  @IsOptional()
   projectKey?: string;
 
   @IsString()

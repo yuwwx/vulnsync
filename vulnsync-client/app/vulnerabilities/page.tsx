@@ -55,8 +55,8 @@ export default function VulnerabilitiesPage() {
             key={p?.id}
             className={`p-2 rounded cursor-pointer ${
               selectedProduct === p?.id
-                ? "bg-blue-500 text-white"
-                : "hover:bg-gray-100"
+                ? "bg-primary text-white"
+                : "hover:bg-muted"
             }`}
             onClick={() => loadVulnerabilities(p?.id)}
           >
@@ -65,21 +65,24 @@ export default function VulnerabilitiesPage() {
         ))}
       </ul>
 
-      {/* Основной контент — таблица уязвимостей */}
       <div className="flex-1">
         <h1 className="text-2xl font-bold mb-4">Vulnerabilities</h1>
-        {error && (
-          <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
-        )}
 
         {loading ? (
           <div>Loading vulnerabilities…</div>
+        ) : error ? (
+          <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
+        ) : !selectedProduct ? (
+          <div className="text-gray-500">
+            Select a product to configure integrations.
+          </div>
         ) : vulns.length === 0 && selectedProduct ? (
           <div>No vulnerabilities found for this product.</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Severity</TableHead>
                 <TableHead>Status</TableHead>
@@ -90,6 +93,7 @@ export default function VulnerabilitiesPage() {
             <TableBody>
               {vulns.map((v) => (
                 <TableRow key={v.id}>
+                  <TableCell>{v.id}</TableCell>
                   <TableCell>{v.title}</TableCell>
                   <TableCell>
                     <SeverityBadge severity={v.severity} />
@@ -128,6 +132,7 @@ export default function VulnerabilitiesPage() {
 
 function SeverityBadge({ severity }: { severity: string }) {
   const colors: Record<string, string> = {
+    Info: "bg-gray-200 text-gray-800",
     Low: "bg-green-200 text-green-800",
     Medium: "bg-yellow-200 text-yellow-800",
     High: "bg-orange-200 text-orange-800",

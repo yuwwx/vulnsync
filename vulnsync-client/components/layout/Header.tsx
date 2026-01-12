@@ -17,10 +17,13 @@ const navItems = [
 export function Header() {
   const pathname = usePathname();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
 
-  // проверяем токен на клиенте
   useEffect(() => {
-    setIsAuthenticated(!!localStorage.getItem("access_token"));
+    const token = localStorage.getItem("access_token");
+    const user = localStorage.getItem("username");
+    setIsAuthenticated(!!token);
+    setUsername(user);
   }, []);
 
   function logout() {
@@ -37,7 +40,7 @@ export function Header() {
           VulnSync
         </Link>
 
-        {/* Navigation — только если вошёл */}
+        {/* Navigation */}
         {isAuthenticated && (
           <nav className="flex gap-6">
             {navItems.map((item) => (
@@ -55,16 +58,22 @@ export function Header() {
           </nav>
         )}
 
-        {/* Auth button */}
-        {isAuthenticated ? (
-          <Button variant="outline" size="sm" onClick={logout}>
-            Logout
-          </Button>
-        ) : (
-          <Button size="sm" asChild>
-            <Link href="/login">Login</Link>
-          </Button>
-        )}
+        {/* Auth info */}
+        <div className="flex items-center gap-2">
+          {isAuthenticated && username && (
+            <span className="text-sm text-muted-foreground">{username}</span>
+          )}
+
+          {isAuthenticated ? (
+            <Button variant="outline" size="sm" onClick={logout}>
+              Logout
+            </Button>
+          ) : (
+            <Button size="sm" asChild>
+              <Link href="/login">Login</Link>
+            </Button>
+          )}
+        </div>
       </div>
     </header>
   );

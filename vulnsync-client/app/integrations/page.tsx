@@ -38,8 +38,8 @@ export default function IntegrationsPage() {
             key={p.id}
             className={`p-2 rounded cursor-pointer ${
               selectedProduct === p.id
-                ? "bg-blue-500 text-white"
-                : "hover:bg-gray-100"
+                ? "bg-primary text-white"
+                : "hover:bg-muted"
             }`}
             onClick={() => setSelectedProduct(p.id)}
           >
@@ -48,10 +48,8 @@ export default function IntegrationsPage() {
         ))}
       </ul>
 
-      {/* Основной контент */}
-      <div className="flex-1 space-y-4">
+      <div className="flex-1">
         <h1 className="text-2xl font-bold mb-4">Integrations</h1>
-
         {loading ? (
           <div>Loading products…</div>
         ) : error ? (
@@ -75,11 +73,19 @@ export default function IntegrationsPage() {
             </TabsList>
 
             <TabsContent value="defectDojoJira">
-              <DefectDojoJiraTab productId={selectedProduct} />
+              {selectedProduct && (
+                <DefectDojoJiraTab
+                  product={products.find((p) => p.id === selectedProduct)!}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="dependencyTrack">
-              <DependencyTrackTab productId={selectedProduct} />
+              {selectedProduct && (
+                <DependencyTrackTab
+                  product={products.find((p) => p.id === selectedProduct)!}
+                />
+              )}
             </TabsContent>
           </Tabs>
         )}

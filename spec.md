@@ -27,7 +27,7 @@ VulnSync
 
 ## Уязвимости
 
-Список продуктов DefectDojo (DefectDojo `GET /api/v2/products`)
+Список продуктов DefectDojo (DefectDojo `GET /api/v2/product_types`)
 Список уязвимостей выбранного продукта (DefectDojo `GET /api/v2/findings?product_name=name`)
 Кнопка Создать задачу в Jira создаёт одну issue по выбранной уязвимости, если настроен маппинг (Jira `POST /rest/api/2/issue/`)
 Статус каждой уязвимости: отправлена / не отправлена (информация из своей БД)
@@ -41,7 +41,7 @@ VulnSync
 
 ### Dependency-Track -> DefectDojo:
 
-Выбор проекта Dependency-Track (Dependency-Track `GET /api/v1/project?excludeInactive=true`) и продукта DefectDojo (DefectDojo `GET /api/v2/products`)
+Выбор проекта Dependency-Track (Dependency-Track `GET /api/v1/project?excludeInactive=true`) и продукта DefectDojo (DefectDojo `GET /api/v2/product_types`)
 Кнопка Импортировать уязвимости экспортирует узявимости проекта из Dependency-Track (Dependency-Track `GET /api/v1/finding/project/{uuid}/export`) и импортирует в DefectDojo (DefectDojo `POST /api/v2/import-scan/`)
 
 ## Настройки
