@@ -1,11 +1,10 @@
-// services/settings.service.ts
 import { api } from "./api";
 
 export interface IntegrationSetting {
   id?: string;
   type: string;
   baseUrl: string;
-  apiToken?: string;
+  hasToken?: boolean; // приходит с бэка, не для отправки
 }
 
 export const SettingsService = {
@@ -14,16 +13,24 @@ export const SettingsService = {
     return data;
   },
 
-  async save(setting: IntegrationSetting) {
+  async save(setting: IntegrationSetting & { apiToken?: string }) {
+    const payload: { baseUrl: string; apiToken?: string } = {
+      baseUrl: setting.baseUrl,
+    };
+
+    if (setting.apiToken) {
+      payload.apiToken = setting.apiToken;
+    }
+
     if (setting.id) {
       const { data } = await api.patch(
         `/settings/integrations/${setting.id}`,
-        setting
+        payload
       );
       return data;
     }
 
-    const { data } = await api.post("/settings/integrations", setting);
+    const { data } = await api.post("/settings/integrations", payload);
     return data;
   },
 };

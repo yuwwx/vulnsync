@@ -13,8 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { normalizeIntegrations } from "@/mappers/integrations.mapper";
 
+// Импортируем sonner
+import { toast } from "sonner";
+
+interface IntegrationUI extends IntegrationSetting {
+  apiTokenInput?: string;
+}
+
 export default function SettingsPage() {
-  const [data, setData] = useState<Record<IntegrationType, IntegrationSetting>>(
+  const [data, setData] = useState<Record<IntegrationType, IntegrationUI>>(
     {} as any
   );
   const [loading, setLoading] = useState(true);
@@ -25,7 +32,13 @@ export default function SettingsPage() {
     SettingsService.getAll()
       .then((list) => {
         const normalized = normalizeIntegrations(list);
-        setData(normalized);
+        const withInput = Object.fromEntries(
+          Object.entries(normalized).map(([type, setting]) => [
+            type,
+            { ...setting, apiTokenInput: "" },
+          ])
+        );
+        setData(withInput);
 
         if (!list || list.length === 0) {
           setError("No integration settings found.");
@@ -39,7 +52,7 @@ export default function SettingsPage() {
 
   const update = (
     type: IntegrationType,
-    field: keyof IntegrationSetting,
+    field: keyof IntegrationUI,
     value: string
   ) => {
     setData((prev) => ({
@@ -51,16 +64,27 @@ export default function SettingsPage() {
   const save = async (type: IntegrationType) => {
     setSaving(type);
     try {
-      const saved = await SettingsService.save(data[type]);
-      setData((prev) => ({ ...prev, [type]: saved }));
-    } catch {
-      setError(`Failed to save settings for ${type}`);
+      const setting = data[type];
+      const payload = {
+        ...setting,
+        apiToken: setting.apiTokenInput?.trim() || undefined,
+      };
+      const saved = await SettingsService.save(payload);
+
+      setData((prev) => ({
+        ...prev,
+        [type]: { ...saved, apiTokenInput: "" },
+      }));
+
+      // Показываем успешное уведомление
+      toast.success(`Settings for ${type} saved successfully!`);
+    } catch (err) {
+      // Показываем ошибку
+      toast.error(`Failed to save settings for ${type}`);
     } finally {
       setSaving(null);
     }
   };
-
-  if (loading) return <div>Loading…</div>;
 
   return (
     <div className="p-6 space-y-6">
@@ -70,54 +94,63 @@ export default function SettingsPage() {
         <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
       )}
 
-      <Tabs defaultValue={INTEGRATIONS[0].type}>
-        <TabsList>
+      {loading ? (
+        <div>Loading...</div>
+      ) : (
+        <Tabs defaultValue={INTEGRATIONS[0].type}>
+          <TabsList>
+            {INTEGRATIONS.map(({ type, label }) => {
+              const setting = data[type];
+              const configured =
+                !!setting?.baseUrl && !!setting?.hasToken ? "✅" : "❌";
+
+              return (
+                <TabsTrigger key={type} value={type}>
+                  {label} {configured}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
           {INTEGRATIONS.map(({ type, label }) => {
             const setting = data[type];
-            const configured =
-              !!setting?.baseUrl && !!setting?.apiToken ? "✅" : "❌";
 
             return (
-              <TabsTrigger key={type} value={type}>
-                {label} {configured}
-              </TabsTrigger>
+              <TabsContent key={type} value={type}>
+                <Card className="max-w-xl">
+                  <CardHeader>
+                    <CardTitle>{label}</CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    <Input
+                      placeholder="Base URL"
+                      value={setting?.baseUrl ?? ""}
+                      onChange={(e) => update(type, "baseUrl", e.target.value)}
+                    />
+
+                    <Input
+                      type="password"
+                      placeholder="API Token"
+                      value={setting?.apiTokenInput ?? ""}
+                      onChange={(e) =>
+                        update(type, "apiTokenInput", e.target.value)
+                      }
+                    />
+
+                    <Button
+                      onClick={() => save(type)}
+                      disabled={saving === type}
+                    >
+                      {saving === type ? "Saving…" : "Save"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
             );
           })}
-        </TabsList>
-
-        {INTEGRATIONS.map(({ type, label }) => {
-          const setting = data[type];
-
-          return (
-            <TabsContent key={type} value={type}>
-              <Card className="max-w-xl">
-                <CardHeader>
-                  <CardTitle>{label}</CardTitle>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  <Input
-                    placeholder="Base URL"
-                    value={setting?.baseUrl ?? ""}
-                    onChange={(e) => update(type, "baseUrl", e.target.value)}
-                  />
-
-                  <Input
-                    type="password"
-                    placeholder="API Token"
-                    value={setting?.apiToken ?? ""}
-                    onChange={(e) => update(type, "apiToken", e.target.value)}
-                  />
-
-                  <Button onClick={() => save(type)} disabled={saving === type}>
-                    {saving === type ? "Saving…" : "Save"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          );
-        })}
-      </Tabs>
+        </Tabs>
+      )}
     </div>
   );
 }

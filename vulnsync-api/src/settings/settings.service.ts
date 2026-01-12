@@ -6,24 +6,29 @@ import {
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateIntegrationSettingDto } from './dto/create-integration-setting.dto';
 import { UpdateIntegrationSettingDto } from './dto/update-integration-setting.dto';
-import { LogsService } from '@/logs/logs.service';
 
 @Injectable()
 export class SettingsService {
-  constructor(
-    private prisma: PrismaService,
-    private logs: LogsService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async getAll() {
-    return this.prisma.integrationSetting.findMany({
+    const settings = await this.prisma.integrationSetting.findMany({
       select: {
         id: true,
         type: true,
         baseUrl: true,
-        createdAt: true,
+        apiToken: true,
+        updatedAt: true,
       },
     });
+
+    return settings.map((s) => ({
+      id: s.id,
+      type: s.type,
+      baseUrl: s.baseUrl,
+      updatedAt: s.updatedAt,
+      hasToken: !!s.apiToken,
+    }));
   }
 
   async getByType(type: string) {
@@ -80,6 +85,7 @@ export class SettingsService {
       id: updated.id,
       type: updated.type,
       baseUrl: updated.baseUrl,
+      hasToken: !!updated.apiToken,
     };
   }
 

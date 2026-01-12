@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
+import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +18,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "VulnSync - Синхронизация уязвимостей",
-  description: "Сервис для ручной синхронизации уязвимостей между внешними системами",
+  description:
+    "Сервис для ручной синхронизации уязвимостей между внешними системами",
 };
 
 export default function RootLayout({
@@ -31,9 +33,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}
       >
         <Header />
-        <main className="container mx-auto py-6">
-          {children}
-        </main>
+        <main className="container mx-auto py-6">{children}</main>
+        <Toaster />
       </body>
     </html>
   );
