@@ -30,19 +30,18 @@ export default function VulnerabilitiesPage() {
     IntegrationsService.getDefectDojoProducts()
       .then(setProducts)
       .catch((err) => {
-        setError("Failed to load products.");
+        setError(`Failed to load products: ${err}`);
       })
       .catch(console.error);
   }, []);
 
-  // Функция для явного запроса уязвимостей
   const loadVulnerabilities = (productId: string) => {
     setSelectedProduct(productId);
     setLoading(true);
     VulnerabilitiesService.getVulnerabilities(productId)
       .then(setVulns)
       .catch((err) => {
-        setError("Failed to load products.");
+        setError(`Failed to load vulnerabilities: ${err}`);
       })
       .finally(() => setLoading(false));
   };

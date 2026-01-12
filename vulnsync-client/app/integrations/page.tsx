@@ -25,7 +25,7 @@ export default function IntegrationsPage() {
   useEffect(() => {
     IntegrationsService.getDefectDojoProducts()
       .then(setProducts)
-      .catch(() => setError("Failed to load products"))
+      .catch((err) => setError(`Failed to load products: ${err}`))
       .finally(() => setLoading(false));
   }, []);
 

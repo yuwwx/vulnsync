@@ -12,7 +12,7 @@ export default function LogsPage() {
   useEffect(() => {
     LogsService.getLatest()
       .then(setLogs)
-      .catch(() => setError("Failed to load logs."))
+      .catch((err) => setError(`Failed to load logs: ${err}`))
       .finally(() => setLoading(false));
   }, []);
 

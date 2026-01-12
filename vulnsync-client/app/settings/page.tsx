@@ -31,8 +31,8 @@ export default function SettingsPage() {
           setError("No integration settings found.");
         }
       })
-      .catch(() => {
-        setError("Failed to load integration settings.");
+      .catch((err) => {
+        setError(`Failed to load integration settings: ${err}`);
       })
       .finally(() => setLoading(false));
   }, []);

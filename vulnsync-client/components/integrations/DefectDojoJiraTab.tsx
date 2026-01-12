@@ -31,7 +31,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
           }
         )
       )
-      .catch(() => setError("Failed to load Jira mapping"))
+      .catch((err) => setError(`Failed to load Jira mapping: ${err}`))
       .finally(() => setLoading(false));
   }, [product]);
 

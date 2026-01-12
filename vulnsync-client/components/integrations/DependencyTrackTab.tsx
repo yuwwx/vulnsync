@@ -26,7 +26,9 @@ export default function DependencyTrackTab({ product }: Props) {
       .then((m) =>
         setMapping(m ?? { productId: product.id, dtProject: "", ddProduct: "" })
       )
-      .catch(() => setError("Failed to load Dependency-Track mapping"))
+      .catch((err) =>
+        setError(`Failed to load Dependency-Track mapping: ${err}`)
+      )
       .finally(() => setLoading(false));
   }, [product]);
 
