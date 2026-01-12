@@ -18,7 +18,7 @@ export class DependencyTrackService {
     return projects;
   }
 
-  async exportProjectFindings(
+  async importProjectFindings(
     projectUuid: string,
     defectDojoProductId: number,
   ) {

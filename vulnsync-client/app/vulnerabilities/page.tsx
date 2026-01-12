@@ -16,16 +16,23 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { IntegrationsService } from "@/services/integrations.service";
 
 export default function VulnerabilitiesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Загружаем только список продуктов
   useEffect(() => {
-    VulnerabilitiesService.getProducts().then(setProducts).catch(console.error);
+    IntegrationsService.getDefectDojoProducts()
+      .then(setProducts)
+      .catch((err) => {
+        setError("Failed to load products.");
+      })
+      .catch(console.error);
   }, []);
 
   // Функция для явного запроса уязвимостей
@@ -34,6 +41,9 @@ export default function VulnerabilitiesPage() {
     setLoading(true);
     VulnerabilitiesService.getVulnerabilities(productId)
       .then(setVulns)
+      .catch((err) => {
+        setError("Failed to load products.");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -59,6 +69,9 @@ export default function VulnerabilitiesPage() {
       {/* Основной контент — таблица уязвимостей */}
       <div className="flex-1">
         <h1 className="text-2xl font-bold mb-4">Vulnerabilities</h1>
+        {error && (
+          <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
+        )}
 
         {loading ? (
           <div>Loading vulnerabilities…</div>

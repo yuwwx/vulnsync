@@ -4,7 +4,7 @@ import { DependencyTrackService } from './dependency-track.service';
 import { ExportProjectDto } from './dto/export-project.dto';
 import { LogAction } from '@/common/decorators/logAction.decorator';
 
-@Controller('dependency-track')
+@Controller('integrations/dependency-track')
 export class DependencyTrackController {
   constructor(private service: DependencyTrackService) {}
 
@@ -17,7 +17,7 @@ export class DependencyTrackController {
   @LogAction('DEPENDENCY_TRACK_EXPORT')
   @Post('export')
   importProject(@Body() dto: ExportProjectDto) {
-    return this.service.exportProjectFindings(
+    return this.service.importProjectFindings(
       dto.projectUuid,
       dto.defectDojoProductId,
     );

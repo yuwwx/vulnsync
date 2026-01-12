@@ -1,54 +1,102 @@
-// defectdojo.client.ts
+// src/integrations/defectdojo/defectdojo.client.ts
 import axios, { AxiosInstance } from 'axios';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { IntegrationType } from '@/common/enums/integration-type.enum';
 import { PrismaService } from '@/prisma/prisma.service';
 
+interface DojoProduct {
+  id: number;
+  name: string;
+  description: string;
+  // другие поля по необходимости
+}
+
+interface DojoFinding {
+  id: number;
+  title: string;
+  severity: string;
+  // другие поля по необходимости
+}
+
 @Injectable()
 export class DefectDojoClient {
-  private axios: AxiosInstance;
+  private axiosInstance: AxiosInstance | null = null;
 
   constructor(private prisma: PrismaService) {}
 
   private async getClient(): Promise<AxiosInstance> {
+    if (this.axiosInstance) return this.axiosInstance;
+
     const config = await this.prisma.integrationSetting.findFirst({
       where: { type: IntegrationType.DEFECTDOJO },
     });
 
     if (!config) {
       throw new InternalServerErrorException(
-        'DefectDojo integration not configured',
+        'DefectDojo integration is not configured',
       );
     }
 
-    if (!this.axios) {
-      this.axios = axios.create({
-        baseURL: config.baseUrl,
-        headers: {
-          Authorization: `Token ${config.apiToken}`,
-        },
-      });
-    }
-
-    return this.axios;
-  }
-
-  async getProducts() {
-    const client = await this.getClient();
-    const { data } = await client.get('/api/v2/products/');
-    return data.results;
-  }
-
-  async getFindingsByProduct(productName: string) {
-    const client = await this.getClient();
-    const { data } = await client.get('/api/v2/findings/', {
-      params: { product_name: productName },
+    this.axiosInstance = axios.create({
+      baseURL: config.baseUrl,
+      headers: {
+        Authorization: `Token ${config.apiToken}`,
+      },
     });
-    return data.results;
+
+    return this.axiosInstance;
   }
 
-  async importScan(payload: any) {
+  async getProducts(): Promise<DojoProduct[]> {
     const client = await this.getClient();
-    return client.post('/api/v2/import-scan/', payload);
+
+    try {
+      const { data } = await client.get('/api/v2/products/');
+      if (!data || !Array.isArray(data.results)) {
+        throw new InternalServerErrorException(
+          'Invalid response from DefectDojo products API',
+        );
+      }
+      return data.results;
+    } catch (err: any) {
+      throw new InternalServerErrorException(
+        `Failed to fetch products from DefectDojo: ${err.message || err}`,
+      );
+    }
+  }
+
+  async getFindingsByProduct(productName: string): Promise<DojoFinding[]> {
+    const client = await this.getClient();
+
+    try {
+      const { data } = await client.get('/api/v2/findings/', {
+        params: { product_name: productName },
+      });
+
+      if (!data || !Array.isArray(data.results)) {
+        throw new InternalServerErrorException(
+          'Invalid response from DefectDojo findings API',
+        );
+      }
+
+      return data.results;
+    } catch (err: any) {
+      throw new InternalServerErrorException(
+        `Failed to fetch findings for product "${productName}": ${err.message || err}`,
+      );
+    }
+  }
+
+  async importScan(payload: any): Promise<any> {
+    const client = await this.getClient();
+
+    try {
+      const { data } = await client.post('/api/v2/import-scan/', payload);
+      return data;
+    } catch (err: any) {
+      throw new InternalServerErrorException(
+        `Failed to import scan into DefectDojo: ${err.message || err}`,
+      );
+    }
   }
 }

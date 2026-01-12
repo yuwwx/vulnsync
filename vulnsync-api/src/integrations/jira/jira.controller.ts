@@ -4,7 +4,7 @@ import { JiraService } from './jira.service';
 import { CreateJiraIssueDto } from './dto/create-jira-issue.dto';
 import { LogAction } from '@/common/decorators/logAction.decorator';
 
-@Controller('jira')
+@Controller('integrations/jira')
 export class JiraController {
   constructor(private jiraService: JiraService) {}
 
