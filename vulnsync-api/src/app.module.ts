@@ -15,6 +15,7 @@ import { JwtAuthGuard } from './common/guards/auth.guard';
 import { LogsModule } from './logs/logs.module';
 
 import { ConfigModule } from '@nestjs/config';
+import { MappingsModule } from './mappings/mappings.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ConfigModule } from '@nestjs/config';
     JiraModule,
     DependencyTrackModule,
     DefectDojoModule,
+    MappingsModule,
   ],
   providers: [
     {

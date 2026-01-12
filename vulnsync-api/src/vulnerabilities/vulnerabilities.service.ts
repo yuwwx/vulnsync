@@ -2,7 +2,6 @@
 import { Injectable } from '@nestjs/common';
 import { SyncStatus } from './enums/sync-status.enum';
 import { VulnerabilityDto } from './dto/vulnerability.dto';
-import { LogsService } from '@/logs/logs.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { DefectDojoService } from '@/integrations/defectdojo/defectdojo.service';
 
@@ -11,7 +10,6 @@ export class VulnerabilitiesService {
   constructor(
     private prisma: PrismaService,
     private defectDojo: DefectDojoService,
-    private logs: LogsService,
   ) {}
 
   async getProducts() {
