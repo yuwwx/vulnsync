@@ -17,7 +17,7 @@ export default function LogsPage() {
   }, []);
 
   if (loading) {
-    return <div className="text-muted-foreground">Loading logs…</div>;
+    return <div className="text-muted-foreground">Загружаем события…</div>;
   }
 
   if (error) {
@@ -28,7 +28,7 @@ export default function LogsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Logs</h1>
+      <h1 className="text-2xl font-bold">События</h1>
 
       <div className="rounded-md border">
         <LogsTable logs={logs} />

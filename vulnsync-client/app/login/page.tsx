@@ -10,9 +10,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   async function submit(e: React.FormEvent) {
-    e.preventDefault(); // ⛔️ чтобы не было перезагрузки страницы
+    e.preventDefault();
     await AuthService.login({ username, password });
-    window.location.href = "/vulnerabilities";
+    window.location.href = "/settings";
   }
 
   return (

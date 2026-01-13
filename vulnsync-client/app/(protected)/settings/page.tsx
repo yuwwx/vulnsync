@@ -130,7 +130,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <h1 className="text-2xl font-bold">Параметры</h1>
 
       {error && (
         <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
@@ -139,15 +139,15 @@ export default function SettingsPage() {
       {/* Верхние вкладки */}
       <Tabs defaultValue="integrations">
         <TabsList>
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="personal">Personal</TabsTrigger>
+          <TabsTrigger value="integrations">Интеграционные</TabsTrigger>
+          <TabsTrigger value="personal">Пользовательские</TabsTrigger>
         </TabsList>
 
         {/* === INTEGRATIONS === */}
         <TabsContent value="integrations">
           <div className="flex gap-4">
             {/* Sidebar */}
-            <aside className="w-56 shrink-0 border rounded-md p-2 space-y-1">
+            <aside className="w-56 shrink-0 border rounded-md p-2 space-y-1 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
               {INTEGRATIONS.map(({ type, label }) => {
                 const setting = data[type];
                 const configured = !!setting?.baseUrl && !!setting?.hasSecret;
@@ -203,7 +203,9 @@ export default function SettingsPage() {
                       onClick={() => save(activeIntegration)}
                       disabled={saving === activeIntegration}
                     >
-                      {saving === activeIntegration ? "Saving…" : "Save"}
+                      {saving === activeIntegration
+                        ? "Сохранение..."
+                        : "Сохранить"}
                     </Button>
                   </CardContent>
                 </Card>

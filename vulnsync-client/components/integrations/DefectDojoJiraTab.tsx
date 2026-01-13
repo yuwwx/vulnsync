@@ -143,10 +143,10 @@ export default function DefectDojoJiraTab({ product }: Props) {
       }));
       setFields(rows);
 
-      toast.success("Jira mapping saved successfully");
+      toast.success("Маппинг Jira успешно сохранен");
     } catch (err: any) {
-      setError(err.message || "Failed to save mapping");
-      toast.error("Failed to save Jira mapping");
+      setError(err.message || "Не удалось сохранить маппинг Jira");
+      toast.error("е удалось сохранить маппинг Jira");
     } finally {
       setSaving(false);
     }
@@ -167,7 +167,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
         />
         {!mapping?.projectKey?.trim() && (
           <p className="text-xs text-destructive mt-1">
-            Project Key is required
+            Параметр Project Key обязателен
           </p>
         )}
       </div>
@@ -179,7 +179,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
         />
         {!mapping?.issueType?.trim() && (
           <p className="text-xs text-destructive mt-1">
-            Issue Type is required
+            Параметр Issue Type обязателен
           </p>
         )}
       </div>
@@ -221,7 +221,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
                   size="sm"
                   onClick={() => removeRow(i)}
                 >
-                  Delete
+                  Удалить
                 </Button>
               </TableCell>
             </TableRow>
@@ -230,10 +230,10 @@ export default function DefectDojoJiraTab({ product }: Props) {
       </Table>
       <div className="flex flex-col gap-3">
         <Button variant="ghost" className="mt-2" onClick={addRow}>
-          + Add Field
+          + Добавить поле
         </Button>
         <Button onClick={save} disabled={saving}>
-          {saving ? "Saving…" : "Save Mapping"}
+          {saving ? "Сохранение…" : "Сохранить маппинг"}
         </Button>
       </div>
     </div>

@@ -32,11 +32,11 @@ export default function IntegrationsPage() {
   return (
     <div className="flex gap-6">
       {/* Сайдбар продуктов */}
-      <ul className="w-48 border rounded-md p-2 space-y-2">
+      <ul className="w-48 border rounded-md p-2 space-y-2 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
         {products.map((p) => (
           <li
             key={p.id}
-            className={`p-2 rounded cursor-pointer ${
+            className={`p-2 rounded cursor-pointer text-sm font-medium ${
               selectedProduct === p.id
                 ? "bg-neutral-600 text-white"
                 : "hover:bg-muted"
@@ -49,14 +49,14 @@ export default function IntegrationsPage() {
       </ul>
 
       <div className="flex-1">
-        <h1 className="text-2xl font-bold mb-4">Integrations</h1>
+        <h1 className="text-2xl font-bold mb-4">Интеграции</h1>
         {loading ? (
-          <div>Loading products…</div>
+          <div>Загружаем продукты…</div>
         ) : error ? (
           <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
         ) : !selectedProduct ? (
           <div className="text-neutral-500">
-            Select a product to configure integrations.
+            Выберите продукт для настройки интеграций
           </div>
         ) : (
           <Tabs

@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 import { AuthService } from "@/services/auth.service";
 
 const navItems = [
-  { href: "/logs", label: "Logs" },
-  { href: "/vulnerabilities", label: "Vulnerabilities" },
-  { href: "/integrations", label: "Integrations" },
-  { href: "/settings", label: "Settings" },
+  { href: "/vulnerabilities", label: "Уязвимости" },
+  { href: "/integrations", label: "Интеграции" },
+  { href: "/settings", label: "Параметры" },
+  { href: "/logs", label: "События" },
 ];
 
 export function Header() {
@@ -66,11 +66,11 @@ export function Header() {
 
           {isAuthenticated ? (
             <Button variant="outline" size="sm" onClick={logout}>
-              Logout
+              Выйти
             </Button>
           ) : (
             <Button size="sm" asChild>
-              <Link href="/login">Login</Link>
+              <Link href="/login">Войти</Link>
             </Button>
           )}
         </div>

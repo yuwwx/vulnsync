@@ -7,10 +7,17 @@ export interface LoginDto {
 
 export const AuthService = {
   async login(dto: LoginDto) {
-    const { data } = await api.post("/auth/login", dto);
-    localStorage.setItem("access_token", data.access_token);
-    localStorage.setItem("username", data.username);
-    return data;
+    try {
+      const { data } = await api.post("/auth/login", dto);
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("username", data.username);
+      return data;
+    } catch (e: any) {
+      if (e.response?.status === 401) {
+        throw new Error("Invalid username or password");
+      }
+      throw e;
+    }
   },
 
   async me() {
@@ -20,5 +27,6 @@ export const AuthService = {
 
   logout() {
     localStorage.removeItem("access_token");
+    localStorage.removeItem("username");
   },
 };
