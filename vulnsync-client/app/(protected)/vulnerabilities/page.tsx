@@ -1,23 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { vulnerabilityColumns } from "@/components/vulnerabilities/vulnerabilities-columns";
+import { VulnerabilitiesTable } from "@/components/vulnerabilities/vulnerabilities-table";
+import { IntegrationsService } from "@/services/integrations.service";
 import {
-  VulnerabilitiesService,
   Product,
+  VulnerabilitiesService,
   Vulnerability,
 } from "@/services/vulnerabilities.service";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { IntegrationsService } from "@/services/integrations.service";
-import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 export default function VulnerabilitiesPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -40,7 +31,10 @@ export default function VulnerabilitiesPage() {
     setSelectedProduct(productId);
     setLoading(true);
     VulnerabilitiesService.getVulnerabilities(productId)
-      .then(setVulns)
+      .then((data) => {
+        const withProductId = data.map((v) => ({ ...v, productId }));
+        setVulns(withProductId);
+      })
       .catch((err) => {
         setError(`Failed to load vulnerabilities: ${err}`);
       })
@@ -80,88 +74,16 @@ export default function VulnerabilitiesPage() {
         ) : vulns.length === 0 && selectedProduct ? (
           <div>Не найдены уязвимости для выбранного продукта</div>
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Название</TableHead>
-                  <TableHead>Критичность</TableHead>
-                  <TableHead>Состояние</TableHead>
-                  <TableHead>Действие</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {vulns.map((v) => (
-                  <TableRow key={v.id}>
-                    <TableCell>{v.id}</TableCell>
-                    <TableCell>{v.title}</TableCell>
-                    <TableCell>
-                      <SeverityBadge severity={v.severity} />
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={v.status} />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        disabled={v.status === "SENT"}
-                        onClick={async () => {
-                          try {
-                            await IntegrationsService.createJiraIssue({
-                              findingId: v.id,
-                              productId: String(selectedProduct),
-                            });
-
-                            setVulns((prev) =>
-                              prev.map((item) =>
-                                item.id === v.id
-                                  ? { ...item, status: "SENT" }
-                                  : item
-                              )
-                            );
-
-                            toast.success("Jira issue created successfully");
-                          } catch (err: any) {
-                            toast.error(
-                              err?.response?.data?.message ||
-                                "Failed to create Jira issue"
-                            );
-                          }
-                        }}
-                      >
-                        Отправить в Jira
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <VulnerabilitiesTable
+            data={vulns}
+            columns={vulnerabilityColumns((id) =>
+              setVulns((prev) =>
+                prev.map((v) => (v.id === id ? { ...v, status: "SENT" } : v))
+              )
+            )}
+          />
         )}
       </div>
     </div>
   );
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
-  const colors: Record<string, string> = {
-    Info: "bg-neutral-200 text-neutral-800",
-    Low: "bg-green-200 text-green-800",
-    Medium: "bg-yellow-200 text-yellow-800",
-    High: "bg-orange-200 text-orange-800",
-    Critical: "bg-red-200 text-red-800",
-  };
-  return (
-    <Badge className={colors[severity] ?? "bg-neutral-200"}>{severity}</Badge>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    SENT: "bg-blue-200 text-blue-800",
-    NOT_SENT: "bg-neutral-200 text-neutral-800",
-  };
-  return <Badge className={colors[status] ?? "bg-neutral-200"}>{status}</Badge>;
 }

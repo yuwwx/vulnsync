@@ -11,7 +11,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem("access_token");
 
     if (!token && pathname !== "/login") {
-      router.replace("/login");
+      window.location.href = "/login";
     }
   }, [pathname, router]);
 
