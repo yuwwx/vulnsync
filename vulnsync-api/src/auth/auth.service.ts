@@ -1,16 +1,14 @@
 // auth.service.ts
-import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { LogsService } from '@/logs/logs.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private logsService: LogsService,
   ) {}
 
   async login(user: any, req: any) {

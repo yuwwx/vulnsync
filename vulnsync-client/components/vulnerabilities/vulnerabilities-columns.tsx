@@ -1,62 +1,138 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
-import { Vulnerability } from "@/services/vulnerabilities.service";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IntegrationsService } from "@/services/integrations.service";
+import { Vulnerability } from "@/services/vulnerabilities.service";
+import { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "../ui/checkbox";
 
 export const vulnerabilityColumns = (
-  onSent: (id: string) => void
+  onSent: (id: string) => void,
+  onGenerateDescription: (vuln: Vulnerability) => void
 ): ColumnDef<Vulnerability>[] => [
   {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
     accessorKey: "id",
-    header: "ID",
-    cell: ({ row }) => <span className="font-mono">{row.getValue("id")}</span>,
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          ID
+          <ArrowUpDown />
+        </Button>
+      );
+    },
+    cell: ({ row }) => <span>{row.getValue("id")}</span>,
   },
   {
     accessorKey: "title",
-    header: "Название",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Название
+          <ArrowUpDown />
+        </Button>
+      );
+    },
+    cell: ({ row }) => <span>{row.getValue("title")}</span>,
   },
   {
     accessorKey: "severity",
-    header: "Критичность",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Критичность
+          <ArrowUpDown />
+        </Button>
+      );
+    },
     cell: ({ row }) => <SeverityBadge severity={row.getValue("severity")} />,
   },
   {
     accessorKey: "status",
-    header: "Статус",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Статус
+          <ArrowUpDown />
+        </Button>
+      );
+    },
     cell: ({ row }) => <StatusBadge status={row.getValue("status")} />,
   },
   {
     id: "actions",
-    header: "",
+    header: "Действия",
     enableSorting: false,
     cell: ({ row }) => {
       const vuln = row.original;
 
       return (
-        <Button
-          size="sm"
-          disabled={vuln.status === "SENT"}
-          onClick={async () => {
-            try {
-              await IntegrationsService.createJiraIssue({
-                findingId: vuln.id,
-                productId: String(vuln.productId),
-              });
-              onSent(vuln.id);
-              toast.success("Jira issue created");
-            } catch (err: any) {
-              toast.error(
-                err?.response?.data?.message || "Failed to create Jira issue"
-              );
-            }
-          }}
-        >
-          Отправить в Jira
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={vuln.status === "SENT"}
+            onClick={async () => {
+              try {
+                await IntegrationsService.createJiraIssue({
+                  findingId: vuln.id,
+                  productId: String(vuln.productId),
+                });
+                onSent(vuln.id);
+                toast.success("Jira issue created");
+              } catch (err: any) {
+                toast.error(
+                  err?.response?.data?.message || "Failed to create Jira issue"
+                );
+              }
+            }}
+          >
+            Отправить в Jira
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onGenerateDescription(vuln)}
+          >
+            Сгенерировать описание
+          </Button>
+        </div>
       );
     },
   },

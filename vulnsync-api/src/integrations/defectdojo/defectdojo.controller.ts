@@ -1,6 +1,6 @@
 // dependency-track.controller.ts
-import { Controller, Get, Post, Body, Req } from '@nestjs/common';
 import { LogAction } from '@/common/decorators/logAction.decorator';
+import { Controller, Get, Param } from '@nestjs/common';
 import { DefectDojoService } from './defectdojo.service';
 
 @Controller('integrations/defectdojo')
@@ -11,5 +11,17 @@ export class DefectDojoController {
   @Get('products')
   getProducts() {
     return this.service.getProducts();
+  }
+
+  @LogAction('DEFECTDOJO_GET_FINDINGS_BY_PRODUCT')
+  @Get('findings/:productId')
+  getFindingsByProduct(@Param('productId') productId: string) {
+    return this.service.getFindingsByProduct(productId);
+  }
+
+  @LogAction('DEFECTDOJO_GET_FINDING')
+  @Get('finding/:findingId')
+  getFinding(@Param('findingId') findingId: number) {
+    return this.service.getFinding(findingId);
   }
 }

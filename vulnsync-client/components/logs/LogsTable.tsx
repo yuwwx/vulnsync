@@ -65,7 +65,7 @@ export function LogsTable({ logs, pageSize = 15 }: Props) {
       {logs.length > pageSize && (
         <div className="flex items-center justify-between mt-2 px-4 py-2 border-t border-neutral-200 bg-neutral-50 rounded-b-md">
           <span className="text-sm text-neutral-600">
-            Showing {startIndex}–{endIndex} of {logs.length}
+            {startIndex}–{endIndex} из {logs.length}
           </span>
 
           <div className="flex gap-2">

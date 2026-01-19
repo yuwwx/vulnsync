@@ -54,7 +54,7 @@ export class DefectDojoClient {
       const { data } = await client.get('/api/v2/product_types/');
       if (!data || !Array.isArray(data.results)) {
         throw new InternalServerErrorException(
-          'Invalid response from DefectDojo products API',
+          'Invalid response from DefectDojo API',
         );
       }
       return data.results;
@@ -75,7 +75,7 @@ export class DefectDojoClient {
 
       if (!data || !Array.isArray(data.results)) {
         throw new InternalServerErrorException(
-          'Invalid response from DefectDojo findings API',
+          'Invalid response from DefectDojo API',
         );
       }
 
@@ -83,6 +83,24 @@ export class DefectDojoClient {
     } catch (err: any) {
       throw new InternalServerErrorException(
         `Failed to fetch findings for product "${productId}": ${err.message || err}`,
+      );
+    }
+  }
+
+  async getFinding(id: number): Promise<DojoFinding> {
+    const client = await this.getClient();
+
+    try {
+      const { data } = await client.get(`/api/v2/findings/${id}`);
+      if (!data) {
+        throw new InternalServerErrorException(
+          'Invalid response from DefectDojo API',
+        );
+      }
+      return data;
+    } catch (err: any) {
+      throw new InternalServerErrorException(
+        `Failed to fetch finding from DefectDojo: ${err.message || err}`,
       );
     }
   }

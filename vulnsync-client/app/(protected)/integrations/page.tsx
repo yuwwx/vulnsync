@@ -1,16 +1,12 @@
 // app/integrations/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  VulnerabilitiesService,
-  Product,
-} from "@/services/vulnerabilities.service";
-import { IntegrationsService } from "@/services/integrations.service";
 import DefectDojoJiraTab from "@/components/integrations/DefectDojoJiraTab";
 import DependencyTrackTab from "@/components/integrations/DependencyTrackTab";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { IntegrationsService } from "@/services/integrations.service";
+import { Product } from "@/services/vulnerabilities.service";
+import { useEffect, useState } from "react";
 
 export default function IntegrationsPage() {
   const [products, setProducts] = useState<Product[]>([]);

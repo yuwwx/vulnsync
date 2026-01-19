@@ -29,13 +29,11 @@ model IntegrationSetting {
 }
 
 model JiraMapping {
-  id          String @id @default(uuid())
-  productType String
-  projectKey  String
-  issueType   String
-  fields      Json
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String @id @default(uuid())
+  ddProductTypeId Int
+  fields          Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model VulnerabilitySync {

@@ -1,8 +1,16 @@
+// auth.service.ts
 import { api } from "./api";
 
 export interface LoginDto {
   username: string;
   password: string;
+}
+
+export class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AuthError";
+  }
 }
 
 export const AuthService = {
@@ -14,7 +22,7 @@ export const AuthService = {
       return data;
     } catch (e: any) {
       if (e.response?.status === 401) {
-        throw new Error("Invalid username or password");
+        throw new AuthError("Неверный логин или пароль");
       }
       throw e;
     }

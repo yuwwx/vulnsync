@@ -26,6 +26,11 @@ export const IntegrationsService = {
     return data;
   },
 
+  async getDefectDojoFinding(id: number): Promise<DefectDojoProduct[]> {
+    const { data } = await api.get(`/integrations/defectdojo/finding/${id}`);
+    return data;
+  },
+
   // Jira
   async createJiraIssue(payload: JiraIssuePayload) {
     const { data } = await api.post("/integrations/jira/issue", payload);

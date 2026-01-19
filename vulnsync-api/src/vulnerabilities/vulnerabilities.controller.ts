@@ -1,5 +1,5 @@
 // vulnerabilities.controller.ts
-import { Controller, Get, Param, Req } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { VulnerabilitiesService } from './vulnerabilities.service';
 import { LogAction } from '@/common/decorators/logAction.decorator';
 
