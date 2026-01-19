@@ -1,18 +1,10 @@
 // mappings/dto/update-jira-mapping.dto.ts
-import { IsString, IsOptional, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsObject, IsNumber } from 'class-validator';
 
 export class UpdateJiraMappingDto {
-  @IsString()
+  @IsNumber()
   @IsOptional()
-  productType: string;
-
-  @IsString()
-  @IsOptional()
-  projectKey?: string;
-
-  @IsString()
-  @IsOptional()
-  issueType?: string;
+  productType: number;
 
   @IsObject()
   @IsOptional()

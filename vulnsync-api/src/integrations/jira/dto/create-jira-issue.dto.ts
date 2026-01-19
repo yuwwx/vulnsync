@@ -6,5 +6,5 @@ export class CreateJiraIssueDto {
   findingId: number;
 
   @IsString()
-  productId: string;
+  productId: number;
 }

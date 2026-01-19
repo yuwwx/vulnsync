@@ -19,7 +19,7 @@ export class JiraMappingsController {
 
   @LogAction('JIRA_MAPPINGS_GET')
   @Get()
-  get(@Query('productType') productType?: string) {
+  get(@Query('productType') productType?: number) {
     if (productType) {
       return this.service.getByProductType(productType);
     }

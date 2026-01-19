@@ -13,4 +13,21 @@ export class DefectDojoFindingDto {
 
   @Expose()
   description: string;
+
+  @Expose()
+  date: string;
+
+  @Expose()
+  cvssv3_score?: number;
+
+  @Expose()
+  related_fields?: {
+    test?: {
+      engagement?: {
+        product?: {
+          name?: string;
+        };
+      };
+    };
+  };
 }

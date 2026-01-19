@@ -16,10 +16,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function VulnerabilitiesPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [selectedProductId, setselectedProductId] = useState<string | null>(
+    null
+  );
+
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
   const [loadingVulns, setLoadingVulns] = useState(false);
   const [loadingFinding, setLoadingFinding] = useState(false);
@@ -48,15 +57,84 @@ export default function VulnerabilitiesPage() {
     }
   }, []);
 
+  const handleSendToJira = useCallback(async (vuln) => {
+    try {
+      await IntegrationsService.createJiraIssue({
+        findingId: vuln.id,
+        productId: vuln.productId,
+      });
+      setVulns((prev) =>
+        prev.map((v) => (v.id === vuln.id ? { ...v, status: "SENT" } : v))
+      );
+      toast.success("Jira issue created");
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || "Failed to create Jira issue"
+      );
+    }
+  }, []);
+
+  function formatVulnerabilityLinks(vulnIds: any[] = []) {
+    return vulnIds
+      .map((v) => {
+        const id = v.vulnerability_id;
+
+        if (id.startsWith("CVE-")) {
+          return `https://nvd.nist.gov/vuln/detail/${id}`;
+        }
+
+        if (id.startsWith("GHSA-")) {
+          return `https://github.com/advisories/${id}`;
+        }
+
+        return id;
+      })
+      .join(" ");
+  }
+
+  function buildJiraDescription(finding: any) {
+    const vulnIds = (finding.vulnerability_ids ?? [])
+      .map((v: any) => v.vulnerability_id)
+      .join(", ");
+
+    const vulnerabilityLinks = formatVulnerabilityLinks(
+      finding.vulnerability_ids
+    );
+
+    const severity = [
+      finding.severity,
+      finding.cvssv3_score && `CVSS ${finding.cvssv3_score}/10`,
+      finding.cvssv3,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    return `
+**Название**
+${`[sca] ${finding.title ?? "—"}`}
+
+**Затронутые проекты**
+${finding.related_fields.test.engagement.product.name ?? "—"}
+
+**Уязвимые компоненты**
+${finding.file_path ?? "—"}
+
+**Идентификаторы уязвимости**
+${vulnIds || "—"}
+
+**Критичность**
+${severity || "—"}
+
+**Описание**
+${finding.description || "—"}
+
+**Ссылки**
+${vulnerabilityLinks || "—"}
+`.trim();
+  }
+
   const columns = useMemo(
-    () =>
-      vulnerabilityColumns(
-        (id) =>
-          setVulns((prev) =>
-            prev.map((v) => (v.id === id ? { ...v, status: "SENT" } : v))
-          ),
-        handleGenerateDescription
-      ),
+    () => vulnerabilityColumns(handleSendToJira, handleGenerateDescription),
     [handleGenerateDescription]
   );
 
@@ -70,9 +148,13 @@ export default function VulnerabilitiesPage() {
       .catch(console.error);
   }, []);
 
-  const loadVulnerabilities = (productId: string) => {
-    setSelectedProduct(productId);
+  const loadVulnerabilities = (product) => {
+    const productId = product?.id;
+
+    setselectedProductId(productId);
+
     setLoadingVulns(true);
+
     VulnerabilitiesService.getVulnerabilities(productId)
       .then((data) => {
         const withProductId = data.map((v) => ({ ...v, productId }));
@@ -84,6 +166,8 @@ export default function VulnerabilitiesPage() {
       .finally(() => setLoadingVulns(false));
   };
 
+  const jiraText = finding ? buildJiraDescription(finding) : "";
+
   return (
     <>
       <div className="flex gap-6">
@@ -93,11 +177,11 @@ export default function VulnerabilitiesPage() {
             <li
               key={p?.id}
               className={`p-2 rounded cursor-pointer text-sm font-medium ${
-                selectedProduct === p?.id
+                selectedProductId === p?.id
                   ? "bg-neutral-600 text-white"
                   : "hover:bg-muted"
               }`}
-              onClick={() => loadVulnerabilities(p?.id)}
+              onClick={() => loadVulnerabilities(p)}
             >
               {p?.name}
             </li>
@@ -113,11 +197,11 @@ export default function VulnerabilitiesPage() {
             <div className="p-4 text-red-700 bg-red-100 rounded-md">
               {error}
             </div>
-          ) : !selectedProduct ? (
+          ) : !selectedProductId ? (
             <div className="text-neutral-500">
               Выберите продукт для работы с уязвимостями
             </div>
-          ) : vulns.length === 0 && selectedProduct ? (
+          ) : vulns.length === 0 && selectedProductId ? (
             <div>Не найдены уязвимости для выбранного продукта</div>
           ) : (
             <VulnerabilitiesTable columns={columns} data={vulns} />
@@ -125,18 +209,32 @@ export default function VulnerabilitiesPage() {
         </div>
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Описание уязвимости</DialogTitle>
           </DialogHeader>
           {loadingFinding || !finding ? (
             <div className="text-sm text-muted-foreground">Загрузка…</div>
           ) : (
-            <div className="space-y-4 text-sm flex justify-center">
-              <pre className="whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[70vh] overflow-auto sm:max-w-lg">
-                {JSON.stringify(finding, null, 2)}
-              </pre>
-            </div>
+            <>
+              <div className="space-y-6 text-sm">
+                <pre className="whitespace-pre-wrap break-all overflow-x-hidden w-full font-sans">
+                  {jiraText}
+                </pre>
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="raw">
+                    <AccordionTrigger>Raw finding (JSON)</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4 text-sm flex justify-center">
+                        <pre className="whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[70vh] overflow-x-auto sm:max-w-lg">
+                          {JSON.stringify(finding, null, 2)}
+                        </pre>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>

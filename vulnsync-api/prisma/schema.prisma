@@ -30,7 +30,7 @@ model IntegrationSetting {
 
 model JiraMapping {
   id              String @id @default(uuid())
-  ddProductTypeId Int
+  ddProductTypeId Int?
   fields          Json
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

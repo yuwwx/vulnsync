@@ -15,7 +15,7 @@ export class DefectDojoController {
 
   @LogAction('DEFECTDOJO_GET_FINDINGS_BY_PRODUCT')
   @Get('findings/:productId')
-  getFindingsByProduct(@Param('productId') productId: string) {
+  getFindingsByProduct(@Param('productId') productId: number) {
     return this.service.getFindingsByProduct(productId);
   }
 

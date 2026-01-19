@@ -65,12 +65,16 @@ export class DefectDojoClient {
     }
   }
 
-  async getFindingsByProduct(productId: string): Promise<DojoFinding[]> {
+  async getFindingsByProduct(productId: number): Promise<DojoFinding[]> {
     const client = await this.getClient();
 
     try {
       const { data } = await client.get('/api/v2/findings/', {
-        params: { test__engagement__product__prod_type: productId },
+        params: {
+          test__engagement__product__prod_type: productId,
+          limit: 1000,
+          related_fields: true,
+        },
       });
 
       if (!data || !Array.isArray(data.results)) {
@@ -91,7 +95,9 @@ export class DefectDojoClient {
     const client = await this.getClient();
 
     try {
-      const { data } = await client.get(`/api/v2/findings/${id}`);
+      const { data } = await client.get(`/api/v2/findings/${id}`, {
+        params: { related_fields: true },
+      });
       if (!data) {
         throw new InternalServerErrorException(
           'Invalid response from DefectDojo API',

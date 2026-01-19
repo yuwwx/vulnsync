@@ -16,7 +16,7 @@ export class VulnerabilitiesService {
     return this.defectDojo.getProducts();
   }
 
-  async getVulnerabilities(productId: string) {
+  async getVulnerabilities(productId: number) {
     const findings = await this.defectDojo.getFindingsByProduct(productId);
 
     const externalIds = findings.map((f) => f.id.toString());
@@ -39,6 +39,9 @@ export class VulnerabilitiesService {
         severity: finding.severity,
         description: finding.description,
         status: sync ? (sync.status as SyncStatus) : SyncStatus.NOT_SENT,
+        cvssv3_score: finding.cvssv3_score,
+        product:
+          finding?.related_fields?.test?.engagement?.product?.name ?? undefined,
         jiraIssueKey: sync?.jiraIssueKey ?? undefined,
       };
     });

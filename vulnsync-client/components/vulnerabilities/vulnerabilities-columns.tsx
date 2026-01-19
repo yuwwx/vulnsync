@@ -5,12 +5,30 @@ import { Button } from "@/components/ui/button";
 import { IntegrationsService } from "@/services/integrations.service";
 import { Vulnerability } from "@/services/vulnerabilities.service";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "../ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+
+const severityOrder = ["Critical", "High", "Medium", "Low", "Info"];
+
+const severitySortFn = (rowA, rowB, columnId) => {
+  const a = rowA.getValue(columnId) ?? "Info";
+  const b = rowB.getValue(columnId) ?? "Info";
+
+  const indexA = severityOrder.indexOf(a);
+  const indexB = severityOrder.indexOf(b);
+
+  return indexA - indexB;
+};
 
 export const vulnerabilityColumns = (
-  onSent: (id: string) => void,
+  onSendToJira: (vuln: Vulnerability) => void,
   onGenerateDescription: (vuln: Vulnerability) => void
 ): ColumnDef<Vulnerability>[] => [
   {
@@ -79,6 +97,37 @@ export const vulnerabilityColumns = (
       );
     },
     cell: ({ row }) => <SeverityBadge severity={row.getValue("severity")} />,
+    sortingFn: severitySortFn,
+  },
+  {
+    accessorKey: "product",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Продукт
+          <ArrowUpDown />
+        </Button>
+      );
+    },
+    cell: ({ row }) => <span>{row.getValue("product")}</span>,
+  },
+  {
+    accessorKey: "cvssv3_score",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          CVSSv3 Score
+          <ArrowUpDown />
+        </Button>
+      );
+    },
+    cell: ({ row }) => <span>{row.getValue("cvssv3_score")}</span>,
   },
   {
     accessorKey: "status",
@@ -103,36 +152,33 @@ export const vulnerabilityColumns = (
       const vuln = row.original;
 
       return (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={vuln.status === "SENT"}
-            onClick={async () => {
-              try {
-                await IntegrationsService.createJiraIssue({
-                  findingId: vuln.id,
-                  productId: String(vuln.productId),
-                });
-                onSent(vuln.id);
-                toast.success("Jira issue created");
-              } catch (err: any) {
-                toast.error(
-                  err?.response?.data?.message || "Failed to create Jira issue"
-                );
-              }
-            }}
-          >
-            Отправить в Jira
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onGenerateDescription(vuln)}
-          >
-            Сгенерировать описание
-          </Button>
-        </div>
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[230px]">
+              <DropdownMenuItem
+                disabled={vuln.status === "SENT"}
+                onClick={() => onSendToJira(vuln)}
+              >
+                Отправить в Jira
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onGenerateDescription(vuln)}>
+                Связать с Jira
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onGenerateDescription(vuln)}>
+                Синхронизировать с Jira
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onGenerateDescription(vuln)}>
+                Сгенерировать описание
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
       );
     },
   },

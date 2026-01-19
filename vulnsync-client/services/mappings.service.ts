@@ -3,9 +3,6 @@ import { api } from "./api";
 
 export interface JiraMapping {
   id: string;
-  productType: string;
-  projectKey: string;
-  issueType: string;
   fields: Record<string, string>;
   createdAt?: string;
   updatedAt?: string;
@@ -19,15 +16,19 @@ export interface DependencyTrackMapping {
 }
 
 export const MappingsService = {
-  async getJiraMapping(productType: string): Promise<JiraMapping | null> {
+  async getJiraMapping(productType: number): Promise<JiraMapping | null> {
     try {
       const { data } = await api.get<JiraMapping>(`/mappings/jira`, {
         params: { productType },
       });
+
       return data;
-    } catch (err) {
-      console.error("Failed to fetch Jira mapping:", err);
-      return null;
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        return null;
+      }
+
+      throw err;
     }
   },
 

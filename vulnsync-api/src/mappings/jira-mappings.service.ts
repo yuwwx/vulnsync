@@ -12,12 +12,18 @@ export class JiraMappingsService {
     return this.prisma.jiraMapping.findMany();
   }
 
-  async getByProductType(productType: string) {
+  async getByProductType(productType: number) {
     const mapping = await this.prisma.jiraMapping.findFirst({
-      where: { productType },
+      where: { ddProductTypeId: productType },
     });
 
-    return mapping || {};
+    if (!mapping) {
+      throw new NotFoundException(
+        `Mapping not found for ddProductTypeId=${productType}`,
+      );
+    }
+
+    return mapping;
   }
 
   async getById(id: string) {
@@ -31,9 +37,7 @@ export class JiraMappingsService {
   async create(dto: CreateJiraMappingDto) {
     return this.prisma.jiraMapping.create({
       data: {
-        productType: dto.productType,
-        projectKey: dto.projectKey,
-        issueType: dto.issueType,
+        ddProductTypeId: dto.productType,
         fields: dto.fields || {},
       },
     });
@@ -44,8 +48,6 @@ export class JiraMappingsService {
     return this.prisma.jiraMapping.update({
       where: { id },
       data: {
-        projectKey: dto.projectKey,
-        issueType: dto.issueType,
         fields: dto.fields,
       },
     });

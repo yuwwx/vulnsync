@@ -9,7 +9,7 @@ export class VulnerabilitiesController {
 
   @LogAction('GET_VULNERABILITIES')
   @Get(':productId')
-  getVulnerabilities(@Param('productId') productId: string) {
+  getVulnerabilities(@Param('productId') productId: number) {
     return this.service.getVulnerabilities(productId);
   }
 }

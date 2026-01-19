@@ -11,7 +11,12 @@ interface Props {
   product: Product;
 }
 
-const SYSTEM_FIELDS = ["id", "createdAt", "updatedAt"] as const;
+const SYSTEM_FIELDS = [
+  "id",
+  "ddProductTypeId",
+  "createdAt",
+  "updatedAt",
+] as const;
 
 function stripSystemFields<T extends Record<string, any>>(obj: T): T {
   const copy = { ...obj };
@@ -38,18 +43,12 @@ export default function DefectDojoJiraTab({ product }: Props) {
     setError(null);
 
     MappingsService.getJiraMapping(product.id)
-      .then((m) => {
-        const map: JiraMapping =
-          m ??
-          ({
-            productType: product.id,
-            projectKey: "",
-            issueType: "",
-            fields: {},
-          } as JiraMapping);
-
+      .then((map) => {
         setMapping(map);
-        setJsonText(JSON.stringify(stripSystemFields(map), null, 2));
+        setJsonText(map ? JSON.stringify(stripSystemFields(map), null, 2) : "");
+      })
+      .catch((err: any) => {
+        setError(err.message || "Не удалось загрузить маппинг");
       })
       .finally(() => setLoading(false));
   }, [product?.id]);
@@ -70,11 +69,15 @@ export default function DefectDojoJiraTab({ product }: Props) {
       return;
     }
 
-    if (!payload.productType || !payload.projectKey || !payload.issueType) {
-      setError("JSON должен содержать productType, projectKey и issueType");
+    console.log(jsonText);
+
+    if (!payload.fields.project || !payload.fields.issuetype) {
+      setError("JSON должен содержать project и issuetype");
       setSaving(false);
       return;
     }
+
+    payload.productType = product?.id;
 
     try {
       const saved = mapping.id
@@ -108,13 +111,19 @@ export default function DefectDojoJiraTab({ product }: Props) {
           value={jsonText}
           onChange={(e) => setJsonText(e.target.value)}
           placeholder={`{
-  "productType": ${product.id},
-  "projectKey": "SEC",
-  "issueType": "Bug",
   "fields": {
-    "summary": "Test issue",
-    "customfield_12345": "High",
-    "customfield_54321": "Internal"
+    "issuetype": { "id": "10007" },
+    "project": { "key": "RETAIL" },
+    "summary": "Название",
+    "description": "Описание",
+    "customfield_13900": [{ "key": "ORG-145" }],
+    "customfield_10002": "RETAIL-46609",
+    "components": [{ "name": "08 СБОЛ" }],
+    "customfield_13902": [{ "key": "ORG-14" }],
+    "customfield_13901": [{ "key": "ORG-14" }],
+    "customfield_10701": { "value": "ИФТ" },
+    "customfield_14401": [{ "key": "CMDB-6047" }],
+    "customfield_11308": { "value": "Средний" }
   }
 }`}
         />
@@ -124,7 +133,6 @@ export default function DefectDojoJiraTab({ product }: Props) {
         </Button>
       </div>
 
-      {/* Правая колонка — Справка */}
       <div className="border rounded-lg p-4 bg-muted/30 text-sm space-y-3">
         <h3 className="font-semibold text-base">Справка</h3>
 

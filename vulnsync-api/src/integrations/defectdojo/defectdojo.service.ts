@@ -24,14 +24,14 @@ export class DefectDojoService {
   }
 
   async getFindingsByProduct(
-    productId: string,
+    productId: number,
   ): Promise<DefectDojoFindingDto[]> {
     const findings = await this.client.getFindingsByProduct(productId);
 
     const findingsArray = Array.isArray(findings) ? findings : [findings];
 
     return plainToInstance(DefectDojoFindingDto, findingsArray, {
-      excludeExtraneousValues: true,
+      excludeExtraneousValues: false,
     });
   }
 

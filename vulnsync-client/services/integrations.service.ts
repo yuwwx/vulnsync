@@ -7,8 +7,8 @@ export interface DefectDojoProduct {
 }
 
 export interface JiraIssuePayload {
-  findingId: string;
-  productId: string;
+  findingId: number;
+  productId: number;
 }
 
 export interface DependencyTrackProject {

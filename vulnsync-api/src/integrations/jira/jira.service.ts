@@ -12,9 +12,9 @@ export class JiraService {
     private vulnerabilitiesService: VulnerabilitiesService,
   ) {}
 
-  async createIssue(findingId: number, productId: string, userId: string) {
+  async createIssue(findingId: number, productId: number, userId: string) {
     const mapping = await this.prisma.jiraMapping.findFirst({
-      where: { productType: productId },
+      where: { ddProductTypeId: productId },
     });
 
     if (!mapping) {
@@ -25,8 +25,6 @@ export class JiraService {
 
     const payload = {
       fields: {
-        project: { key: mapping.projectKey },
-        issuetype: { name: mapping.issueType },
         ...((mapping.fields as Record<string, any>) ?? {}),
       },
     };
@@ -37,7 +35,6 @@ export class JiraService {
 
     return {
       issueKey: issue.key,
-      issueUrl: `${mapping.projectKey}/browse/${issue.key}`,
     };
   }
 }

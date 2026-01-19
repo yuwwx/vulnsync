@@ -1,18 +1,16 @@
 // mappings/dto/create-jira-mapping.dto.ts
-import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsObject,
+  IsNumber,
+} from 'class-validator';
 
 export class CreateJiraMappingDto {
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  productType: string;
-
-  @IsString()
-  @IsNotEmpty()
-  projectKey: string;
-
-  @IsString()
-  @IsNotEmpty()
-  issueType: string;
+  productType: number;
 
   @IsObject()
   @IsOptional()
