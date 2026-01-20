@@ -8,6 +8,8 @@ import { LogsService } from '@/logs/logs.service';
 
 @Injectable()
 export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
+  private readonly requiredGroupDn?: string;
+
   constructor(
     private authService: AuthService,
     private logsService: LogsService,
@@ -17,6 +19,7 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
     const LDAP_BIND_DN = config.get<string>('LDAP_BIND_DN');
     const LDAP_BIND_PASSWORD = config.get<string>('LDAP_BIND_PASSWORD');
     const LDAP_SEARCH_BASE = config.get<string>('LDAP_SEARCH_BASE');
+    const requiredGroupDn = config.get<string>('LDAP_REQUIRED_GROUP_DN');
 
     if (
       !LDAP_URL ||
@@ -37,6 +40,8 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
         searchFilter: '(sAMAccountName={{username}})',
       },
     });
+
+    this.requiredGroupDn = requiredGroupDn;
   }
 
   async validate(req: any, user: any) {
@@ -49,11 +54,34 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
       throw new UnauthorizedException();
     }
 
+    // console.log(user);
+
+    const memberOf = user.memberOf || [];
+
+    const isInGroup = Array.isArray(memberOf)
+      ? memberOf.includes(this.requiredGroupDn)
+      : memberOf === this.requiredGroupDn;
+
+    if (!isInGroup) {
+      await this.logsService.log('LOGIN_FAILED', req.ip, user.id, {
+        username: user.username,
+        userAgent: req.headers['user-agent'],
+      });
+
+      throw new UnauthorizedException('User not in required LDAP group');
+    }
+
     await this.logsService.log('LOGIN', req.ip, user.id, {
       username: user.username,
       userAgent: req.headers['user-agent'],
     });
 
-    return this.authService.validateLdapUser(user.sAMAccountName, user.dn);
+    return this.authService.validateLdapUser(
+      user.sAMAccountName,
+      user.dn,
+      user.mail,
+      user.displayName,
+      user.title,
+    );
   }
 }

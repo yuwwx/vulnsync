@@ -11,11 +11,14 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async login(user: any, req: any) {
+  async login(user: any) {
     const payload = { sub: user.id, username: user.username };
     return {
       access_token: this.jwtService.sign(payload),
       username: user.username,
+      email: user?.email,
+      displayName: user?.displayName,
+      jobTitle: user?.jobTitle,
     };
   }
 
@@ -33,19 +36,30 @@ export class AuthService {
     return user;
   }
 
-  async validateLdapUser(username: string, ldapDn: string) {
-    let user = await this.prisma.user.findUnique({
+  async validateLdapUser(
+    username: string,
+    ldapDn: string,
+    email: string,
+    displayName: string,
+    jobTitle: string,
+  ) {
+    const user = await this.prisma.user.upsert({
       where: { username },
+      update: {
+        ldapDn,
+        email,
+        displayName,
+        jobTitle,
+        updatedAt: new Date(),
+      },
+      create: {
+        username,
+        ldapDn,
+        email,
+        displayName,
+        jobTitle,
+      },
     });
-
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          username,
-          ldapDn,
-        },
-      });
-    }
 
     return user;
   }

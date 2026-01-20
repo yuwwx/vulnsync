@@ -13,13 +13,13 @@ export class AuthController {
   @Public()
   @UseGuards(LocalAuthGuard)
   login(@Req() req) {
-    return this.authService.login(req.user, req);
+    return this.authService.login(req.user);
   }
 
   @Post('ldap/login')
   @Public()
   @UseGuards(LdapAuthGuard)
   ldapLogin(@Req() req) {
-    return this.authService.login(req.user, req);
+    return this.authService.login(req.user);
   }
 }

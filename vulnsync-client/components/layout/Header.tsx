@@ -18,12 +18,15 @@ export function Header() {
   const pathname = usePathname();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     const user = localStorage.getItem("username");
+    const name = localStorage.getItem("displayName");
     setIsAuthenticated(!!token);
     setUsername(user);
+    setDisplayName(name);
   }, []);
 
   function logout() {
@@ -34,7 +37,7 @@ export function Header() {
 
   return (
     <header className="border-b">
-      <div className="container mx-auto flex h-14 items-center justify-between">
+      <div className="container mx-auto flex h-14 items-center justify-between relative">
         {/* Logo */}
         <Link href="/" className="font-bold text-lg hover:opacity-80">
           VulnSync
@@ -42,14 +45,14 @@ export function Header() {
 
         {/* Navigation */}
         {isAuthenticated && (
-          <nav className="flex gap-6">
+          <nav className="absolute left-1/2 transform -translate-x-1/2 flex gap-6">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
                   "text-sm font-medium text-muted-foreground hover:text-primary",
-                  pathname.startsWith(item.href) && "text-primary"
+                  pathname.startsWith(item.href) && "text-primary",
                 )}
               >
                 {item.label}
@@ -61,7 +64,7 @@ export function Header() {
         {/* Auth info */}
         <div className="flex items-center gap-2">
           {isAuthenticated && username && (
-            <span className="text-sm text-muted-foreground">{username}</span>
+            <span className="text-sm text-muted-foreground">{`${displayName || ""} (${username})`}</span>
           )}
 
           {isAuthenticated ? (
