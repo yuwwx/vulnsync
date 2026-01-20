@@ -19,7 +19,7 @@ export default function IntegrationsPage() {
 
   // Загружаем список продуктов
   useEffect(() => {
-    IntegrationsService.getDefectDojoProducts()
+    IntegrationsService.getDefectDojoProductTypes()
       .then(setProducts)
       .catch((err) => setError(`Failed to load products: ${err}`))
       .finally(() => setLoading(false));

@@ -1,5 +1,6 @@
 // auth.service.ts
 import { api } from "./api";
+import { authApi } from "./authApi";
 
 export interface LoginDto {
   username: string;
@@ -16,7 +17,7 @@ export class AuthError extends Error {
 export const AuthService = {
   async login(dto: LoginDto) {
     try {
-      const { data } = await api.post("/auth/login", dto);
+      const { data } = await authApi.post("/auth/login", dto);
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("username", data.username);
       return data;

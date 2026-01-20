@@ -19,9 +19,9 @@ export interface DependencyTrackProject {
 // Сервис
 export const IntegrationsService = {
   // DefectDojo
-  async getDefectDojoProducts(): Promise<DefectDojoProduct[]> {
+  async getDefectDojoProductTypes(): Promise<DefectDojoProduct[]> {
     const { data } = await api.get<DefectDojoProduct[]>(
-      "/integrations/defectdojo/products"
+      "/integrations/defectdojo/product_types",
     );
     return data;
   },
@@ -40,14 +40,14 @@ export const IntegrationsService = {
   // Dependency-Track
   async getDependencyTrackProjects(): Promise<DependencyTrackProject[]> {
     const { data } = await api.get<DependencyTrackProject[]>(
-      "/integrations/dependency-track/projects"
+      "/integrations/dependency-track/projects",
     );
     return data;
   },
 
-  async exportDependencyTrackToDefectDojo(projectId: string) {
+  async exportDependencyTrackToDefectDojo(ddProductTypeId: number) {
     const { data } = await api.post("/integrations/dependency-track/export", {
-      projectId,
+      ddProductTypeId: ddProductTypeId,
     });
     return data;
   },

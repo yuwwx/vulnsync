@@ -2,14 +2,28 @@
 import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { DefectDojoClient } from './defectdojo.client';
-import { DefectDojoProductDto } from './dto/defectdojo-product.dto';
+import { DefectDojoProductTypeDto } from './dto/defectdojo-product.dto';
 import { DefectDojoFindingDto } from './dto/defectdojo-finding.dto';
 
 @Injectable()
 export class DefectDojoService {
   constructor(private client: DefectDojoClient) {}
 
-  async getProducts(): Promise<DefectDojoProductDto[]> {
+  async getProductTypes(): Promise<DefectDojoProductTypeDto[]> {
+    const products = await this.client.getProductTypes();
+
+    const productsArray = Array.isArray(products)
+      ? products
+      : products
+        ? [products]
+        : [];
+
+    return plainToInstance(DefectDojoProductTypeDto, productsArray, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  async getProducts(): Promise<DefectDojoProductTypeDto[]> {
     const products = await this.client.getProducts();
 
     const productsArray = Array.isArray(products)
@@ -18,7 +32,7 @@ export class DefectDojoService {
         ? [products]
         : [];
 
-    return plainToInstance(DefectDojoProductDto, productsArray, {
+    return plainToInstance(DefectDojoProductTypeDto, productsArray, {
       excludeExtraneousValues: true,
     });
   }

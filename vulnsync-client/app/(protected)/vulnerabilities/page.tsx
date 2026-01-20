@@ -12,7 +12,10 @@ import { vulnerabilityColumns } from "@/components/vulnerabilities/vulnerabiliti
 import { toast } from "sonner";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,11 +25,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function VulnerabilitiesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setselectedProductId] = useState<string | null>(
-    null
+    null,
   );
 
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
@@ -35,7 +41,8 @@ export default function VulnerabilitiesPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [finding, setFinding] = useState<any>(null);
-  const [open, setOpen] = useState(false);
+  const [openDescription, setOpenDescription] = useState(false);
+  const [openJiraLink, setOpenJiraLink] = useState(false);
 
   const handleGenerateDescription = useCallback(async (vuln) => {
     setLoadingFinding(true);
@@ -43,14 +50,14 @@ export default function VulnerabilitiesPage() {
 
     try {
       const result = await IntegrationsService.getDefectDojoFinding(
-        Number(vuln.id)
+        Number(vuln.id),
       );
 
       setFinding(result);
-      setOpen(true);
+      setOpenDescription(true);
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to load DefectDojo finding"
+        err?.response?.data?.message || "Failed to load DefectDojo finding",
       );
     } finally {
       setLoadingFinding(false);
@@ -64,14 +71,18 @@ export default function VulnerabilitiesPage() {
         productId: vuln.productId,
       });
       setVulns((prev) =>
-        prev.map((v) => (v.id === vuln.id ? { ...v, status: "SENT" } : v))
+        prev.map((v) => (v.id === vuln.id ? { ...v, status: "SENT" } : v)),
       );
       toast.success("Jira issue created");
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to create Jira issue"
+        err?.response?.data?.message || "Failed to create Jira issue",
       );
     }
+  }, []);
+
+  const handleLinkWithJira = useCallback(async (vuln) => {
+    setOpenJiraLink(true);
   }, []);
 
   function formatVulnerabilityLinks(vulnIds: any[] = []) {
@@ -98,7 +109,7 @@ export default function VulnerabilitiesPage() {
       .join(", ");
 
     const vulnerabilityLinks = formatVulnerabilityLinks(
-      finding.vulnerability_ids
+      finding.vulnerability_ids,
     );
 
     const severity = [
@@ -134,13 +145,18 @@ ${vulnerabilityLinks || "—"}
   }
 
   const columns = useMemo(
-    () => vulnerabilityColumns(handleSendToJira, handleGenerateDescription),
-    [handleGenerateDescription]
+    () =>
+      vulnerabilityColumns(
+        handleSendToJira,
+        handleLinkWithJira,
+        handleGenerateDescription,
+      ),
+    [handleGenerateDescription],
   );
 
   // Загружаем только список продуктов
   useEffect(() => {
-    IntegrationsService.getDefectDojoProducts()
+    IntegrationsService.getDefectDojoProductTypes()
       .then(setProducts)
       .catch((err) => {
         setError(`Failed to load products: ${err}`);
@@ -208,7 +224,7 @@ ${vulnerabilityLinks || "—"}
           )}
         </div>
       </div>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={openDescription} onOpenChange={setOpenDescription}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Описание уязвимости</DialogTitle>
@@ -226,7 +242,7 @@ ${vulnerabilityLinks || "—"}
                     <AccordionTrigger>Raw finding (JSON)</AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-4 text-sm flex justify-center">
-                        <pre className="whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[70vh] overflow-x-auto sm:max-w-lg">
+                        <pre className="whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[70vh] overflow-x-auto sm:max-w-2xl">
                           {JSON.stringify(finding, null, 2)}
                         </pre>
                       </div>
@@ -236,6 +252,28 @@ ${vulnerabilityLinks || "—"}
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={openJiraLink} onOpenChange={setOpenJiraLink}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Связать с Jira</DialogTitle>
+            <DialogDescription>
+              Связать уязвимость с сущностью в Jira
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-3">
+              <Label htmlFor="name-1">Key</Label>
+              <Input id="name-1" name="name" defaultValue="RETAIL-0" />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Отмена</Button>
+            </DialogClose>
+            <Button type="submit">Сохранить</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

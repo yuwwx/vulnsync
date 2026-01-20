@@ -41,6 +41,12 @@ export class DependencyTrackClient {
     return data;
   }
 
+  async getLatestProject(projectName: string) {
+    const client = await this.getClient();
+    const { data } = await client.get(`/api/v1/project/latest/${projectName}`);
+    return data;
+  }
+
   async exportFindings(projectUuid: string) {
     const client = await this.getClient();
     const { data } = await client.get(

@@ -42,7 +42,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
     setLoading(true);
     setError(null);
 
-    MappingsService.getJiraMapping(product.id)
+    MappingsService.getJiraMapping(Number(product.id))
       .then((map) => {
         setMapping(map);
         setJsonText(map ? JSON.stringify(stripSystemFields(map), null, 2) : "");
@@ -77,7 +77,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
       return;
     }
 
-    payload.productType = product?.id;
+    payload.ddProductTypeId = product?.id;
 
     try {
       const saved = mapping.id
@@ -99,7 +99,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
   if (loading) return <div>Loading mapping…</div>;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+    <div className="mt-2 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
       {/* Левая колонка — JSON */}
       <div className="space-y-4">
         {error && (

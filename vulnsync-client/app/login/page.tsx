@@ -19,7 +19,7 @@ export default function LoginPage() {
 
     try {
       await AuthService.login({ username, password });
-      window.location.href = "/settings";
+      window.location.href = "/";
     } catch (e) {
       if (e instanceof AuthError) {
         setError(e.message);

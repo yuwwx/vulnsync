@@ -7,6 +7,12 @@ import { DefectDojoService } from './defectdojo.service';
 export class DefectDojoController {
   constructor(private service: DefectDojoService) {}
 
+  @LogAction('DEFECTDOJO_GET_PRODUCT_TYPES')
+  @Get('product_types')
+  getProductTypes() {
+    return this.service.getProductTypes();
+  }
+
   @LogAction('DEFECTDOJO_GET_PRODUCTS')
   @Get('products')
   getProducts() {

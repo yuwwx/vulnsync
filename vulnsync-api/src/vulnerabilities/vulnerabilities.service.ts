@@ -12,8 +12,8 @@ export class VulnerabilitiesService {
     private defectDojo: DefectDojoService,
   ) {}
 
-  async getProducts() {
-    return this.defectDojo.getProducts();
+  async getProductTypes() {
+    return this.defectDojo.getProductTypes();
   }
 
   async getVulnerabilities(productId: number) {

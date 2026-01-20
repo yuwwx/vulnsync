@@ -15,12 +15,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Если токен протух — выход и редирект
     if (error.response?.status === 401) {
-      // чистим состояние
       localStorage.removeItem("access_token");
       localStorage.removeItem("username");
+      window.location.href = "/login";
     }
 
     return Promise.reject(error);
-  }
+  },
 );

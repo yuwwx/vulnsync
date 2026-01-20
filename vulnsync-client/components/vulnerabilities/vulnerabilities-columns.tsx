@@ -2,11 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { IntegrationsService } from "@/services/integrations.service";
 import { Vulnerability } from "@/services/vulnerabilities.service";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
-import { toast } from "sonner";
 import { Checkbox } from "../ui/checkbox";
 import {
   DropdownMenu,
@@ -29,7 +27,8 @@ const severitySortFn = (rowA, rowB, columnId) => {
 
 export const vulnerabilityColumns = (
   onSendToJira: (vuln: Vulnerability) => void,
-  onGenerateDescription: (vuln: Vulnerability) => void
+  onLinkWithJira: (vuln: Vulnerability) => void,
+  onGenerateDescription: (vuln: Vulnerability) => void,
 ): ColumnDef<Vulnerability>[] => [
   {
     id: "select",
@@ -156,7 +155,7 @@ export const vulnerabilityColumns = (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">Открыть меню</span>
                 <MoreHorizontal />
               </Button>
             </DropdownMenuTrigger>
@@ -167,10 +166,10 @@ export const vulnerabilityColumns = (
               >
                 Отправить в Jira
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onGenerateDescription(vuln)}>
+              <DropdownMenuItem onClick={() => onLinkWithJira(vuln)}>
                 Связать с Jira
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onGenerateDescription(vuln)}>
+              <DropdownMenuItem onClick={() => onLinkWithJira(vuln)}>
                 Синхронизировать с Jira
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onGenerateDescription(vuln)}>

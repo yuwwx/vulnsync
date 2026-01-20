@@ -1,16 +1,10 @@
 // mappings/dto/create-jira-mapping.dto.ts
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsObject,
-  IsNumber,
-} from 'class-validator';
+import { IsNotEmpty, IsNumber, IsObject, IsOptional } from 'class-validator';
 
 export class CreateJiraMappingDto {
   @IsNumber()
   @IsNotEmpty()
-  productType: number;
+  ddProductTypeId: number;
 
   @IsObject()
   @IsOptional()

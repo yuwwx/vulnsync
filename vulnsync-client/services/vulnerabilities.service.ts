@@ -2,7 +2,7 @@
 import { api } from "./api";
 
 export interface Product {
-  id: string;
+  id: number;
   name: string;
 }
 
@@ -17,7 +17,7 @@ export interface Vulnerability {
 export const VulnerabilitiesService = {
   async getVulnerabilities(productId: string): Promise<Vulnerability[]> {
     const { data } = await api.get<Vulnerability[]>(
-      `/vulnerabilities/${productId}`
+      `/vulnerabilities/${productId}`,
     );
     return data;
   },

@@ -1,7 +1,7 @@
 // dto/defectdojo-product.dto.ts
 import { Expose } from 'class-transformer';
 
-export class DefectDojoProductDto {
+export class DefectDojoProductTypeDto {
   @Expose()
   id: number;
 

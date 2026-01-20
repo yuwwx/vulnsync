@@ -37,7 +37,7 @@ export class JiraMappingsService {
   async create(dto: CreateJiraMappingDto) {
     return this.prisma.jiraMapping.create({
       data: {
-        ddProductTypeId: dto.productType,
+        ddProductTypeId: dto.ddProductTypeId,
         fields: dto.fields || {},
       },
     });

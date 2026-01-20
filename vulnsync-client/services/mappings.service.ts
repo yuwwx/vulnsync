@@ -10,16 +10,15 @@ export interface JiraMapping {
 
 export interface DependencyTrackMapping {
   id?: string;
-  productId: string;
-  dtProject: string;
-  ddProduct: string;
+  dtProjectName: string;
+  ddProductId: number;
 }
 
 export const MappingsService = {
-  async getJiraMapping(productType: number): Promise<JiraMapping | null> {
+  async getJiraMapping(ddProductTypeId: number): Promise<JiraMapping | null> {
     try {
       const { data } = await api.get<JiraMapping>(`/mappings/jira`, {
-        params: { productType },
+        params: { ddProductTypeId },
       });
 
       return data;
@@ -39,11 +38,11 @@ export const MappingsService = {
 
   async updateJiraMapping(
     id: string,
-    mapping: Partial<JiraMapping>
+    mapping: Partial<JiraMapping>,
   ): Promise<JiraMapping> {
     const { data } = await api.patch<JiraMapping>(
       `/mappings/jira/${id}`,
-      mapping
+      mapping,
     );
     return data;
   },
@@ -57,9 +56,20 @@ export const MappingsService = {
     return data;
   },
 
-  async getDependencyTrackMapping(productId: string) {
-    const { data } = await api.get(`/mappings/dependency-track/${productId}`);
-    return data as DependencyTrackMapping | null;
+  async getDependencyTrackMapping(ddProductTypeId: number) {
+    try {
+      const { data } = await api.get(`/mappings/dependency-track`, {
+        params: { ddProductTypeId },
+      });
+
+      return data;
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        return null;
+      }
+
+      throw err;
+    }
   },
 
   async createDependencyTrackMapping(mapping: DependencyTrackMapping) {
@@ -69,11 +79,11 @@ export const MappingsService = {
 
   async updateDependencyTrackMapping(
     id: string,
-    mapping: DependencyTrackMapping
+    mapping: DependencyTrackMapping,
   ) {
     const { data } = await api.patch(
       `/mappings/dependency-track/${id}`,
-      mapping
+      mapping,
     );
     return data as DependencyTrackMapping;
   },

@@ -47,11 +47,29 @@ export class DefectDojoClient {
     return this.axiosInstance;
   }
 
-  async getProducts(): Promise<DojoProduct[]> {
+  async getProductTypes(): Promise<DojoProduct[]> {
     const client = await this.getClient();
 
     try {
       const { data } = await client.get('/api/v2/product_types/');
+      if (!data || !Array.isArray(data.results)) {
+        throw new InternalServerErrorException(
+          'Invalid response from DefectDojo API',
+        );
+      }
+      return data.results;
+    } catch (err: any) {
+      throw new InternalServerErrorException(
+        `Failed to fetch products from DefectDojo: ${err.message || err}`,
+      );
+    }
+  }
+
+  async getProducts(): Promise<DojoProduct[]> {
+    const client = await this.getClient();
+
+    try {
+      const { data } = await client.get('/api/v2/products/');
       if (!data || !Array.isArray(data.results)) {
         throw new InternalServerErrorException(
           'Invalid response from DefectDojo API',
@@ -115,9 +133,15 @@ export class DefectDojoClient {
     const client = await this.getClient();
 
     try {
-      const { data } = await client.post('/api/v2/import-scan/', payload);
+      const { data } = await client.post('/api/v2/import-scan/', payload, {
+        headers: {
+          ...payload.getHeaders(),
+        },
+      });
+
       return data;
     } catch (err: any) {
+      console.log(err);
       throw new InternalServerErrorException(
         `Failed to import scan into DefectDojo: ${err.message || err}`,
       );

@@ -1,15 +1,16 @@
 // dependency-track.service.ts
+import { DefectDojoClient } from '@/integrations/defectdojo/defectdojo.client';
+import { DependencyTrackMappingsService } from '@/mappings/dependency-track-mapping.service';
 import { Injectable } from '@nestjs/common';
 import { DependencyTrackClient } from './dependency-track.client';
-import { DefectDojoClient } from '@/integrations/defectdojo/defectdojo.client';
-import { LogsService } from '@/logs/logs.service';
+import FormData from 'form-data';
 
 @Injectable()
 export class DependencyTrackService {
   constructor(
     private depTrackClient: DependencyTrackClient,
     private defectDojoClient: DefectDojoClient,
-    private logs: LogsService,
+    private dependencyTrack: DependencyTrackMappingsService,
   ) {}
 
   async getProjects() {
@@ -18,23 +19,32 @@ export class DependencyTrackService {
     return projects;
   }
 
-  async importProjectFindings(
-    projectUuid: string,
-    defectDojoProductId: number,
-  ) {
-    const report = await this.depTrackClient.exportFindings(projectUuid);
+  async exportLatestProjectFindings(defectDojoProductId: number) {
+    const mapping =
+      await this.dependencyTrack.getByProductType(defectDojoProductId);
 
-    const payload = {
-      scan_type: 'Dependency-Track Findings Import',
-      product: defectDojoProductId,
-      engagement: null,
-      minimum_severity: 'Low',
-      active: true,
-      verified: true,
-      file: report,
-    };
+    const latestProject = await this.depTrackClient.getLatestProject(
+      mapping?.dtProjectName,
+    );
 
-    await this.defectDojoClient.importScan(payload);
+    const report = await this.depTrackClient.exportFindings(
+      latestProject?.uuid,
+    );
+
+    // --- ВАЖНО: report должен быть Buffer или Stream
+    // если report это string, делаем Buffer:
+    const reportBuffer = Buffer.from(report);
+
+    const form = new FormData();
+    form.append('scan_type', 'Dependency-Track Findings Import');
+    form.append('product_name', defectDojoProductId);
+    form.append('engagement_name', latestProject?.version || 'default');
+    form.append('file', reportBuffer, {
+      filename: 'report.json', // имя файла
+      contentType: 'application/json',
+    });
+
+    const ddResponse = await this.defectDojoClient.importScan(form);
 
     return { status: 'IMPORTED' };
   }
