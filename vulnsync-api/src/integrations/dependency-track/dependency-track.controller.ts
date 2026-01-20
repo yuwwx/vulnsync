@@ -17,6 +17,6 @@ export class DependencyTrackController {
   @LogAction('DEPENDENCY_TRACK_EXPORT')
   @Post('export')
   importProject(@Body() dto: ExportProjectDto) {
-    return this.service.exportLatestProjectFindings(dto.ddProductTypeId);
+    return this.service.exportLatestProjectFindings(dto.ddProductId);
   }
 }

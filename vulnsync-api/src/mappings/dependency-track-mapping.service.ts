@@ -11,14 +11,14 @@ export class DependencyTrackMappingsService {
     return this.prisma.dependencyTrackMapping.findMany();
   }
 
-  async getByProductType(productType: number) {
+  async getByProduct(productId: number) {
     const mapping = await this.prisma.dependencyTrackMapping.findFirst({
-      where: { ddProductTypeId: productType },
+      where: { ddProductId: productId },
     });
 
     if (!mapping) {
       throw new NotFoundException(
-        `Mapping not found for ddProductTypeId=${productType}`,
+        `Mapping not found for ddProductId=${productId}`,
       );
     }
 
@@ -38,7 +38,7 @@ export class DependencyTrackMappingsService {
   async create(dto: CreateDependencyTrackMappingDto) {
     return this.prisma.dependencyTrackMapping.create({
       data: {
-        ddProductTypeId: dto.ddProductTypeId,
+        ddProductId: dto.ddProductId,
         dtProjectName: dto.dtProjectName,
       },
     });

@@ -37,7 +37,9 @@ export default function IntegrationsPage() {
                 ? "bg-neutral-600 text-white"
                 : "hover:bg-muted"
             }`}
-            onClick={() => setSelectedProduct(p.id)}
+            onClick={() => {
+              setSelectedProduct(p.id);
+            }}
           >
             {p.name}
           </li>

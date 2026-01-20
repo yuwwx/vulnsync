@@ -1,7 +1,6 @@
 export interface DefectDojoProduct {
   id: number;
   name: string;
-  product_type: number;
 }
 
 export interface DefectDojoFinding {

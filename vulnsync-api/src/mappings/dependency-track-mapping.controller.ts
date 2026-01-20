@@ -19,9 +19,9 @@ export class DependencyTrackMappingsController {
 
   @LogAction('DT_MAPPINGS_GET')
   @Get()
-  get(@Query('ddProductTypeId') ddProductTypeId?: number) {
-    if (ddProductTypeId) {
-      return this.service.getByProductType(ddProductTypeId);
+  get(@Query('ddProductId') ddProductId?: number) {
+    if (ddProductId) {
+      return this.service.getByProduct(ddProductId);
     }
     return this.service.getAll();
   }

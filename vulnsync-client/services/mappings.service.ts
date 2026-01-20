@@ -56,10 +56,10 @@ export const MappingsService = {
     return data;
   },
 
-  async getDependencyTrackMapping(ddProductTypeId: number) {
+  async getDependencyTrackMapping(ddProductId: number) {
     try {
       const { data } = await api.get(`/mappings/dependency-track`, {
-        params: { ddProductTypeId },
+        params: { ddProductId },
       });
 
       return data;

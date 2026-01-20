@@ -4,6 +4,7 @@ import { plainToInstance } from 'class-transformer';
 import { DefectDojoClient } from './defectdojo.client';
 import { DefectDojoProductTypeDto } from './dto/defectdojo-product.dto';
 import { DefectDojoFindingDto } from './dto/defectdojo-finding.dto';
+import { DefectDojoProduct } from './types/defectdojo.types';
 
 @Injectable()
 export class DefectDojoService {
@@ -23,8 +24,10 @@ export class DefectDojoService {
     });
   }
 
-  async getProducts(): Promise<DefectDojoProductTypeDto[]> {
-    const products = await this.client.getProducts();
+  async getProducts(
+    productTypeId?: number,
+  ): Promise<DefectDojoProductTypeDto[]> {
+    const products = await this.client.getProducts(productTypeId);
 
     const productsArray = Array.isArray(products)
       ? products
@@ -35,6 +38,12 @@ export class DefectDojoService {
     return plainToInstance(DefectDojoProductTypeDto, productsArray, {
       excludeExtraneousValues: true,
     });
+  }
+
+  async getProduct(productId: number): Promise<DefectDojoProduct> {
+    const product = await this.client.getProduct(productId);
+
+    return product;
   }
 
   async getFindingsByProduct(

@@ -38,7 +38,7 @@ model JiraMapping {
 
 model DependencyTrackMapping {
   id              String @id @default(uuid())
-  ddProductTypeId Int?
+  ddProductId Int?
   dtProjectName   String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

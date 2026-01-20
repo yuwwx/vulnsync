@@ -65,17 +65,43 @@ export class DefectDojoClient {
     }
   }
 
-  async getProducts(): Promise<DojoProduct[]> {
+  async getProducts(productTypeId?: number): Promise<DojoProduct[]> {
     const client = await this.getClient();
 
     try {
-      const { data } = await client.get('/api/v2/products/');
+      const { data } = await client.get('/api/v2/products/', {
+        params: {
+          prod_type: productTypeId,
+        },
+      });
+
       if (!data || !Array.isArray(data.results)) {
         throw new InternalServerErrorException(
           'Invalid response from DefectDojo API',
         );
       }
+
       return data.results;
+    } catch (err: any) {
+      throw new InternalServerErrorException(
+        `Failed to fetch products from DefectDojo: ${err.message || err}`,
+      );
+    }
+  }
+
+  async getProduct(productId?: number): Promise<DojoProduct> {
+    const client = await this.getClient();
+
+    try {
+      const { data } = await client.get(`/api/v2/products/${productId}`);
+
+      if (!data) {
+        throw new InternalServerErrorException(
+          'Invalid response from DefectDojo API',
+        );
+      }
+
+      return data;
     } catch (err: any) {
       throw new InternalServerErrorException(
         `Failed to fetch products from DefectDojo: ${err.message || err}`,

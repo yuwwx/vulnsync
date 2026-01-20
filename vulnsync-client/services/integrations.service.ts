@@ -26,6 +26,16 @@ export const IntegrationsService = {
     return data;
   },
 
+  async getDefectDojoProducts(productTypeId): Promise<DefectDojoProduct> {
+    const { data } = await api.get<DefectDojoProduct>(
+      "/integrations/defectdojo/products",
+      {
+        params: { productTypeId },
+      },
+    );
+    return data;
+  },
+
   async getDefectDojoFinding(id: number): Promise<DefectDojoProduct[]> {
     const { data } = await api.get(`/integrations/defectdojo/finding/${id}`);
     return data;
@@ -45,9 +55,9 @@ export const IntegrationsService = {
     return data;
   },
 
-  async exportDependencyTrackToDefectDojo(ddProductTypeId: number) {
+  async exportDependencyTrackToDefectDojo(ddProductId: number) {
     const { data } = await api.post("/integrations/dependency-track/export", {
-      ddProductTypeId: ddProductTypeId,
+      ddProductId: ddProductId,
     });
     return data;
   },

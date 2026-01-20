@@ -3,7 +3,7 @@ import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 export class CreateDependencyTrackMappingDto {
   @IsNumber()
   @IsNotEmpty()
-  ddProductTypeId: number;
+  ddProductId: number;
 
   @IsString()
   @IsNotEmpty()

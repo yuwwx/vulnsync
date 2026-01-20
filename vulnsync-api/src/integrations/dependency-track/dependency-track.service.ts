@@ -21,11 +21,14 @@ export class DependencyTrackService {
 
   async exportLatestProjectFindings(defectDojoProductId: number) {
     const mapping =
-      await this.dependencyTrack.getByProductType(defectDojoProductId);
+      await this.dependencyTrack.getByProduct(defectDojoProductId);
 
     const latestProject = await this.depTrackClient.getLatestProject(
       mapping?.dtProjectName,
     );
+
+    const defectDojoProduct =
+      await this.defectDojoClient.getProduct(defectDojoProductId);
 
     const report = await this.depTrackClient.exportFindings(
       latestProject?.uuid,
@@ -36,15 +39,20 @@ export class DependencyTrackService {
     const reportBuffer = Buffer.from(report);
 
     const form = new FormData();
-    form.append('scan_type', 'Dependency-Track Findings Import');
-    form.append('product_name', defectDojoProductId);
+    form.append(
+      'scan_type',
+      'Dependency Track Finding Packaging Format (FPF) Export',
+    );
+    form.append('product_name', defectDojoProduct.name);
     form.append('engagement_name', latestProject?.version || 'default');
+    form.append('auto_create_context', 'True');
     form.append('file', reportBuffer, {
       filename: 'report.json', // имя файла
       contentType: 'application/json',
     });
 
-    const ddResponse = await this.defectDojoClient.importScan(form);
+    const defectDojoImportResponse =
+      await this.defectDojoClient.importScan(form);
 
     return { status: 'IMPORTED' };
   }
