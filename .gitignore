@@ -1,3 +1,4 @@
 .env
 .env.test
 nginx/ssl/prod/*
+node_modules
