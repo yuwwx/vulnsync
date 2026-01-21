@@ -16,7 +16,7 @@ const features = [
   {
     title: "Синхронизация уязвимостей",
     description:
-      "Автоматическая агрегация данных из всех источников (DefectDojo, DT, Jira, GitLab и др.).",
+      "Агрегация данных из всех источников (DefectDojo, DT, Jira и др.).",
     icon: <Zap className="w-5 h-5" />,
   },
   {
@@ -33,14 +33,7 @@ const features = [
   },
 ];
 
-const integrations = [
-  "DefectDojo",
-  "DependencyTrack",
-  "Jira",
-  "GitLab",
-  "Azure DevOps",
-  "Snyk",
-];
+const integrations = ["DefectDojo", "DependencyTrack", "Jira"];
 
 export default function Home() {
   return (
@@ -54,14 +47,14 @@ export default function Home() {
               Объединяй уязвимости <br /> в одном месте
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              Автоматическая синхронизация данных безопасности между системами,
-              единый дашборд, история изменений и удобный workflow.
+              Синхронизация между системами, единый дашборд, история изменений и
+              удобный workflow.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/login">
+              <Link href="/vulnerabilities">
                 <Button size="lg">
-                  Перейти в дашборд <ArrowRight className="ml-2 w-4 h-4" />
+                  Перейти к уязвимостям <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
               <Link href="/docs">
@@ -163,7 +156,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="container mx-auto py-16">
         <div className="rounded-2xl border bg-card p-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
@@ -173,7 +165,7 @@ export default function Home() {
               уязвимостями.
             </p>
           </div>
-          <Link href="/login">
+          <Link href="/settings">
             <Button size="lg">
               Начать настройку <ArrowRight className="ml-2 w-4 h-4" />
             </Button>

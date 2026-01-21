@@ -84,7 +84,7 @@ export class DefectDojoClient {
       return data.results;
     } catch (err: any) {
       throw new InternalServerErrorException(
-        `Failed to fetch products from DefectDojo: ${err.message || err}`,
+        `Failed to fetch products from DefectDojo: ${err}`,
       );
     }
   }
