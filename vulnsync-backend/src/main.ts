@@ -21,7 +21,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('VulnSync API')
-    .setDescription('Manual vulnerability synchronization service')
+    .setDescription('Vulnerability synchronization service')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
