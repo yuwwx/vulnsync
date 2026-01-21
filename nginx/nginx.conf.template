@@ -1,12 +1,12 @@
 server {
 listen 80;
-server_name localhost;
+server_name ${SERVER_NAME};
 return 301 https://$host$request_uri;
 }
 
 server {
   listen 443 ssl;
-  server_name localhost;
+  server_name ${SERVER_NAME};
 
   ssl_certificate     ${SSL_CERT_PATH};
   ssl_certificate_key ${SSL_KEY_PATH};
