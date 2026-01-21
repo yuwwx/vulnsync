@@ -16,6 +16,7 @@ services:
       context: ./vulnsync-backend
       args:
         ENV: ${ENV}
+        DATABASE_URL: ${DATABASE_URL}
     container_name: vulnsync-backend
     env_file:
       - .env
