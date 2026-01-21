@@ -3,20 +3,23 @@ services:
     image: postgres:latest
     container_name: vulnsync-postgres
     environment:
-      POSTGRES_DB: vulnsync
-      POSTGRES_USER: vulnsync
-      POSTGRES_PASSWORD: vulnsync
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "9876:5432"
     volumes:
       - vulnsync-pgdata:/var/lib/postgresql
 
   backend:
     build:
       context: ./vulnsync-backend
+      args:
+        ENV: ${ENV}
     container_name: vulnsync-backend
     env_file:
       - .env
+
     depends_on:
       - postgres
 
@@ -25,8 +28,8 @@ services:
       context: ./vulnsync-frontend
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        ENV: ${ENV}
     container_name: vulnsync-frontend
-
     env_file:
       - .env
     depends_on:

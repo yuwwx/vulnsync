@@ -8,8 +8,8 @@ ENV ENV=$ENV
 
 COPY package*.json ./
 
-# Если нужен Nexus в prod
-RUN if [ "$ENV" = "prom" ]; then \
+# Если prod - используем Nexus
+RUN if [ "$ENV" = "production" ]; then \
       npm config set registry https://nexus3-ift.sigma-COMPANY.by/repository/npm-all; \
     fi
 
@@ -17,7 +17,6 @@ RUN if [ "$ENV" = "prom" ]; then \
 RUN npm config set strict-ssl false
 
 RUN npm ci --verbose
-
 
 # -------- build --------
 FROM node:24-alpine AS build
@@ -29,13 +28,12 @@ COPY . .
 
 RUN npm run build
 
-
 # -------- runtime --------
 FROM node:24-alpine AS runtime
 
 WORKDIR /app
 
-ENV NODE_ENV=production
+ENV NODE_ENV=$ENV
 
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts 
 COPY --from=build /app/dist ./dist
