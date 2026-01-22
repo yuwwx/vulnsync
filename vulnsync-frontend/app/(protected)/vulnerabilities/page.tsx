@@ -125,7 +125,7 @@ export default function VulnerabilitiesPage() {
 
     return `
 **Название**
-${`[sca] ${finding.title ?? "—"}`}
+${`${finding.title ?? "—"}`}
 
 **Затронутые проекты**
 ${finding.related_fields.test.engagement.product.name ?? "—"}
@@ -190,8 +190,7 @@ ${vulnerabilityLinks || "—"}
   return (
     <>
       <div className="flex gap-6">
-        {/* Сайдбар с продуктами */}
-        <ul className="w-48 border rounded-md p-2 space-y-2 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
+        <ul className="min-w-48 border rounded-md p-2 space-y-2 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
           {products.map((p) => (
             <li
               key={p?.id}
@@ -207,7 +206,7 @@ ${vulnerabilityLinks || "—"}
           ))}
         </ul>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold mb-4">Уязвимости</h1>
 
           {loadingVulns ? (

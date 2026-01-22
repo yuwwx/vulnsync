@@ -20,7 +20,7 @@ import path from 'node:path';
 
 const envFile =
   process.env.NODE_ENV === 'development'
-    ? path.resolve(__dirname, '../../../.env.test')
+    ? path.resolve(__dirname, '../../../.env.dev')
     : undefined;
 
 @Module({

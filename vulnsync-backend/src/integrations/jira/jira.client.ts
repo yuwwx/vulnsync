@@ -19,17 +19,13 @@ export class JiraClient {
       throw new InternalServerErrorException('Jira integration not configured');
     }
 
-    if (!this.axios) {
-      this.axios = axios.create({
-        baseURL: config.baseUrl,
-        headers: {
-          Authorization: `Bearer ${config.apiToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-
-    return this.axios;
+    return axios.create({
+      baseURL: config.baseUrl,
+      headers: {
+        Authorization: `Bearer ${config.apiToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   async createIssue(payload: any) {

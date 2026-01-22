@@ -6,11 +6,9 @@ import { IntegrationType } from '@/common/enums/integration-type.enum';
 
 @Injectable()
 export class DependencyTrackClient {
-  private axios: AxiosInstance;
-
   constructor(private prisma: PrismaService) {}
 
-  private async getClient(): Promise<AxiosInstance> {
+  async getClient(): Promise<AxiosInstance> {
     const config = await this.prisma.integrationSetting.findFirst({
       where: { type: IntegrationType.DEPENDENCY_TRACK },
     });
@@ -21,16 +19,12 @@ export class DependencyTrackClient {
       );
     }
 
-    if (!this.axios) {
-      this.axios = axios.create({
-        baseURL: config.baseUrl,
-        headers: {
-          'X-Api-Key': config.apiToken,
-        },
-      });
-    }
-
-    return this.axios;
+    return axios.create({
+      baseURL: config.baseUrl,
+      headers: {
+        'X-Api-Key': config.apiToken,
+      },
+    });
   }
 
   async getProjects() {

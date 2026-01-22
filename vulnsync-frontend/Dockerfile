@@ -3,13 +3,13 @@ FROM node:24-alpine AS deps
 
 WORKDIR /app
 
-ARG ENV=dev
-ENV ENV=$ENV
+ARG USE_NEXUS=false
+ENV USE_NEXUS=$USE_NEXUS
 
 COPY package*.json ./
 
 # Если prod - используем Nexus
-RUN if [ "$ENV" = "production" ]; then \
+RUN if [ "$USE_NEXUS" = "true" ]; then \
       npm config set registry https://nexus3-ift.sigma-COMPANY.by/repository/npm-all; \
     fi
 
@@ -36,6 +36,8 @@ FROM node:24-alpine AS runner
 
 WORKDIR /app
 
+ARG ENV=dev
+ENV ENV=$ENV
 ENV NODE_ENV=$ENV
 
 # standalone сервер

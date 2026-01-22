@@ -75,7 +75,7 @@ export function LogsTable({ logs, pageSize = 15 }: Props) {
               onClick={prevPage}
               disabled={page === 1}
             >
-              Previous
+              Назад
             </Button>
             <Button
               size="sm"
@@ -83,7 +83,7 @@ export function LogsTable({ logs, pageSize = 15 }: Props) {
               onClick={nextPage}
               disabled={page === totalPages}
             >
-              Next
+              Далее
             </Button>
           </div>
         </div>

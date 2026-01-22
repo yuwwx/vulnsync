@@ -31,8 +31,7 @@ export default function IntegrationsPage() {
 
   return (
     <div className="flex gap-6">
-      {/* Сайдбар продуктов */}
-      <ul className="w-48 border rounded-md p-2 space-y-2 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
+      <ul className="min-w-48 border rounded-md p-2 space-y-2 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
         {products.map((p) => (
           <li
             key={p.id}

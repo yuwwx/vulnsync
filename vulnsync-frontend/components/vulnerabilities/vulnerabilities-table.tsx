@@ -32,11 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import {
-  ProductType,
-  VulnerabilitiesService,
-  Vulnerability,
-} from "@/services/vulnerabilities.service";
+import { Vulnerability } from "@/services/vulnerabilities.service";
 
 export type Payment = {
   id: string;
@@ -78,6 +74,16 @@ export function VulnerabilitiesTable({ data, columns }: Props) {
     },
   });
 
+  const { pageIndex, pageSize } = table.getState().pagination;
+
+  const totalRows = table.getFilteredRowModel().rows.length;
+  const rowsOnPage = table.getRowModel().rows.length;
+
+  const from = pageIndex * pageSize + 1;
+  const to = pageIndex * pageSize + rowsOnPage;
+
+  const selectedRows = table.getFilteredSelectedRowModel().rows.length;
+
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
@@ -117,7 +123,7 @@ export function VulnerabilitiesTable({ data, columns }: Props) {
         </DropdownMenu>
       </div>
       <div className="overflow-hidden rounded-md border">
-        <Table>
+        <Table className="w-full">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -144,7 +150,7 @@ export function VulnerabilitiesTable({ data, columns }: Props) {
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="whitespace-normal">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
@@ -166,10 +172,15 @@ export function VulnerabilitiesTable({ data, columns }: Props) {
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} строк выбрано.
+      <div className="flex items-center justify-between space-x-2 py-4">
+        <div className="flex gap-2">
+          <span className="text-sm text-neutral-600">
+            {from}–{to} из {totalRows}
+          </span>
+          <div className="text-muted-foreground flex-1 text-sm">
+            {"("}
+            {selectedRows} из {totalRows} строк выбрано)
+          </div>
         </div>
         <div className="space-x-2">
           <Button

@@ -3,7 +3,7 @@ import { PrismaService } from './prisma.service';
 import { ConfigService } from '@nestjs/config';
 
 const config = new ConfigService({
-  DATABASE_URL: process.env['DATABASE_URL'],
+  DATABASE_URL: process.env.DATABASE_URL,
 });
 
 const prisma = new PrismaService(config);

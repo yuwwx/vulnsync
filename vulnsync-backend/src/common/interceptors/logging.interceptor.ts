@@ -26,18 +26,28 @@ export class LoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap(async () => {
-        await this.logsService.log(action, req.ip, user.id, {
-          result: 'SUCCESS',
-          username: user.username,
-          userAgent: req.headers['user-agent'],
-        });
+        await this.logsService.log(
+          action,
+          req.headers['x-real-ip'] || req.ip,
+          user.id,
+          {
+            result: 'SUCCESS',
+            username: user.username,
+            userAgent: req.headers['user-agent'],
+          },
+        );
       }),
       catchError(async (err) => {
-        await this.logsService.log(action, req.ip, user.id, {
-          result: 'FAIL',
-          username: user.username,
-          userAgent: req.headers['user-agent'],
-        });
+        await this.logsService.log(
+          action,
+          req.headers['x-real-ip'] || req.ip,
+          user.id,
+          {
+            result: 'FAIL',
+            username: user.username,
+            userAgent: req.headers['user-agent'],
+          },
+        );
         throw err;
       }),
     );

@@ -20,13 +20,9 @@ interface DojoFinding {
 
 @Injectable()
 export class DefectDojoClient {
-  private axiosInstance: AxiosInstance | null = null;
-
   constructor(private prisma: PrismaService) {}
 
-  private async getClient(): Promise<AxiosInstance> {
-    if (this.axiosInstance) return this.axiosInstance;
-
+  async getClient(): Promise<AxiosInstance> {
     const config = await this.prisma.integrationSetting.findFirst({
       where: { type: IntegrationType.DEFECTDOJO },
     });
@@ -37,14 +33,12 @@ export class DefectDojoClient {
       );
     }
 
-    this.axiosInstance = axios.create({
+    return axios.create({
       baseURL: config.baseUrl,
       headers: {
         Authorization: `Token ${config.apiToken}`,
       },
     });
-
-    return this.axiosInstance;
   }
 
   async getProductTypes(): Promise<DojoProduct[]> {
@@ -118,6 +112,7 @@ export class DefectDojoClient {
           test__engagement__product__prod_type: productId,
           limit: 1000,
           related_fields: true,
+          active: true,
         },
       });
 

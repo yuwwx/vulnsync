@@ -6,16 +6,17 @@
     "vulnsync-frontend"
   ],
   "scripts": {
-    "dev": "npm-run-all -p frontend:dev backend:dev",
+    "dev": "npm-run-all -p backend:dev frontend:dev",
     "frontend:dev": "NODE_ENV=development npm --workspace vulnsync-frontend run dev",
     "frontend:build": "NODE_ENV=production npm --workspace vulnsync-frontend run build",
     "frontend:start": "NODE_ENV=production npm --workspace vulnsync-frontend run start",
     "backend:dev": "NODE_ENV=development npm --workspace vulnsync-backend run start:dev",
     "backend:build": "NODE_ENV=production npm --workspace vulnsync-backend run build",
     "backend:start": "NODE_ENV=production npm --workspace vulnsync-backend run start",
-    "backend:test": "NODE_ENV=test npm --workspace vulnsync-backend run test",
+    "backend:test": "NODE_ENV=development npm --workspace vulnsync-backend run test",
     "lint": "npm-run-all frontend:lint backend:lint",
-    "prisma:migrate:dev": "dotenv -e .env.test -- npm --workspace vulnsync-backend run prisma:migrate:dev"
+    "prisma:migrate:dev": "dotenv -e .env.dev -- npm --workspace vulnsync-backend run prisma:migrate:dev",
+    "prisma:generate": "dotenv -e .env.dev -- npm --workspace vulnsync-backend run prisma:generate"
   },
   "devDependencies": {
     "dotenv-cli": "^11.0.0",
