@@ -40,6 +40,7 @@ export class VulnerabilitiesService {
         description: finding.description,
         status: sync ? (sync.status as SyncStatus) : SyncStatus.NOT_SENT,
         cvssv3_score: finding.cvssv3_score,
+        creation_date: finding.date,
         product:
           finding?.related_fields?.test?.engagement?.product?.name ?? undefined,
         jiraIssueKey: sync?.jiraIssueKey ?? undefined,

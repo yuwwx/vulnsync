@@ -129,6 +129,21 @@ export const vulnerabilityColumns = (
     cell: ({ row }) => <span>{row.getValue("cvssv3_score")}</span>,
   },
   {
+    accessorKey: "creation_date",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Дата создания
+          <ArrowUpDown />
+        </Button>
+      );
+    },
+    cell: ({ row }) => <span>{row.getValue("creation_date")}</span>,
+  },
+  {
     accessorKey: "status",
     header: ({ column }) => {
       return (

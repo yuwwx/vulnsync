@@ -44,9 +44,20 @@ export type Payment = {
 interface Props {
   data: Vulnerability[];
   columns: ColumnDef<Vulnerability>[];
+  onSelectionChange?: (rows: Vulnerability[]) => void;
+  bulkAction?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+  };
 }
 
-export function VulnerabilitiesTable({ data, columns }: Props) {
+export function VulnerabilitiesTable({
+  data,
+  columns,
+  onSelectionChange,
+  bulkAction,
+}: Props) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
@@ -84,6 +95,14 @@ export function VulnerabilitiesTable({ data, columns }: Props) {
 
   const selectedRows = table.getFilteredSelectedRowModel().rows.length;
 
+  React.useEffect(() => {
+    if (!onSelectionChange) return;
+
+    const selected = table.getSelectedRowModel().rows.map((r) => r.original);
+
+    onSelectionChange(selected);
+  }, [rowSelection]);
+
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
@@ -95,6 +114,17 @@ export function VulnerabilitiesTable({ data, columns }: Props) {
           }
           className="max-w-sm"
         />
+        {bulkAction && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-2"
+            disabled={bulkAction.disabled}
+            onClick={bulkAction.onClick}
+          >
+            {bulkAction.label}
+          </Button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">

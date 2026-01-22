@@ -29,21 +29,34 @@ import {
 } from "@/services/vulnerabilities.service";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { VulnerabilitiesTable } from "../../../components/vulnerabilities/vulnerabilities-table";
+import { VulnerabilitiesTable } from "@/components/vulnerabilities/vulnerabilities-table";
 import { Check, Copy } from "lucide-react";
+
+import {
+  normalizeSingleFinding,
+  normalizeBulkFindings,
+  renderJiraDescription,
+} from "@/utils/jira-description";
+
+type FindingState =
+  | { type: "single"; data: any }
+  | { type: "bulk"; raw: any[] }
+  | null;
 
 export default function VulnerabilitiesPage() {
   const [products, setProducts] = useState<DefectDojoProduct[]>([]);
-  const [selectedProductId, setselectedProductId] = useState<number | null>(
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(
     null,
   );
 
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
+  const [selectedVulns, setSelectedVulns] = useState<Vulnerability[]>([]);
+
   const [loadingVulns, setLoadingVulns] = useState(false);
   const [loadingFinding, setLoadingFinding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [finding, setFinding] = useState<any>(null);
+  const [finding, setFinding] = useState<FindingState>(null);
   const [openDescription, setOpenDescription] = useState(false);
   const [openJiraLink, setOpenJiraLink] = useState(false);
 
@@ -51,33 +64,37 @@ export default function VulnerabilitiesPage() {
 
   const handleGenerateDescription = useCallback(async (vuln: Vulnerability) => {
     setLoadingFinding(true);
-    setFinding(null);
 
     try {
-      const result = await IntegrationsService.getDefectDojoFinding(
+      const data = await IntegrationsService.getDefectDojoFinding(
         Number(vuln.id),
       );
 
-      setFinding(result);
+      setFinding({ type: "single", data });
       setOpenDescription(true);
-    } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message || "Не удалось загрузить уязвимость",
-      );
+    } catch {
+      toast.error("Не удалось загрузить уязвимость");
     } finally {
       setLoadingFinding(false);
     }
   }, []);
 
-  const handleCopy = async () => {
-    try {
-      // ВАЖНО: копируем plain text, не HTML
-      await navigator.clipboard.writeText(jiraText);
+  const handleGenerateBulkDescription = async () => {
+    setLoadingFinding(true);
 
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch (err) {
-      console.error("Copy failed", err);
+    try {
+      const findings = await Promise.all(
+        selectedVulns.map((v) =>
+          IntegrationsService.getDefectDojoFinding(Number(v.id)),
+        ),
+      );
+
+      setFinding({ type: "bulk", raw: findings });
+      setOpenDescription(true);
+    } catch {
+      toast.error("Не удалось сгенерировать описание");
+    } finally {
+      setLoadingFinding(false);
     }
   };
 
@@ -87,79 +104,27 @@ export default function VulnerabilitiesPage() {
         findingId: vuln.findingId,
         productId: vuln.productId,
       });
+
       setVulns((prev) =>
         prev.map((v) => (v.id === vuln.id ? { ...v, status: "SENT" } : v)),
       );
-      toast.success("Jira issue created");
-    } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message || "Failed to create Jira issue",
-      );
+
+      toast.success("Jira issue создан");
+    } catch {
+      toast.error("Не удалось создать Jira issue");
     }
   }, []);
 
-  const handleLinkWithJira = useCallback(async (vuln: Vulnerability) => {
+  const handleLinkWithJira = () => {
     setOpenJiraLink(true);
-  }, []);
+  };
 
-  function formatVulnerabilityLinks(vulnIds: any[] = []) {
-    return vulnIds
-      .map((v) => {
-        const id = v.vulnerability_id;
-
-        if (id.startsWith("CVE-")) {
-          return `https://nvd.nist.gov/vuln/detail/${id}`;
-        }
-
-        if (id.startsWith("GHSA-")) {
-          return `https://github.com/advisories/${id}`;
-        }
-
-        return id;
-      })
-      .join(" ");
-  }
-
-  function buildJiraDescription(finding: any) {
-    const vulnIds = (finding.vulnerability_ids ?? [])
-      .map((v: any) => v.vulnerability_id)
-      .join(", ");
-
-    const vulnerabilityLinks = formatVulnerabilityLinks(
-      finding.vulnerability_ids,
-    );
-
-    const severity = [
-      finding.severity,
-      finding.cvssv3_score && `CVSS ${finding.cvssv3_score}/10`,
-      finding.cvssv3,
-    ]
-      .filter(Boolean)
-      .join(", ");
-
-    return `
-*Название*
-${`${finding.title ?? "—"}`}
-
-*Затронутые проекты*
-${finding.related_fields.test.engagement.product.name ?? "—"}
-
-*Уязвимые компоненты*
-${finding.file_path ?? "—"}
-
-*Идентификаторы уязвимости*
-${vulnIds || "—"}
-
-*Критичность*
-${severity || "—"}
-
-*Описание*
-${finding.description || "—"}
-
-*Ссылки*
-${vulnerabilityLinks || "—"}
-`.trim();
-  }
+  const jiraText =
+    finding?.type === "bulk"
+      ? renderJiraDescription(normalizeBulkFindings(finding.raw))
+      : finding?.type === "single"
+        ? renderJiraDescription(normalizeSingleFinding(finding.data))
+        : "";
 
   const columns = useMemo(
     () =>
@@ -171,35 +136,29 @@ ${vulnerabilityLinks || "—"}
     [handleGenerateDescription],
   );
 
-  // Загружаем только список продуктов
   useEffect(() => {
     IntegrationsService.getDefectDojoProductTypes()
       .then(setProducts)
-      .catch((err) => {
-        setError(`Не удалось получить типы продуктов из DefectDojo: ${err}`);
-      })
-      .catch(console.error);
+      .catch(() => setError("Не удалось получить продукты из DefectDojo"));
   }, []);
 
   const loadVulnerabilities = (product: DefectDojoProduct) => {
-    const productId = product?.id;
-
-    setselectedProductId(productId);
-
+    setSelectedProductId(product.id);
     setLoadingVulns(true);
 
-    VulnerabilitiesService.getVulnerabilities(productId)
-      .then((data) => {
-        const withProductId = data.map((v) => ({ ...v, productId }));
-        setVulns(withProductId);
-      })
-      .catch((err) => {
-        setError(`Не удалось получить уязвимости из DefectDojo: ${err}`);
-      })
+    VulnerabilitiesService.getVulnerabilities(product.id)
+      .then((data) =>
+        setVulns(data.map((v) => ({ ...v, productId: product.id }))),
+      )
+      .catch(() => setError("Не удалось получить уязвимости"))
       .finally(() => setLoadingVulns(false));
   };
 
-  const jiraText = finding ? buildJiraDescription(finding) : "";
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(jiraText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <>
@@ -207,15 +166,15 @@ ${vulnerabilityLinks || "—"}
         <ul className="min-w-48 border rounded-md p-2 space-y-2 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
           {products.map((p) => (
             <li
-              key={p?.id}
+              key={p.id}
+              onClick={() => loadVulnerabilities(p)}
               className={`p-2 rounded cursor-pointer text-sm font-medium ${
-                selectedProductId === p?.id
+                selectedProductId === p.id
                   ? "bg-neutral-600 text-white"
                   : "hover:bg-muted"
               }`}
-              onClick={() => loadVulnerabilities(p)}
             >
-              {p?.name}
+              {p.name}
             </li>
           ))}
         </ul>
@@ -224,45 +183,48 @@ ${vulnerabilityLinks || "—"}
           <h1 className="text-2xl font-bold mb-4">Уязвимости</h1>
 
           {loadingVulns ? (
-            <div>Загружаем уязвимости…</div>
+            <div>Загрузка…</div>
           ) : error ? (
             <div className="p-4 text-red-700 bg-red-100 rounded-md">
               {error}
             </div>
           ) : !selectedProductId ? (
-            <div className="text-neutral-500">
-              Выберите продукт для работы с уязвимостями
-            </div>
-          ) : vulns.length === 0 && selectedProductId ? (
-            <div>Не найдены уязвимости для выбранного продукта</div>
+            <div className="text-neutral-500">Выберите продукт</div>
           ) : (
-            <VulnerabilitiesTable columns={columns} data={vulns} />
+            <VulnerabilitiesTable
+              data={vulns}
+              columns={columns}
+              onSelectionChange={setSelectedVulns}
+              bulkAction={{
+                label: `Сгенерировать описание (${selectedVulns.length})`,
+                disabled: selectedVulns.length === 0 || loadingFinding,
+                onClick: handleGenerateBulkDescription,
+              }}
+            />
           )}
         </div>
       </div>
+
       <Dialog open={openDescription} onOpenChange={setOpenDescription}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Описание уязвимости</DialogTitle>
           </DialogHeader>
-          {loadingFinding || !finding ? (
+
+          {loadingFinding ? (
             <div className="text-sm text-muted-foreground">Загрузка…</div>
           ) : (
             <>
-              <div className="space-y-6 text-sm">
-                <div className="font-sans">
-                  {jiraText.split("\n").map((line, i) => (
-                    <div key={i} className="break-words">
-                      {line || "\u00A0"}
-                    </div>
-                  ))}
-                </div>
+              <div className="space-y-4 text-sm">
+                {jiraText.split("\n").map((line, i) => (
+                  <div key={i}>{line || "\u00A0"}</div>
+                ))}
+
                 <Button
-                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleCopy}
-                  className="flex items-center gap-2"
+                  className="flex gap-2"
                 >
                   {copied ? (
                     <>
@@ -276,15 +238,20 @@ ${vulnerabilityLinks || "—"}
                     </>
                   )}
                 </Button>
+
                 <Accordion type="single" collapsible>
                   <AccordionItem value="raw">
                     <AccordionTrigger>Исходные данные (JSON)</AccordionTrigger>
                     <AccordionContent>
-                      <div className="space-y-4 text-sm flex justify-center">
-                        <pre className="whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[70vh] overflow-x-auto sm:max-w-2xl">
-                          {JSON.stringify(finding, null, 2)}
-                        </pre>
-                      </div>
+                      <pre className="bg-muted p-3 rounded-md max-h-[60vh] overflow-auto break-words whitespace-pre-wrap">
+                        {JSON.stringify(
+                          finding?.type === "single"
+                            ? finding.data
+                            : finding?.raw,
+                          null,
+                          2,
+                        )}
+                      </pre>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -293,25 +260,24 @@ ${vulnerabilityLinks || "—"}
           )}
         </DialogContent>
       </Dialog>
+
       <Dialog open={openJiraLink} onOpenChange={setOpenJiraLink}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Связать с Jira</DialogTitle>
-            <DialogDescription>
-              Связать уязвимость с сущностью в Jira
-            </DialogDescription>
+            <DialogDescription>Укажите ключ задачи</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4">
-            <div className="grid gap-3">
-              <Label htmlFor="name-1">Key</Label>
-              <Input id="name-1" name="name" defaultValue="RETAIL-0" />
-            </div>
+
+          <div className="grid gap-3">
+            <Label>Key</Label>
+            <Input defaultValue="RETAIL-0" />
           </div>
+
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">Отмена</Button>
             </DialogClose>
-            <Button type="submit">Сохранить</Button>
+            <Button>Сохранить</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
