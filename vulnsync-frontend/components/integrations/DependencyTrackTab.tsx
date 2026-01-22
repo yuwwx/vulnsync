@@ -32,7 +32,7 @@ function stripSystemFields<T extends Record<string, any>>(obj: T): T {
   return copy;
 }
 
-export default function DependencyTrackTab({ product }: Props) {
+export default function DependencyTrackTab({ product: productType }: Props) {
   const [mapping, setMapping] = useState<DependencyTrackMapping | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,7 +47,7 @@ export default function DependencyTrackTab({ product }: Props) {
     setError(null);
     setMapping(null);
 
-    IntegrationsService.getDefectDojoProducts(product.id)
+    IntegrationsService.getDefectDojoProducts(productType.id)
       .then((prods) => {
         setProducts(prods);
 
@@ -68,7 +68,7 @@ export default function DependencyTrackTab({ product }: Props) {
         setError(`Не удалось получить продукты из DefectDojo: ${err}`),
       )
       .finally(() => setLoading(false));
-  }, [product?.id]);
+  }, [productType?.id]);
 
   // 2) Когда выбираем продукт - грузим маппинг
   useEffect(() => {
@@ -126,7 +126,9 @@ export default function DependencyTrackTab({ product }: Props) {
     setError(null);
 
     try {
-      await IntegrationsService.exportDependencyTrackToDefectDojo(product.id);
+      await IntegrationsService.exportDependencyTrackToDefectDojo(
+        Number(selectedDdProductId),
+      );
       toast.success("Экспорт в DefectDojo успешен");
     } catch (err: any) {
       setError(err.message || "Не удалось экспортировать в DefectDojo");
