@@ -37,49 +37,20 @@ export class DependencyTrackService {
       Buffer.isBuffer(report) ? report.toString() : report,
     );
 
-    // 1) отделяем те, что можно дедуплицировать
-    const dedupable = reportJson.findings.filter((f: any) => {
-      return (f.vulnerability?.aliases || []).length > 0 && !!f.component?.uuid;
+    const order = ['NVD', 'GITHUB'];
+
+    reportJson.findings.sort((a: any, b: any) => {
+      const sa = a.vulnerability?.source;
+      const sb = b.vulnerability?.source;
+
+      const ia = order.indexOf(sa);
+      const ib = order.indexOf(sb);
+
+      const aRank = ia === -1 ? Number.MAX_SAFE_INTEGER : ia;
+      const bRank = ib === -1 ? Number.MAX_SAFE_INTEGER : ib;
+
+      return aRank - bRank;
     });
-
-    const notDedupable = reportJson.findings.filter((f: any) => {
-      return !(
-        (f.vulnerability?.aliases || []).length > 0 && !!f.component?.uuid
-      );
-    });
-
-    // 2) дедупликация
-    const map = new Map<string, any>();
-
-    for (const f of dedupable) {
-      const compKey = f.component.uuid;
-
-      const aliases = f.vulnerability.aliases;
-      const cve = aliases.find((a: any) => a.cveId)?.cveId;
-      const ghsa = aliases.find((a: any) => a.ghsaId)?.ghsaId;
-
-      const vulnKey = cve || ghsa;
-      const key = `${compKey}::${vulnKey}`;
-
-      if (!map.has(key)) {
-        map.set(key, f);
-        continue;
-      }
-
-      const existing = map.get(key);
-
-      if (existing.vulnerability?.source === 'NVD') continue;
-
-      if (f.vulnerability?.source === 'NVD') {
-        map.set(key, f);
-      }
-    }
-
-    // 3) собираем финальный report
-    reportJson.findings = [
-      ...Array.from(map.values()), // deduped
-      ...notDedupable, // untouched
-    ];
 
     const filteredBuffer = Buffer.from(JSON.stringify(reportJson));
 
