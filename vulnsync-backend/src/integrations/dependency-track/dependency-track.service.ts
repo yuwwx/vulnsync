@@ -33,10 +33,55 @@ export class DependencyTrackService {
     const report = await this.depTrackClient.exportFindings(
       latestProject?.uuid,
     );
+    const reportJson = JSON.parse(
+      Buffer.isBuffer(report) ? report.toString() : report,
+    );
 
-    // --- ВАЖНО: report должен быть Buffer или Stream
-    // если report это string, делаем Buffer:
-    const reportBuffer = Buffer.from(report);
+    // 1) отделяем те, что можно дедуплицировать
+    const dedupable = reportJson.findings.filter((f: any) => {
+      return (f.vulnerability?.aliases || []).length > 0 && !!f.component?.uuid;
+    });
+
+    const notDedupable = reportJson.findings.filter((f: any) => {
+      return !(
+        (f.vulnerability?.aliases || []).length > 0 && !!f.component?.uuid
+      );
+    });
+
+    // 2) дедупликация
+    const map = new Map<string, any>();
+
+    for (const f of dedupable) {
+      const compKey = f.component.uuid;
+
+      const aliases = f.vulnerability.aliases;
+      const cve = aliases.find((a: any) => a.cveId)?.cveId;
+      const ghsa = aliases.find((a: any) => a.ghsaId)?.ghsaId;
+
+      const vulnKey = cve || ghsa;
+      const key = `${compKey}::${vulnKey}`;
+
+      if (!map.has(key)) {
+        map.set(key, f);
+        continue;
+      }
+
+      const existing = map.get(key);
+
+      if (existing.vulnerability?.source === 'NVD') continue;
+
+      if (f.vulnerability?.source === 'NVD') {
+        map.set(key, f);
+      }
+    }
+
+    // 3) собираем финальный report
+    reportJson.findings = [
+      ...Array.from(map.values()), // deduped
+      ...notDedupable, // untouched
+    ];
+
+    const filteredBuffer = Buffer.from(JSON.stringify(reportJson));
 
     const form = new FormData();
     form.append(
@@ -46,13 +91,12 @@ export class DependencyTrackService {
     form.append('product_name', defectDojoProduct.name);
     form.append('engagement_name', latestProject?.version || 'default');
     form.append('auto_create_context', 'True');
-    form.append('file', reportBuffer, {
+    form.append('file', filteredBuffer, {
       filename: 'report.json', // имя файла
       contentType: 'application/json',
     });
 
-    const defectDojoImportResponse =
-      await this.defectDojoClient.importScan(form);
+    await this.defectDojoClient.importScan(form);
 
     return { status: 'IMPORTED' };
   }
