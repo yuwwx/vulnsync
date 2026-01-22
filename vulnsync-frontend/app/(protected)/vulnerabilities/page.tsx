@@ -1,18 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { VulnerabilitiesTable } from "../../../components/vulnerabilities/vulnerabilities-table";
 import {
-  ProductType,
-  VulnerabilitiesService,
-  Vulnerability,
-} from "@/services/vulnerabilities.service";
-import {
-  DefectDojoProduct,
-  IntegrationsService,
-} from "@/services/integrations.service";
-import { vulnerabilityColumns } from "@/components/vulnerabilities/vulnerabilities-columns";
-import { toast } from "sonner";
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -22,15 +16,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { vulnerabilityColumns } from "@/components/vulnerabilities/vulnerabilities-columns";
+import {
+  DefectDojoProduct,
+  IntegrationsService,
+} from "@/services/integrations.service";
+import {
+  VulnerabilitiesService,
+  Vulnerability,
+} from "@/services/vulnerabilities.service";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { VulnerabilitiesTable } from "../../../components/vulnerabilities/vulnerabilities-table";
+import { Check, Copy } from "lucide-react";
 
 export default function VulnerabilitiesPage() {
   const [products, setProducts] = useState<DefectDojoProduct[]>([]);
@@ -46,6 +46,8 @@ export default function VulnerabilitiesPage() {
   const [finding, setFinding] = useState<any>(null);
   const [openDescription, setOpenDescription] = useState(false);
   const [openJiraLink, setOpenJiraLink] = useState(false);
+
+  const [copied, setCopied] = useState(false);
 
   const handleGenerateDescription = useCallback(async (vuln: Vulnerability) => {
     setLoadingFinding(true);
@@ -66,6 +68,18 @@ export default function VulnerabilitiesPage() {
       setLoadingFinding(false);
     }
   }, []);
+
+  const handleCopy = async () => {
+    try {
+      // ВАЖНО: копируем plain text, не HTML
+      await navigator.clipboard.writeText(jiraText);
+
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error("Copy failed", err);
+    }
+  };
 
   const handleSendToJira = useCallback(async (vuln: Vulnerability) => {
     try {
@@ -124,25 +138,25 @@ export default function VulnerabilitiesPage() {
       .join(", ");
 
     return `
-**Название**
+*Название*
 ${`${finding.title ?? "—"}`}
 
-**Затронутые проекты**
+*Затронутые проекты*
 ${finding.related_fields.test.engagement.product.name ?? "—"}
 
-**Уязвимые компоненты**
+*Уязвимые компоненты*
 ${finding.file_path ?? "—"}
 
-**Идентификаторы уязвимости**
+*Идентификаторы уязвимости*
 ${vulnIds || "—"}
 
-**Критичность**
+*Критичность*
 ${severity || "—"}
 
-**Описание**
+*Описание*
 ${finding.description || "—"}
 
-**Ссылки**
+*Ссылки*
 ${vulnerabilityLinks || "—"}
 `.trim();
   }
@@ -227,7 +241,7 @@ ${vulnerabilityLinks || "—"}
         </div>
       </div>
       <Dialog open={openDescription} onOpenChange={setOpenDescription}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Описание уязвимости</DialogTitle>
           </DialogHeader>
@@ -236,12 +250,35 @@ ${vulnerabilityLinks || "—"}
           ) : (
             <>
               <div className="space-y-6 text-sm">
-                <pre className="whitespace-pre-wrap break-all overflow-x-hidden w-full font-sans">
-                  {jiraText}
-                </pre>
+                <div className="font-sans">
+                  {jiraText.split("\n").map((line, i) => (
+                    <div key={i} className="break-words">
+                      {line || "\u00A0"}
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopy}
+                  className="flex items-center gap-2"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4 text-green-600" />
+                      Скопировано
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Скопировать
+                    </>
+                  )}
+                </Button>
                 <Accordion type="single" collapsible>
                   <AccordionItem value="raw">
-                    <AccordionTrigger>Raw finding (JSON)</AccordionTrigger>
+                    <AccordionTrigger>Исходные данные (JSON)</AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-4 text-sm flex justify-center">
                         <pre className="whitespace-pre-wrap bg-muted p-3 rounded-md max-h-[70vh] overflow-x-auto sm:max-w-2xl">
