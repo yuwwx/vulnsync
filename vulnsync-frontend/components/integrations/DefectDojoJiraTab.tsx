@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MappingsService, JiraMapping } from "@/services/mappings.service";
-import { ProductType } from "@/services/vulnerabilities.service";
-import { toast } from "sonner";
 import { DefectDojoProduct } from "@/services/integrations.service";
+import { JiraMapping, MappingsService } from "@/services/mappings.service";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface Props {
   product: DefectDojoProduct;
@@ -55,8 +54,6 @@ export default function DefectDojoJiraTab({ product }: Props) {
   }, [product?.id]);
 
   const save = async () => {
-    if (!mapping) return;
-
     setSaving(true);
     setError(null);
 
@@ -81,8 +78,8 @@ export default function DefectDojoJiraTab({ product }: Props) {
     payload.ddProductTypeId = product?.id;
 
     try {
-      const saved = mapping.id
-        ? await MappingsService.updateJiraMapping(mapping.id, payload)
+      const saved = mapping?.id
+        ? await MappingsService.updateJiraMapping(mapping?.id, payload)
         : await MappingsService.createJiraMapping(payload);
 
       setMapping(saved);
@@ -106,7 +103,11 @@ export default function DefectDojoJiraTab({ product }: Props) {
         {error && (
           <div className="p-2 text-red-700 bg-red-100 rounded-md">{error}</div>
         )}
-
+        {!mapping && (
+          <div className="text-sm text-muted-foreground">
+            Маппинг ещё не создан — будет создан при сохранении
+          </div>
+        )}
         <Textarea
           className="font-mono min-h-[450px]"
           value={jsonText}

@@ -6,8 +6,6 @@ import { IntegrationType } from '@/common/enums/integration-type.enum';
 
 @Injectable()
 export class JiraClient {
-  private axios: AxiosInstance;
-
   constructor(private prisma: PrismaService) {}
 
   private async getClient(): Promise<AxiosInstance> {
@@ -29,8 +27,10 @@ export class JiraClient {
   }
 
   async createIssue(payload: any) {
+    console.log('createIssue', payload);
     const client = await this.getClient();
-    const { data } = await client.post('/rest/api/2/issue', payload);
+    //const { data } = await client.post('/rest/api/2/issue', payload);
+    const { data } = await client.post('/', payload);
     return data;
   }
 }

@@ -1,10 +1,10 @@
 // dto/create-jira-issue.dto.ts
-import { IsNumber, IsString } from 'class-validator';
+import { IsNumber } from 'class-validator';
 
 export class CreateJiraIssueDto {
   @IsNumber()
   findingId: number;
 
-  @IsString()
-  productId: number;
+  @IsNumber()
+  ddProductTypeId: number;
 }

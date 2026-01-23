@@ -101,8 +101,8 @@ export default function VulnerabilitiesPage() {
   const handleSendToJira = useCallback(async (vuln: Vulnerability) => {
     try {
       await IntegrationsService.createJiraIssue({
-        findingId: vuln.findingId,
-        productId: vuln.productId,
+        findingId: Number(vuln.id),
+        ddProductTypeId: vuln.productId,
       });
 
       setVulns((prev) =>
