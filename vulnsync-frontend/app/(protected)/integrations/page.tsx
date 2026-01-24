@@ -76,7 +76,7 @@ export default function IntegrationsPage() {
             <TabsContent value="defectDojoJira">
               {selectedProduct && (
                 <DefectDojoJiraTab
-                  product={products.find((p) => p.id === selectedProduct)!}
+                  productType={products.find((p) => p.id === selectedProduct)!}
                 />
               )}
             </TabsContent>
@@ -84,7 +84,7 @@ export default function IntegrationsPage() {
             <TabsContent value="dependencyTrack">
               {selectedProduct && (
                 <DependencyTrackTab
-                  product={products.find((p) => p.id === selectedProduct)!}
+                  productType={products.find((p) => p.id === selectedProduct)!}
                 />
               )}
             </TabsContent>

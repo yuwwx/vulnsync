@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface Props {
-  product: DefectDojoProductType;
+  productType: DefectDojoProductType;
 }
 
 const SYSTEM_FIELDS = [
@@ -24,7 +24,7 @@ function stripSystemFields<T extends Record<string, any>>(obj: T): T {
   return copy;
 }
 
-export default function DefectDojoJiraTab({ product }: Props) {
+export default function DefectDojoJiraTab({ productType }: Props) {
   const [mapping, setMapping] = useState<JiraMapping | null>(null);
   const [jsonText, setJsonText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!product?.id) {
+    if (!productType?.id) {
       setMapping(null);
       setJsonText("");
       setLoading(false);
@@ -42,7 +42,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
     setLoading(true);
     setError(null);
 
-    MappingsService.getJiraMapping(Number(product.id))
+    MappingsService.getJiraMapping(Number(productType.id))
       .then((map) => {
         setMapping(map);
         setJsonText(map ? JSON.stringify(stripSystemFields(map), null, 2) : "");
@@ -51,7 +51,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
         setError(err.message || "Не удалось загрузить маппинг");
       })
       .finally(() => setLoading(false));
-  }, [product?.id]);
+  }, [productType?.id]);
 
   const save = async () => {
     setSaving(true);
@@ -75,7 +75,7 @@ export default function DefectDojoJiraTab({ product }: Props) {
       return;
     }
 
-    payload.ddProductTypeId = product?.id;
+    payload.ddProductTypeId = productType?.id;
 
     try {
       const saved = mapping?.id

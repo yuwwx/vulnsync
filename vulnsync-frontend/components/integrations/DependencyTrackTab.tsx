@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  DefectDojoProduct,
   DefectDojoProductType,
   IntegrationsService,
 } from "@/services/integrations.service";
@@ -21,7 +22,7 @@ import {
 } from "../ui/select";
 
 interface Props {
-  product: DefectDojoProductType;
+  productType: DefectDojoProductType;
 }
 
 const SYSTEM_FIELDS = ["id", "ddProductId", "createdAt", "updatedAt"] as const;
@@ -32,13 +33,13 @@ function stripSystemFields<T extends Record<string, any>>(obj: T): T {
   return copy;
 }
 
-export default function DependencyTrackTab({ product: productType }: Props) {
+export default function DependencyTrackTab({ productType }: Props) {
   const [mapping, setMapping] = useState<DependencyTrackMapping | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [products, setProducts] = useState<DefectDojoProductType[]>([]);
+  const [products, setProducts] = useState<DefectDojoProduct[]>([]);
   const [selectedDdProductId, setSelectedDdProductId] = useState<string>("");
 
   // 1) Загружаем продукты

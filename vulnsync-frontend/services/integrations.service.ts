@@ -1,6 +1,11 @@
 import { api } from "./api";
 
 // Типы
+export interface DefectDojoProduct {
+  id: number;
+  name: string;
+}
+
 export interface DefectDojoProductType {
   id: number;
   name: string;
