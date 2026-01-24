@@ -28,6 +28,7 @@ const severitySortFn = (rowA: any, rowB: any, columnId: string) => {
 export const vulnerabilityColumns = (
   onSendToJira: (vuln: Vulnerability) => void,
   onLinkWithJira: (vuln: Vulnerability) => void,
+  onSyncWithJira: (vuln: Vulnerability) => void,
   onGenerateDescription: (vuln: Vulnerability) => void,
 ): ColumnDef<Vulnerability>[] => [
   {
@@ -176,7 +177,7 @@ export const vulnerabilityColumns = (
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[230px]">
               <DropdownMenuItem
-                disabled={vuln.status === "SENT"}
+                // disabled={vuln.status !== "Не отправлена"}
                 onClick={() => onSendToJira(vuln)}
               >
                 Отправить в Jira
@@ -184,7 +185,7 @@ export const vulnerabilityColumns = (
               <DropdownMenuItem onClick={() => onLinkWithJira(vuln)}>
                 Связать с Jira
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onLinkWithJira(vuln)}>
+              <DropdownMenuItem onClick={() => onSyncWithJira(vuln)}>
                 Синхронизировать с Jira
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onGenerateDescription(vuln)}>
@@ -212,9 +213,13 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    SENT: "bg-blue-200 text-blue-800",
-    NOT_SENT: "bg-neutral-200 text-neutral-800",
+    "Не отправлена": "bg-neutral-200 text-neutral-800",
+    Закрыта: "bg-green-200 text-green-800",
   };
 
-  return <Badge className={colors[status]}>{status}</Badge>;
+  return (
+    <Badge className={colors[status] || "bg-blue-200 text-blue-800"}>
+      {status}
+    </Badge>
+  );
 }

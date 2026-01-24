@@ -7,12 +7,12 @@ export interface ProductType {
 }
 
 export interface Vulnerability {
-  id: string;
+  id: number;
   title: string;
   severity: string;
-  status: "SENT" | "NOT_SENT";
-  productId: number;
-  findingId: number;
+  status: string;
+  cvssv3_score: number;
+  creation_date: Date;
 }
 
 export const VulnerabilitiesService = {
@@ -25,5 +25,13 @@ export const VulnerabilitiesService = {
 
   async sendToJira(vulnId: string) {
     return api.post(`/vulnerabilities/${vulnId}/jira`);
+  },
+
+  async previewJiraDescription(findingIds: number[]) {
+    const { data } = await api.post("/vulnerabilities/description", {
+      findingIds,
+    });
+
+    return data;
   },
 };

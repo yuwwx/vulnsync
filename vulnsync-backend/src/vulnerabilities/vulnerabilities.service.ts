@@ -1,15 +1,14 @@
-// vulnerabilities.service.ts
-import { Injectable } from '@nestjs/common';
-import { SyncStatus } from './enums/sync-status.enum';
-import { VulnerabilityDto } from './dto/vulnerability.dto';
-import { PrismaService } from '@/prisma/prisma.service';
 import { DefectDojoService } from '@/integrations/defectdojo/defectdojo.service';
+import { JiraDescriptionService } from '@/integrations/jira/jira-description.service';
+import { PrismaService } from '@/prisma/prisma.service';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class VulnerabilitiesService {
   constructor(
     private prisma: PrismaService,
     private defectDojo: DefectDojoService,
+    private jiraDescriptionService: JiraDescriptionService,
   ) {}
 
   async getProductTypes() {
@@ -30,44 +29,33 @@ export class VulnerabilitiesService {
 
     const syncMap = new Map(synced.map((s) => [s.externalId, s]));
 
-    const result: VulnerabilityDto[] = findings.map((finding) => {
-      const sync = syncMap.get(finding.id.toString());
-
-      return {
-        id: finding.id,
-        title: finding.title,
-        severity: finding.severity,
-        description: finding.description,
-        status: sync ? (sync.status as SyncStatus) : SyncStatus.NOT_SENT,
-        cvssv3_score: finding.cvssv3_score,
-        creation_date: finding.date,
-        product:
-          finding?.related_fields?.test?.engagement?.product?.name ?? undefined,
-        jiraIssueKey: sync?.jiraIssueKey ?? undefined,
-      };
-    });
-
-    return result;
+    return findings.map((finding) => ({
+      id: finding.id,
+      title: finding.title,
+      severity: finding.severity,
+      status: syncMap.get(finding.id.toString())?.status ?? 'Не отправлена',
+      cvssv3_score: finding.cvssv3_score,
+      creation_date: finding.date,
+      product: finding?.related_fields?.test?.engagement?.product?.name,
+      jiraIssueKey: syncMap.get(finding.id.toString())?.jiraIssueKey,
+    }));
   }
 
-  async markAsSent(findingId: number, jiraIssueKey: string, userId: string) {
-    await this.prisma.vulnerabilitySync.upsert({
-      where: {
-        externalId_source: {
-          externalId: findingId.toString(),
-          source: 'DEFECTDOJO',
-        },
-      },
-      update: {
-        status: SyncStatus.SENT,
-        jiraIssueKey,
-      },
-      create: {
-        externalId: findingId.toString(),
-        source: 'DEFECTDOJO',
-        status: SyncStatus.SENT,
-        jiraIssueKey,
-      },
-    });
+  async getJiraDescriptionPreview(findingIds: number[]) {
+    const findings = await Promise.all(
+      findingIds.map((id) => this.defectDojo.getFinding(id)),
+    );
+    if (findings.length === 1) {
+      const data = this.jiraDescriptionService.normalizeSingleFinding(
+        findings[0],
+      );
+      return {
+        description: this.jiraDescriptionService.renderJiraDescription(data),
+      };
+    }
+    const data = this.jiraDescriptionService.normalizeBulkFindings(findings);
+    return {
+      description: this.jiraDescriptionService.renderJiraDescription(data),
+    };
   }
 }

@@ -1,14 +1,9 @@
-// jira.module.ts
 import { Module } from '@nestjs/common';
 import { JiraClient } from './jira.client';
-import { JiraService } from './jira.service';
-import { JiraController } from './jira.controller';
-import { VulnerabilitiesModule } from '@/vulnerabilities/vulnerabilities.module';
-import { DefectDojoModule } from '../defectdojo/defectdojo.module';
+import { JiraDescriptionService } from './jira-description.service';
 
 @Module({
-  imports: [VulnerabilitiesModule, DefectDojoModule],
-  providers: [JiraClient, JiraService],
-  controllers: [JiraController],
+  providers: [JiraClient, JiraDescriptionService],
+  exports: [JiraClient, JiraDescriptionService],
 })
 export class JiraModule {}

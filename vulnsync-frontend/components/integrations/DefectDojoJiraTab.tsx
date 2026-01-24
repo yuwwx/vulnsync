@@ -2,13 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { DefectDojoProduct } from "@/services/integrations.service";
+import { DefectDojoProductType } from "@/services/integrations.service";
 import { JiraMapping, MappingsService } from "@/services/mappings.service";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface Props {
-  product: DefectDojoProduct;
+  product: DefectDojoProductType;
 }
 
 const SYSTEM_FIELDS = [

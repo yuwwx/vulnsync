@@ -5,13 +5,13 @@ import DefectDojoJiraTab from "@/components/integrations/DefectDojoJiraTab";
 import DependencyTrackTab from "@/components/integrations/DependencyTrackTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  DefectDojoProduct,
+  DefectDojoProductType,
   IntegrationsService,
 } from "@/services/integrations.service";
 import { useEffect, useState } from "react";
 
 export default function IntegrationsPage() {
-  const [products, setProducts] = useState<DefectDojoProduct[]>([]);
+  const [products, setProducts] = useState<DefectDojoProductType[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<
     "defectDojoJira" | "dependencyTrack"

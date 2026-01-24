@@ -17,6 +17,7 @@ import { LogsModule } from './logs/logs.module';
 import { ConfigModule } from '@nestjs/config';
 import { MappingsModule } from './mappings/mappings.module';
 import path from 'node:path';
+import { VulnerabilitySyncModule } from './vulnerability-sync/vulnerability-sync.module';
 
 const envFile =
   process.env.NODE_ENV === 'development'
@@ -38,6 +39,7 @@ const envFile =
     DependencyTrackModule,
     DefectDojoModule,
     MappingsModule,
+    VulnerabilitySyncModule,
   ],
   providers: [
     {

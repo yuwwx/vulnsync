@@ -19,99 +19,110 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { vulnerabilityColumns } from "@/components/vulnerabilities/vulnerabilities-columns";
+import { VulnerabilitiesTable } from "@/components/vulnerabilities/vulnerabilities-table";
 import {
-  DefectDojoProduct,
+  DefectDojoProductType,
   IntegrationsService,
 } from "@/services/integrations.service";
 import {
   VulnerabilitiesService,
   Vulnerability,
 } from "@/services/vulnerabilities.service";
+import { VulnerabilitySyncService } from "@/services/vulnerability-sync.service";
+import { Check, Copy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { VulnerabilitiesTable } from "@/components/vulnerabilities/vulnerabilities-table";
-import { Check, Copy } from "lucide-react";
-
-import {
-  normalizeSingleFinding,
-  normalizeBulkFindings,
-  renderJiraDescription,
-} from "@/utils/jira-description";
-
-type FindingState =
-  | { type: "single"; data: any }
-  | { type: "bulk"; raw: any[] }
-  | null;
 
 export default function VulnerabilitiesPage() {
-  const [products, setProducts] = useState<DefectDojoProduct[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<number | null>(
-    null,
-  );
+  const [productTypes, setProductTypes] = useState<DefectDojoProductType[]>([]);
+  const [selectedProductTypeId, setSelectedProductTypeId] = useState<
+    number | null
+  >(null);
 
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
   const [selectedVulns, setSelectedVulns] = useState<Vulnerability[]>([]);
-
   const [loadingVulns, setLoadingVulns] = useState(false);
-  const [loadingFinding, setLoadingFinding] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
 
-  const [finding, setFinding] = useState<FindingState>(null);
+  const [activeVuln, setActiveVuln] = useState<Vulnerability | null>(null);
   const [openDescription, setOpenDescription] = useState(false);
+
+  const [rawFinding, setRawFinding] = useState<any | null>(null);
+  const [rawLoading, setRawLoading] = useState(false);
+
   const [openJiraLink, setOpenJiraLink] = useState(false);
 
   const [copied, setCopied] = useState(false);
 
-  const handleGenerateDescription = useCallback(async (vuln: Vulnerability) => {
-    setLoadingFinding(true);
+  const [description, setDescription] = useState<string>("");
+  const [loadingDescription, setLoadingDescription] = useState(false);
+
+  const [isBulk, setIsBulk] = useState(false);
+
+  const handleGenerateDescription = async (vuln: Vulnerability) => {
+    setIsBulk(false);
+    setActiveVuln(vuln);
+
+    setRawFinding(null);
+    setDescription("");
+    setLoadingDescription(true);
+
+    setOpenDescription(true);
 
     try {
-      const data = await IntegrationsService.getDefectDojoFinding(
-        Number(vuln.id),
-      );
-
-      setFinding({ type: "single", data });
-      setOpenDescription(true);
-    } catch {
-      toast.error("Не удалось загрузить уязвимость");
-    } finally {
-      setLoadingFinding(false);
-    }
-  }, []);
-
-  const handleGenerateBulkDescription = async () => {
-    setLoadingFinding(true);
-
-    try {
-      const findings = await Promise.all(
-        selectedVulns.map((v) =>
-          IntegrationsService.getDefectDojoFinding(Number(v.id)),
-        ),
-      );
-
-      setFinding({ type: "bulk", raw: findings });
-      setOpenDescription(true);
+      const { description } =
+        await VulnerabilitiesService.previewJiraDescription([vuln.id]);
+      setDescription(description);
     } catch {
       toast.error("Не удалось сгенерировать описание");
     } finally {
-      setLoadingFinding(false);
+      setLoadingDescription(false);
+    }
+  };
+
+  const handleGenerateBulkDescription = async () => {
+    setIsBulk(true);
+    setActiveVuln(null);
+
+    setRawFinding(null);
+    setDescription("");
+    setLoadingDescription(true);
+
+    setOpenDescription(true);
+
+    try {
+      const { description } =
+        await VulnerabilitiesService.previewJiraDescription(
+          selectedVulns.map((v) => v.id),
+        );
+
+      setDescription(description);
+    } catch {
+      toast.error("Не удалось сгенерировать описание");
+    } finally {
+      setLoadingDescription(false);
     }
   };
 
   const handleSendToJira = useCallback(async (vuln: Vulnerability) => {
-    try {
-      await IntegrationsService.createJiraIssue({
-        findingId: Number(vuln.id),
-        ddProductTypeId: vuln.productId,
-      });
+    if (selectedProductTypeId) {
+      try {
+        await VulnerabilitySyncService.createJiraIssue({
+          findingId: vuln.id,
+          ddProductTypeId: selectedProductTypeId,
+        });
 
-      setVulns((prev) =>
-        prev.map((v) => (v.id === vuln.id ? { ...v, status: "SENT" } : v)),
-      );
+        setVulns((prev) =>
+          prev.map((v) =>
+            v.id === vuln.id ? { ...v, status: "Назначена" } : v,
+          ),
+        );
 
-      toast.success("Jira issue создан");
-    } catch {
-      toast.error("Не удалось создать Jira issue");
+        toast.success("Jira issue создан");
+      } catch {
+        toast.error("Не удалось создать Jira issue");
+      }
     }
   }, []);
 
@@ -119,31 +130,61 @@ export default function VulnerabilitiesPage() {
     setOpenJiraLink(true);
   };
 
-  const jiraText =
-    finding?.type === "bulk"
-      ? renderJiraDescription(normalizeBulkFindings(finding.raw))
-      : finding?.type === "single"
-        ? renderJiraDescription(normalizeSingleFinding(finding.data))
-        : "";
+  const handleSyncWithJira = async (vuln: Vulnerability) => {
+    try {
+      const jiraStatus = await VulnerabilitySyncService.syncJiraStatus(vuln.id);
+
+      setVulns((prev) =>
+        prev.map((v) => (v.id === vuln.id ? { ...v, status: jiraStatus } : v)),
+      );
+
+      toast.success("Статус синхронизирован");
+    } catch {
+      toast.error("Не удалось синхронизировать статус");
+    }
+  };
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(description);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  const loadRawFinding = async () => {
+    if (!activeVuln || rawFinding || rawLoading) return;
+
+    setRawLoading(true);
+    try {
+      const raw = await IntegrationsService.getDefectDojoFinding(activeVuln.id);
+      setRawFinding(raw);
+    } catch {
+      toast.error("Не удалось загрузить исходные данные");
+    } finally {
+      setRawLoading(false);
+    }
+  };
 
   const columns = useMemo(
     () =>
       vulnerabilityColumns(
         handleSendToJira,
         handleLinkWithJira,
+        handleSyncWithJira,
         handleGenerateDescription,
       ),
-    [handleGenerateDescription],
+    [handleGenerateDescription, handleSendToJira],
   );
 
   useEffect(() => {
     IntegrationsService.getDefectDojoProductTypes()
-      .then(setProducts)
-      .catch(() => setError("Не удалось получить продукты из DefectDojo"));
+      .then(setProductTypes)
+      .catch(() =>
+        setError("Не удалось получить типы продуктов из DefectDojo"),
+      );
   }, []);
 
-  const loadVulnerabilities = (product: DefectDojoProduct) => {
-    setSelectedProductId(product.id);
+  const loadVulnerabilities = (product: DefectDojoProductType) => {
+    setSelectedProductTypeId(product.id);
     setLoadingVulns(true);
 
     VulnerabilitiesService.getVulnerabilities(product.id)
@@ -154,22 +195,16 @@ export default function VulnerabilitiesPage() {
       .finally(() => setLoadingVulns(false));
   };
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(jiraText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
   return (
     <>
       <div className="flex gap-6">
         <ul className="min-w-48 border rounded-md p-2 space-y-2 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
-          {products.map((p) => (
+          {productTypes.map((p) => (
             <li
               key={p.id}
               onClick={() => loadVulnerabilities(p)}
               className={`p-2 rounded cursor-pointer text-sm font-medium ${
-                selectedProductId === p.id
+                selectedProductTypeId === p.id
                   ? "bg-neutral-600 text-white"
                   : "hover:bg-muted"
               }`}
@@ -188,7 +223,7 @@ export default function VulnerabilitiesPage() {
             <div className="p-4 text-red-700 bg-red-100 rounded-md">
               {error}
             </div>
-          ) : !selectedProductId ? (
+          ) : !selectedProductTypeId ? (
             <div className="text-neutral-500">Выберите продукт</div>
           ) : (
             <VulnerabilitiesTable
@@ -197,7 +232,7 @@ export default function VulnerabilitiesPage() {
               onSelectionChange={setSelectedVulns}
               bulkAction={{
                 label: `Сгенерировать описание (${selectedVulns.length})`,
-                disabled: selectedVulns.length === 0 || loadingFinding,
+                disabled: selectedVulns.length === 0,
                 onClick: handleGenerateBulkDescription,
               }}
             />
@@ -205,21 +240,32 @@ export default function VulnerabilitiesPage() {
         </div>
       </div>
 
-      <Dialog open={openDescription} onOpenChange={setOpenDescription}>
+      <Dialog
+        open={openDescription}
+        onOpenChange={(open) => {
+          setOpenDescription(open);
+          if (!open) {
+            setActiveVuln(null);
+            setRawFinding(null);
+            setIsBulk(false);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Описание уязвимости</DialogTitle>
           </DialogHeader>
 
-          {loadingFinding ? (
-            <div className="text-sm text-muted-foreground">Загрузка…</div>
-          ) : (
+          {(activeVuln || isBulk) && (
             <>
               <div className="space-y-4 text-sm">
-                {jiraText.split("\n").map((line, i) => (
-                  <div key={i}>{line || "\u00A0"}</div>
-                ))}
-
+                {loadingDescription ? (
+                  <div>Загрузка...</div>
+                ) : (
+                  description
+                    .split("\n")
+                    .map((line, i) => <div key={i}>{line || "\u00A0"}</div>)
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -238,23 +284,36 @@ export default function VulnerabilitiesPage() {
                     </>
                   )}
                 </Button>
-
-                <Accordion type="single" collapsible>
-                  <AccordionItem value="raw">
-                    <AccordionTrigger>Исходные данные (JSON)</AccordionTrigger>
-                    <AccordionContent>
-                      <pre className="bg-muted p-3 rounded-md max-h-[60vh] overflow-auto break-words whitespace-pre-wrap">
-                        {JSON.stringify(
-                          finding?.type === "single"
-                            ? finding.data
-                            : finding?.raw,
-                          null,
-                          2,
+                {!isBulk && (
+                  <Accordion
+                    type="single"
+                    collapsible
+                    onValueChange={(value) => {
+                      if (value === "raw") {
+                        loadRawFinding();
+                      }
+                    }}
+                  >
+                    <AccordionItem value="raw">
+                      <AccordionTrigger>
+                        Исходные данные (JSON)
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        {rawLoading ? (
+                          <div className="text-sm text-muted-foreground">
+                            Загрузка…
+                          </div>
+                        ) : (
+                          <pre className="bg-muted p-3 rounded-md h-[60vh] overflow-auto break-words whitespace-pre-wrap">
+                            {rawFinding
+                              ? JSON.stringify(rawFinding, null, 2)
+                              : "—"}
+                          </pre>
                         )}
-                      </pre>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                )}
               </div>
             </>
           )}

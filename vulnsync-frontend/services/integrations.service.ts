@@ -1,14 +1,9 @@
 import { api } from "./api";
 
 // Типы
-export interface DefectDojoProduct {
+export interface DefectDojoProductType {
   id: number;
   name: string;
-}
-
-export interface JiraIssuePayload {
-  findingId: number;
-  ddProductTypeId: number;
 }
 
 export interface DependencyTrackProject {
@@ -19,8 +14,8 @@ export interface DependencyTrackProject {
 // Сервис
 export const IntegrationsService = {
   // DefectDojo
-  async getDefectDojoProductTypes(): Promise<DefectDojoProduct[]> {
-    const { data } = await api.get<DefectDojoProduct[]>(
+  async getDefectDojoProductTypes(): Promise<DefectDojoProductType[]> {
+    const { data } = await api.get<DefectDojoProductType[]>(
       "/integrations/defectdojo/product_types",
     );
     return data;
@@ -28,21 +23,15 @@ export const IntegrationsService = {
 
   async getDefectDojoProducts(
     productTypeId: number,
-  ): Promise<DefectDojoProduct[]> {
+  ): Promise<DefectDojoProductType[]> {
     const { data } = await api.get("/integrations/defectdojo/products", {
       params: { productTypeId },
     });
     return data;
   },
 
-  async getDefectDojoFinding(id: number): Promise<DefectDojoProduct[]> {
+  async getDefectDojoFinding(id: number): Promise<DefectDojoProductType[]> {
     const { data } = await api.get(`/integrations/defectdojo/finding/${id}`);
-    return data;
-  },
-
-  // Jira
-  async createJiraIssue(payload: JiraIssuePayload) {
-    const { data } = await api.post("/integrations/jira/issue", payload);
     return data;
   },
 

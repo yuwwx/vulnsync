@@ -52,7 +52,7 @@ model VulnerabilitySync {
   externalId   String   // finding.id из DefectDojo
   source       String   // DEFECTDOJO
   jiraIssueKey String?
-  status       String   // SENT | NOT_SENT
+  status       String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

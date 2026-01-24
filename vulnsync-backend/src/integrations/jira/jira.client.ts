@@ -17,20 +17,29 @@ export class JiraClient {
       throw new InternalServerErrorException('Jira integration not configured');
     }
 
+    const auth = Buffer.from(`${config.username}:${config.password}`).toString(
+      'base64',
+    );
+
     return axios.create({
       baseURL: config.baseUrl,
       headers: {
-        Authorization: `Bearer ${config.apiToken}`,
+        Authorization: `Basic ${auth}`,
         'Content-Type': 'application/json',
       },
     });
   }
 
   async createIssue(payload: any) {
-    console.log('createIssue', payload);
     const client = await this.getClient();
     //const { data } = await client.post('/rest/api/2/issue', payload);
     const { data } = await client.post('/', payload);
+    return data;
+  }
+
+  async getIssue(key: string) {
+    const client = await this.getClient();
+    const { data } = await client.post(`/rest/api/2/issue/${key}`);
     return data;
   }
 }
