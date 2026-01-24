@@ -16,7 +16,7 @@ RUN if [ "$USE_NEXUS" = "true" ]; then \
 # Отключаем проверку SSL
 RUN npm config set strict-ssl false
 
-RUN npm ci --verbose
+RUN npm i --verbose
 
 # -------- build --------
 FROM node:24-alpine AS builder
