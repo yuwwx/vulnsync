@@ -59,10 +59,6 @@ export default function JiraProjectsPage() {
           width: "200px",
         },
       ]}
-      getRaw={async () => {
-        const res = await fetch("/api/jira/projects");
-        return res.json();
-      }}
     />
   );
 }

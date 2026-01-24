@@ -41,10 +41,6 @@ export default function JiraCustomFieldsPage() {
         { key: "name", label: "Название" },
         { key: "schema.type", label: "Тип" },
       ]}
-      getRaw={async () => {
-        const res = await JiraReferenceService.getCustomFields();
-        return res;
-      }}
     />
   );
 }
