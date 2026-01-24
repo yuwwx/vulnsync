@@ -140,23 +140,32 @@ export default function DefectDojoJiraTab({ product }: Props) {
 
         <div className="space-y-2 text-muted-foreground">
           <p>
-            Ниже перечислены используемые <code>customfield_*</code> и их
+            Ниже перечислены часто используемые <code>customfield_*</code> и их
             назначение.
           </p>
 
           <ul className="list-disc list-inside space-y-1">
             <li>
-              <code>customfield_12345</code> — уровень критичности уязвимости
+              <code>customfield_10002</code> — Epic Link
             </li>
             <li>
-              <code>customfield_23456</code> — источник обнаружения (Scanner /
-              Manual)
+              <code>customfield_10701</code> — Место первичного обнаружения
+              дефекта
             </li>
             <li>
-              <code>customfield_34567</code> — среда (PROD / TEST)
+              <code>customfield_11308</code> — Критичность
             </li>
             <li>
-              <code>customfield_45678</code> — владелец системы
+              <code>customfield_13900</code> — Компания заказчика
+            </li>
+            <li>
+              <code>customfield_13901</code> — Команда исполнитель
+            </li>
+            <li>
+              <code>customfield_13902</code> — Команда владелец
+            </li>
+            <li>
+              <code>customfield_14401</code> — Канал
             </li>
           </ul>
 
