@@ -13,6 +13,7 @@ export interface Vulnerability {
   status: string;
   cvssv3_score: number;
   creation_date: Date;
+  jiraIssueKey?: string;
 }
 
 export const VulnerabilitiesService = {

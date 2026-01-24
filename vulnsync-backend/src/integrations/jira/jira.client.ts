@@ -3,6 +3,7 @@ import axios, { AxiosInstance } from 'axios';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { IntegrationType } from '@/common/enums/integration-type.enum';
+import https from 'https';
 
 @Injectable()
 export class JiraClient {
@@ -23,6 +24,9 @@ export class JiraClient {
 
     return axios.create({
       baseURL: config.baseUrl,
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false,
+      }),
       headers: {
         Authorization: `Basic ${auth}`,
         'Content-Type': 'application/json',
@@ -39,7 +43,7 @@ export class JiraClient {
 
   async getIssue(key: string) {
     const client = await this.getClient();
-    const { data } = await client.post(`/rest/api/2/issue/${key}`);
+    const { data } = await client.get(`/rest/api/2/issue/${key}`);
     return data;
   }
 }

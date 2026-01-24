@@ -33,6 +33,7 @@ export const vulnerabilityColumns = (
 ): ColumnDef<Vulnerability>[] => [
   {
     id: "select",
+    meta: { label: "Выбрать" },
     header: ({ table }) => (
       <Checkbox
         checked={
@@ -55,6 +56,7 @@ export const vulnerabilityColumns = (
   },
   {
     accessorKey: "id",
+    meta: { label: "ID" },
     header: ({ column }) => {
       return (
         <Button
@@ -70,6 +72,7 @@ export const vulnerabilityColumns = (
   },
   {
     accessorKey: "title",
+    meta: { label: "Название" },
     header: ({ column }) => {
       return (
         <Button
@@ -85,6 +88,7 @@ export const vulnerabilityColumns = (
   },
   {
     accessorKey: "severity",
+    meta: { label: "Критичность" },
     header: ({ column }) => {
       return (
         <Button
@@ -101,6 +105,7 @@ export const vulnerabilityColumns = (
   },
   {
     accessorKey: "product",
+    meta: { label: "Продукт" },
     header: ({ column }) => {
       return (
         <Button
@@ -116,6 +121,7 @@ export const vulnerabilityColumns = (
   },
   {
     accessorKey: "cvssv3_score",
+    meta: { label: "CVSSv3 Score" },
     header: ({ column }) => {
       return (
         <Button
@@ -131,6 +137,7 @@ export const vulnerabilityColumns = (
   },
   {
     accessorKey: "creation_date",
+    meta: { label: "Дата создания" },
     header: ({ column }) => {
       return (
         <Button
@@ -146,6 +153,7 @@ export const vulnerabilityColumns = (
   },
   {
     accessorKey: "status",
+    meta: { label: "Статус" },
     header: ({ column }) => {
       return (
         <Button
@@ -160,7 +168,24 @@ export const vulnerabilityColumns = (
     cell: ({ row }) => <StatusBadge status={row.getValue("status")} />,
   },
   {
+    accessorKey: "jiraIssueKey",
+    meta: { label: "Идентификатор в Jira" },
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Идентификатор в Jira
+          <ArrowUpDown />
+        </Button>
+      );
+    },
+    cell: ({ row }) => <span>{row.getValue("jiraIssueKey")}</span>,
+  },
+  {
     id: "actions",
+    meta: { label: "Действия" },
     header: "Действия",
     enableSorting: false,
     cell: ({ row }) => {
@@ -177,7 +202,7 @@ export const vulnerabilityColumns = (
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[230px]">
               <DropdownMenuItem
-                // disabled={vuln.status !== "Не отправлена"}
+                disabled={vuln.status !== "Не отправлена"}
                 onClick={() => onSendToJira(vuln)}
               >
                 Отправить в Jira

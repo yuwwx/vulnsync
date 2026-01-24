@@ -60,6 +60,9 @@ export default function VulnerabilitiesPage() {
 
   const [isBulk, setIsBulk] = useState(false);
 
+  const [jiraKey, setJiraKey] = useState<string>("RETAIL-46609");
+  const [linkLoading, setLinkLoading] = useState(false);
+
   const handleGenerateDescription = async (vuln: Vulnerability) => {
     setIsBulk(false);
     setActiveVuln(vuln);
@@ -105,37 +108,75 @@ export default function VulnerabilitiesPage() {
     }
   };
 
-  const handleSendToJira = useCallback(async (vuln: Vulnerability) => {
-    if (selectedProductTypeId) {
-      try {
-        await VulnerabilitySyncService.createJiraIssue({
-          findingId: vuln.id,
-          ddProductTypeId: selectedProductTypeId,
-        });
+  const handleSendToJira = useCallback(
+    async (vuln: Vulnerability) => {
+      if (selectedProductTypeId) {
+        try {
+          await VulnerabilitySyncService.createJiraIssue({
+            findingId: vuln.id,
+            ddProductTypeId: selectedProductTypeId,
+          });
 
-        setVulns((prev) =>
-          prev.map((v) =>
-            v.id === vuln.id ? { ...v, status: "Назначена" } : v,
-          ),
-        );
+          setVulns((prev) =>
+            prev.map((v) =>
+              v.id === vuln.id ? { ...v, status: "Назначена" } : v,
+            ),
+          );
 
-        toast.success("Jira issue создан");
-      } catch {
-        toast.error("Не удалось создать Jira issue");
+          toast.success("Jira issue создан");
+        } catch {
+          toast.error("Не удалось создать Jira issue");
+        }
       }
-    }
-  }, []);
+    },
+    [selectedProductTypeId],
+  );
 
-  const handleLinkWithJira = () => {
+  const handleSaveJiraLink = async () => {
+    if (!activeVuln) return;
+
+    setLinkLoading(true);
+
+    try {
+      const response = await VulnerabilitySyncService.linkWithJira({
+        findingId: activeVuln.id,
+        jiraIssueKey: jiraKey,
+      });
+
+      setVulns((prev) =>
+        prev.map((v) =>
+          v.id === activeVuln.id
+            ? {
+                ...v,
+                status: response.status,
+                jiraIssueKey: response.jiraIssueKey,
+              }
+            : v,
+        ),
+      );
+
+      toast.success("Связано с Jira");
+      setOpenJiraLink(false);
+    } catch {
+      toast.error("Не удалось связать с Jira");
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const handleLinkWithJira = async (vuln: Vulnerability) => {
+    setActiveVuln(vuln);
     setOpenJiraLink(true);
   };
 
   const handleSyncWithJira = async (vuln: Vulnerability) => {
     try {
-      const jiraStatus = await VulnerabilitySyncService.syncJiraStatus(vuln.id);
+      const response = await VulnerabilitySyncService.syncJiraStatus(vuln.id);
 
       setVulns((prev) =>
-        prev.map((v) => (v.id === vuln.id ? { ...v, status: jiraStatus } : v)),
+        prev.map((v) =>
+          v.id === vuln.id ? { ...v, status: response.status } : v,
+        ),
       );
 
       toast.success("Статус синхронизирован");
@@ -172,7 +213,12 @@ export default function VulnerabilitiesPage() {
         handleSyncWithJira,
         handleGenerateDescription,
       ),
-    [handleGenerateDescription, handleSendToJira],
+    [
+      handleSendToJira,
+      handleLinkWithJira,
+      handleSyncWithJira,
+      handleGenerateDescription,
+    ],
   );
 
   useEffect(() => {
@@ -320,7 +366,16 @@ export default function VulnerabilitiesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={openJiraLink} onOpenChange={setOpenJiraLink}>
+      <Dialog
+        open={openJiraLink}
+        onOpenChange={(open) => {
+          setOpenJiraLink(open);
+          if (!open) {
+            setActiveVuln(null);
+            setJiraKey("RETAIL-1");
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Связать с Jira</DialogTitle>
@@ -329,14 +384,22 @@ export default function VulnerabilitiesPage() {
 
           <div className="grid gap-3">
             <Label>Key</Label>
-            <Input defaultValue="RETAIL-0" />
+            <Input
+              value={jiraKey}
+              onChange={(e) => setJiraKey(e.target.value)}
+            />
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">Отмена</Button>
             </DialogClose>
-            <Button>Сохранить</Button>
+            <Button
+              onClick={handleSaveJiraLink}
+              disabled={!activeVuln || linkLoading}
+            >
+              {linkLoading ? "Сохранение..." : "Сохранить"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

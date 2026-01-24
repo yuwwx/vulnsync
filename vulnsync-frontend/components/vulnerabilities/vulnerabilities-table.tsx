@@ -52,6 +52,14 @@ interface Props {
   };
 }
 
+type VulnerabilityMeta = {
+  label?: string;
+};
+
+declare module "@tanstack/react-table" {
+  interface ColumnMeta<TData, TValue> extends VulnerabilityMeta {}
+}
+
 export function VulnerabilitiesTable({
   data,
   columns,
@@ -63,7 +71,9 @@ export function VulnerabilitiesTable({
     [],
   );
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+    React.useState<VisibilityState>({
+      jiraIssueKey: false,
+    });
   const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
@@ -80,8 +90,8 @@ export function VulnerabilitiesTable({
     state: {
       sorting,
       columnFilters,
-      columnVisibility,
       rowSelection,
+      columnVisibility,
     },
   });
 
@@ -136,6 +146,8 @@ export function VulnerabilitiesTable({
               .getAllColumns()
               .filter((column) => column.getCanHide())
               .map((column) => {
+                const label = column.columnDef.meta?.label ?? column.id;
+
                 return (
                   <DropdownMenuCheckboxItem
                     key={column.id}
@@ -145,7 +157,7 @@ export function VulnerabilitiesTable({
                       column.toggleVisibility(!!value)
                     }
                   >
-                    {column.id}
+                    {label}
                   </DropdownMenuCheckboxItem>
                 );
               })}
