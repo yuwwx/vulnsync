@@ -46,4 +46,16 @@ export class JiraClient {
     const { data } = await client.get(`/rest/api/2/issue/${key}`);
     return data;
   }
+
+  async getProjects() {
+    const client = await this.getClient();
+    const { data } = await client.get('/rest/api/2/project');
+    return data;
+  }
+
+  async getCustomFields() {
+    const client = await this.getClient();
+    const { data } = await client.get('/rest/api/2/field');
+    return data;
+  }
 }

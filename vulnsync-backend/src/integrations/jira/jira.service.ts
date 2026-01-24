@@ -9,4 +9,14 @@ export class JiraService {
   async createIssue(payload: any) {
     return this.jiraClient.createIssue(payload);
   }
+
+  async getProjects() {
+    const data = await this.jiraClient.getProjects();
+    return data;
+  }
+
+  async getCustomFields() {
+    const data = await this.jiraClient.getCustomFields();
+    return data;
+  }
 }

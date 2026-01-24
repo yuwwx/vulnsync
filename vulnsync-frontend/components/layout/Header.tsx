@@ -12,6 +12,7 @@ const navItems = [
   { href: "/integrations", label: "Интеграции" },
   { href: "/settings", label: "Параметры" },
   { href: "/logs", label: "События" },
+  { href: "/reference", label: "Справочники" },
 ];
 
 export function Header() {

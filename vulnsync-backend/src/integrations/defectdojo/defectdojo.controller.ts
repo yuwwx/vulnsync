@@ -8,7 +8,7 @@ export class DefectDojoController {
   constructor(private service: DefectDojoService) {}
 
   @LogAction('DEFECTDOJO_GET_PRODUCT_TYPES')
-  @Get('product_types')
+  @Get('product-types')
   getProductTypes() {
     return this.service.getProductTypes();
   }

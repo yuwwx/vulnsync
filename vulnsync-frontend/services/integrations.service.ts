@@ -21,7 +21,7 @@ export const IntegrationsService = {
   // DefectDojo
   async getDefectDojoProductTypes(): Promise<DefectDojoProductType[]> {
     const { data } = await api.get<DefectDojoProductType[]>(
-      "/integrations/defectdojo/product_types",
+      "/integrations/defectdojo/product-types",
     );
     return data;
   },
