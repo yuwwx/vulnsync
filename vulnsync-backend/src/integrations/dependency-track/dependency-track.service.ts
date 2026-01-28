@@ -135,6 +135,10 @@ export class DependencyTrackService {
       const cve = toAdd[i];
       try {
         await this.depTrackClient.addPolicyCondition(policy.uuid, cve);
+
+        if (i % 100 === 0) {
+          this.logger.log(`KEV add progress: ${i}/${toAdd.length}`);
+        }
       } catch (err) {
         this.logger.warn(`Failed to add CVE ${cve}`, err?.status);
       }
@@ -151,8 +155,12 @@ export class DependencyTrackService {
           policy.uuid,
           condition.uuid,
         );
+
+        if (i % 100 === 0) {
+          this.logger.log(`KEV remove progress: ${i}/${toRemove.length}`);
+        }
       } catch (err) {
-        this.logger.warn(`Failed to remove CVE ${cve}`, err?.status);
+        this.logger.warn(`Failed to remove CVE ${cve}`, err);
       }
       await this.sleep(20);
     }
