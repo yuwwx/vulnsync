@@ -90,7 +90,7 @@ export default function Home() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Интеграции</CardTitle>
+                <CardTitle>Маппинги</CardTitle>
                 <CardDescription>
                   Подключи источники данных за пару минут
                 </CardDescription>
@@ -118,7 +118,7 @@ export default function Home() {
             <CardHeader>
               <CardTitle>1. Подключи источники</CardTitle>
               <CardDescription>
-                Добавь интеграции и настрои синхронизацию
+                Добавь маппинги и настрои синхронизацию
               </CardDescription>
             </CardHeader>
             <CardContent>

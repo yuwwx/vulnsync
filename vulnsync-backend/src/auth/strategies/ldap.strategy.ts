@@ -54,8 +54,6 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
       throw new UnauthorizedException();
     }
 
-    // console.log(user);
-
     const memberOf = user.memberOf || [];
 
     const isInGroup = Array.isArray(memberOf)

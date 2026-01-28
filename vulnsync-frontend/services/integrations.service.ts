@@ -54,4 +54,9 @@ export const IntegrationsService = {
     });
     return data;
   },
+
+  async syncKev() {
+    const { data } = await api.post("/integrations/dependency-track/sync-kev");
+    return data;
+  },
 };

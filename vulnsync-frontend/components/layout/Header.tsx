@@ -9,7 +9,7 @@ import { AuthService } from "@/services/auth.service";
 
 const navItems = [
   { href: "/vulnerabilities", label: "Уязвимости" },
-  { href: "/integrations", label: "Интеграции" },
+  { href: "/integrations", label: "Маппинги" },
   { href: "/settings", label: "Параметры" },
   { href: "/logs", label: "События" },
   { href: "/reference", label: "Справочники" },

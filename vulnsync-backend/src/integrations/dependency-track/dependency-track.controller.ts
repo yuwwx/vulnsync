@@ -19,4 +19,11 @@ export class DependencyTrackController {
   importProject(@Body() dto: ExportProjectDto) {
     return this.service.exportLatestProjectFindings(dto.ddProductId);
   }
+
+  @LogAction('DEPENDENCY_TRACK_SYNC_KEV')
+  @Post('sync-kev')
+  syncKev() {
+    this.service.syncKevInBackground();
+    return { status: 'started' };
+  }
 }

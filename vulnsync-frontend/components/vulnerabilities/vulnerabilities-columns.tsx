@@ -84,7 +84,18 @@ export const vulnerabilityColumns = (
         </Button>
       );
     },
-    cell: ({ row }) => <span>{row.getValue("title")}</span>,
+    cell: ({ row }) => {
+      const vuln = row.original;
+
+      return (
+        <span
+          className="cursor-pointer hover:underline"
+          onClick={() => onGenerateDescription(vuln)}
+        >
+          {row.getValue("title")}
+        </span>
+      );
+    },
   },
   {
     accessorKey: "severity",

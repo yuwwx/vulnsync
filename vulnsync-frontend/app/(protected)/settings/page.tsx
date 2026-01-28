@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { normalizeIntegrations } from "@/mappers/integrations.mapper";
 import { toast } from "sonner";
+import { IntegrationsService } from "@/services/integrations.service";
 
 interface IntegrationUI extends IntegrationSetting {
   apiToken?: string;
@@ -55,6 +56,7 @@ export default function SettingsPage() {
   const [activeIntegration, setActiveIntegration] =
     useState<IntegrationType>("DEFECTDOJO");
   const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     SettingsService.getAll()
@@ -126,6 +128,18 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSyncWithKev = async () => {
+    try {
+      setSyncing(true);
+      await IntegrationsService.syncKev();
+      toast.success("Синхронизация KEV запущена");
+    } catch (err) {
+      toast.error("Не удалось запустить синхронизацию KEV");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   if (loading) return <div>Loading…</div>;
 
   return (
@@ -136,7 +150,6 @@ export default function SettingsPage() {
         <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
       )}
 
-      {/* Верхние вкладки */}
       <Tabs defaultValue="integrations">
         <TabsList>
           <TabsTrigger value="integrations">Интеграционные</TabsTrigger>
@@ -169,52 +182,78 @@ export default function SettingsPage() {
 
             {/* Content */}
             <div className="flex-1">
-              {activeIntegration && (
-                <Card className="max-w-xl">
-                  <CardHeader>
-                    <CardTitle>
-                      {
-                        INTEGRATIONS.find((i) => i.type === activeIntegration)
-                          ?.label
-                      }
-                    </CardTitle>
-                  </CardHeader>
-
-                  <CardContent className="space-y-4">
-                    {INTEGRATION_FIELDS[activeIntegration].map((field) => (
-                      <Input
-                        key={field.name}
-                        type={field.type ?? "text"}
-                        placeholder={field.label}
-                        value={
-                          (data[activeIntegration] as any)?.[field.name] ?? ""
+              <div className="flex gap-3 items-start">
+                {activeIntegration && (
+                  <Card className="min-w-xl">
+                    <CardHeader>
+                      <CardTitle>
+                        {
+                          INTEGRATIONS.find((i) => i.type === activeIntegration)
+                            ?.label
                         }
-                        onChange={(e) =>
-                          update(activeIntegration, field.name, e.target.value)
-                        }
-                      />
-                    ))}
+                      </CardTitle>
+                    </CardHeader>
 
-                    <pre className="text-xs bg-muted p-2 rounded">
-                      {JSON.stringify(data[activeIntegration], null, 2)}
-                    </pre>
+                    <CardContent className="space-y-4">
+                      {INTEGRATION_FIELDS[activeIntegration].map((field) => (
+                        <Input
+                          key={field.name}
+                          type={field.type ?? "text"}
+                          placeholder={field.label}
+                          value={
+                            (data[activeIntegration] as any)?.[field.name] ?? ""
+                          }
+                          onChange={(e) =>
+                            update(
+                              activeIntegration,
+                              field.name,
+                              e.target.value,
+                            )
+                          }
+                        />
+                      ))}
 
-                    <Button
-                      onClick={() => save(activeIntegration)}
-                      disabled={saving === activeIntegration}
-                    >
-                      {saving === activeIntegration
-                        ? "Сохранение..."
-                        : "Сохранить"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                      <pre className="text-xs bg-muted p-2 rounded">
+                        {JSON.stringify(data[activeIntegration], null, 2)}
+                      </pre>
+                      <div className="flex justify-between">
+                        <Button
+                          onClick={() => save(activeIntegration)}
+                          disabled={saving === activeIntegration}
+                        >
+                          {saving === activeIntegration
+                            ? "Сохранение..."
+                            : "Сохранить"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {activeIntegration === "DEPENDENCY_TRACK" && (
+                  <Card className="max-w-sm">
+                    <CardHeader>
+                      <CardTitle>Синхронизация с KEV</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground">
+                      <div className="mb-5">
+                        Создается новая политика с текущей датой в названии и
+                        указанием всем CVE из базы KEV
+                      </div>
+                      <Button
+                        className="w-full"
+                        disabled={syncing}
+                        onClick={handleSyncWithKev}
+                      >
+                        {syncing ? "Запуск..." : "Синхронизировать"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </div>
           </div>
         </TabsContent>
 
-        {/* === PERSONAL === */}
         <TabsContent value="personal">
           <Card className="max-w-xl">
             <CardHeader>

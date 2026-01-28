@@ -49,4 +49,48 @@ export class DependencyTrackClient {
     );
     return data;
   }
+
+  async createPolicy(name: string) {
+    const client = await this.getClient();
+    const { data } = await client.put('/api/v1/policy', {
+      name,
+      operator: 'ANY',
+      violationState: 'WARN',
+    });
+
+    return data;
+  }
+
+  async getPolicies() {
+    const client = await this.getClient();
+    const { data } = await client.get('/api/v1/policy');
+    return data;
+  }
+
+  async getPolicy(policyUuid: string) {
+    const client = await this.getClient();
+    const { data } = await client.get(`/api/v1/policy/${policyUuid}`);
+    return data;
+  }
+
+  async addPolicyCondition(policyUuid: string, cve: string) {
+    const client = await this.getClient();
+    const { data } = await client.put(
+      `/api/v1/policy/${policyUuid}/condition`,
+      {
+        operator: 'IS',
+        subject: 'VULNERABILITY_ID',
+        value: cve,
+      },
+    );
+
+    return data;
+  }
+
+  async deletePolicyCondition(policyUuid: string, conditionUuid: string) {
+    const client = await this.getClient();
+    await client.delete(
+      `/api/v1/policy/${policyUuid}/condition/${conditionUuid}`,
+    );
+  }
 }

@@ -50,7 +50,7 @@ export default function IntegrationsPage() {
       </ul>
 
       <div className="flex-1">
-        <h1 className="text-2xl font-bold mb-4">Интеграции</h1>
+        <h1 className="text-2xl font-bold mb-4">Маппинги</h1>
         {loading ? (
           <div>Загружаем продукты…</div>
         ) : error ? (
