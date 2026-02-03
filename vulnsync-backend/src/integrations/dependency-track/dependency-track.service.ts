@@ -1,7 +1,11 @@
 // dependency-track.service.ts
 import { DefectDojoClient } from '@/integrations/defectdojo/defectdojo.client';
 import { DependencyTrackMappingsService } from '@/mappings/dependency-track-mapping.service';
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { DependencyTrackClient } from './dependency-track.client';
 import FormData from 'form-data';
 import { LogsService } from '@/logs/logs.service';
@@ -26,56 +30,92 @@ export class DependencyTrackService {
   }
 
   async exportLatestProjectFindings(defectDojoProductId: number) {
-    const mapping =
-      await this.dependencyTrack.getByProduct(defectDojoProductId);
-
-    const latestProject = await this.depTrackClient.getLatestProject(
-      mapping?.dtProjectName,
+    this.logger.log(
+      `Starting exportLatestProjectFindings: defectDojoProductId=${defectDojoProductId}`,
     );
 
-    const defectDojoProduct =
-      await this.defectDojoClient.getProduct(defectDojoProductId);
+    try {
+      const mapping =
+        await this.dependencyTrack.getByProduct(defectDojoProductId);
 
-    const report = await this.depTrackClient.exportFindings(
-      latestProject?.uuid,
-    );
-    const reportJson = JSON.parse(
-      Buffer.isBuffer(report) ? report.toString() : report,
-    );
+      if (!mapping?.dtProjectName) {
+        this.logger.warn(
+          `DependencyTrack mapping not found for defectDojoProductId=${defectDojoProductId}`,
+        );
+      }
 
-    const order = ['NVD', 'GITHUB'];
+      const latestProject = await this.depTrackClient.getLatestProject(
+        mapping?.dtProjectName,
+      );
 
-    reportJson.findings.sort((a: any, b: any) => {
-      const sa = a.vulnerability?.source;
-      const sb = b.vulnerability?.source;
+      if (!latestProject?.uuid) {
+        this.logger.warn(
+          `Latest DependencyTrack project not found for product=${mapping?.dtProjectName}`,
+        );
+      }
 
-      const ia = order.indexOf(sa);
-      const ib = order.indexOf(sb);
+      const defectDojoProduct =
+        await this.defectDojoClient.getProduct(defectDojoProductId);
 
-      const aRank = ia === -1 ? Number.MAX_SAFE_INTEGER : ia;
-      const bRank = ib === -1 ? Number.MAX_SAFE_INTEGER : ib;
+      const report = await this.depTrackClient.exportFindings(
+        latestProject?.uuid,
+      );
 
-      return aRank - bRank;
-    });
+      const reportJson = JSON.parse(
+        Buffer.isBuffer(report) ? report.toString() : report,
+      );
 
-    const filteredBuffer = Buffer.from(JSON.stringify(reportJson));
+      this.logger.log(
+        `Findings exported from DependencyTrack: count=${reportJson.findings?.length ?? 0}`,
+      );
 
-    const form = new FormData();
-    form.append(
-      'scan_type',
-      'Dependency Track Finding Packaging Format (FPF) Export',
-    );
-    form.append('product_name', defectDojoProduct.name);
-    form.append('engagement_name', latestProject?.version || 'default');
-    form.append('auto_create_context', 'True');
-    form.append('file', filteredBuffer, {
-      filename: 'report.json',
-      contentType: 'application/json',
-    });
+      const order = ['NVD', 'GITHUB'];
 
-    await this.defectDojoClient.importScan(form);
+      reportJson.findings.sort((a: any, b: any) => {
+        const sa = a.vulnerability?.source;
+        const sb = b.vulnerability?.source;
 
-    return { status: 'IMPORTED' };
+        const ia = order.indexOf(sa);
+        const ib = order.indexOf(sb);
+
+        const aRank = ia === -1 ? Number.MAX_SAFE_INTEGER : ia;
+        const bRank = ib === -1 ? Number.MAX_SAFE_INTEGER : ib;
+
+        return aRank - bRank;
+      });
+
+      const filteredBuffer = Buffer.from(JSON.stringify(reportJson));
+
+      const form = new FormData();
+      form.append(
+        'scan_type',
+        'Dependency Track Finding Packaging Format (FPF) Export',
+      );
+      form.append('product_name', defectDojoProduct.name);
+      form.append('engagement_name', latestProject?.version || 'default');
+      form.append('auto_create_context', 'True');
+      form.append('file', filteredBuffer, {
+        filename: 'report.json',
+        contentType: 'application/json',
+      });
+
+      await this.defectDojoClient.importScan(form);
+
+      this.logger.log(
+        `Findings successfully imported into DefectDojo: product=${defectDojoProduct.name}`,
+      );
+
+      return { status: 'IMPORTED' };
+    } catch (error) {
+      this.logger.error(
+        `exportLatestProjectFindings failed: defectDojoProductId=${defectDojoProductId}`,
+        error.stack,
+      );
+
+      throw new InternalServerErrorException(
+        'Failed to export latest project findings',
+      );
+    }
   }
 
   async syncKevInBackground() {

@@ -15,12 +15,27 @@ export class JiraClient {
 
   constructor(private prisma: PrismaService) {}
 
+  private logAxiosError(
+    message: string,
+    error: any,
+  ): InternalServerErrorException {
+    const responseData = error.response?.data;
+
+    this.logger.error(
+      message,
+      responseData ? JSON.stringify(responseData) : error.message,
+    );
+
+    return new InternalServerErrorException(message);
+  }
+
   private async getClient(): Promise<AxiosInstance> {
     const config = await this.prisma.integrationSetting.findFirst({
       where: { type: IntegrationType.JIRA },
     });
 
     if (!config) {
+      this.logger.error('Jira integration not configured');
       throw new InternalServerErrorException('Jira integration not configured');
     }
 
@@ -41,68 +56,53 @@ export class JiraClient {
   }
 
   async createIssue(payload: any) {
+    this.logger.log('Creating Jira issue');
+
     try {
       const client = await this.getClient();
       const { data } = await client.post('/rest/api/2/issue', payload);
+
+      this.logger.log(`Jira issue created: key=${data?.key}`);
+
       return data;
     } catch (error) {
-      this.logger.error(
-        'Jira createIssue failed',
-        error.response?.data || error.message,
-      );
-
-      throw new InternalServerErrorException(
-        'Jira API error while creating issue',
-      );
+      throw this.logAxiosError('Jira createIssue failed', error);
     }
   }
 
   async getIssue(key: string) {
+    this.logger.log(`Fetching Jira issue: key=${key}`);
+
     try {
       const client = await this.getClient();
       const { data } = await client.get(`/rest/api/2/issue/${key}`);
       return data;
     } catch (error) {
-      this.logger.error(
-        'Jira createIssue failed',
-        error.response?.data || error.message,
-      );
-
-      throw new InternalServerErrorException('Jira API error while get issue');
+      throw this.logAxiosError(`Jira getIssue failed (key=${key})`, error);
     }
   }
 
   async getProjects() {
+    this.logger.log('Fetching Jira projects');
+
     try {
       const client = await this.getClient();
       const { data } = await client.get('/rest/api/2/project');
       return data;
     } catch (error) {
-      this.logger.error(
-        'Jira createIssue failed',
-        error.response?.data || error.message,
-      );
-
-      throw new InternalServerErrorException(
-        'Jira API error while get projects',
-      );
+      throw this.logAxiosError('Jira getProjects failed', error);
     }
   }
 
   async getCustomFields() {
+    this.logger.log('Fetching Jira custom fields');
+
     try {
       const client = await this.getClient();
       const { data } = await client.get('/rest/api/2/field');
       return data;
     } catch (error) {
-      this.logger.error(
-        'Jira createIssue failed',
-        error.response?.data || error.message,
-      );
-
-      throw new InternalServerErrorException(
-        'Jira API error while custom fields',
-      );
+      throw this.logAxiosError('Jira getCustomFields failed', error);
     }
   }
 }

@@ -1,12 +1,32 @@
 // dependency-track.client.ts
 import axios, { AxiosInstance } from 'axios';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { IntegrationType } from '@/common/enums/integration-type.enum';
 
 @Injectable()
 export class DependencyTrackClient {
+  private readonly logger = new Logger(DependencyTrackClient.name);
+
   constructor(private prisma: PrismaService) {}
+
+  private logAxiosError(
+    message: string,
+    error: any,
+  ): InternalServerErrorException {
+    const responseData = error.response?.data;
+
+    this.logger.error(
+      message,
+      responseData ? JSON.stringify(responseData) : error.message,
+    );
+
+    return new InternalServerErrorException(message);
+  }
 
   async getClient(): Promise<AxiosInstance> {
     const config = await this.prisma.integrationSetting.findFirst({
@@ -14,6 +34,7 @@ export class DependencyTrackClient {
     });
 
     if (!config) {
+      this.logger.error('Dependency-Track integration not configured');
       throw new InternalServerErrorException(
         'Dependency-Track integration not configured',
       );
@@ -28,69 +49,147 @@ export class DependencyTrackClient {
   }
 
   async getProjects() {
-    const client = await this.getClient();
-    const { data } = await client.get('/api/v1/project', {
-      params: { excludeInactive: true },
-    });
-    return data;
+    this.logger.log('Fetching Dependency-Track projects');
+
+    try {
+      const client = await this.getClient();
+      const { data } = await client.get('/api/v1/project', {
+        params: { excludeInactive: true },
+      });
+      return data;
+    } catch (error) {
+      throw this.logAxiosError('Dependency-Track getProjects failed', error);
+    }
   }
 
   async getLatestProject(projectName: string) {
-    const client = await this.getClient();
-    const { data } = await client.get(`/api/v1/project/latest/${projectName}`);
-    return data;
+    this.logger.log(
+      `Fetching latest Dependency-Track project: name=${projectName}`,
+    );
+
+    try {
+      const client = await this.getClient();
+      const { data } = await client.get(
+        `/api/v1/project/latest/${projectName}`,
+      );
+      return data;
+    } catch (error) {
+      throw this.logAxiosError(
+        `Dependency-Track getLatestProject failed (name=${projectName})`,
+        error,
+      );
+    }
   }
 
   async exportFindings(projectUuid: string) {
-    const client = await this.getClient();
-    const { data } = await client.get(
-      `/api/v1/finding/project/${projectUuid}/export`,
-      { responseType: 'arraybuffer' },
+    this.logger.log(
+      `Exporting Dependency-Track findings: projectUuid=${projectUuid}`,
     );
-    return data;
+
+    try {
+      const client = await this.getClient();
+      const { data } = await client.get(
+        `/api/v1/finding/project/${projectUuid}/export`,
+        { responseType: 'arraybuffer' },
+      );
+      return data;
+    } catch (error) {
+      throw this.logAxiosError(
+        `Dependency-Track exportFindings failed (projectUuid=${projectUuid})`,
+        error,
+      );
+    }
   }
 
   async createPolicy(name: string) {
-    const client = await this.getClient();
-    const { data } = await client.put('/api/v1/policy', {
-      name,
-      operator: 'ANY',
-      violationState: 'WARN',
-    });
+    this.logger.log(`Creating Dependency-Track policy: name=${name}`);
 
-    return data;
+    try {
+      const client = await this.getClient();
+      const { data } = await client.put('/api/v1/policy', {
+        name,
+        operator: 'ANY',
+        violationState: 'WARN',
+      });
+
+      return data;
+    } catch (error) {
+      throw this.logAxiosError(
+        `Dependency-Track createPolicy failed (name=${name})`,
+        error,
+      );
+    }
   }
 
   async getPolicies() {
-    const client = await this.getClient();
-    const { data } = await client.get('/api/v1/policy');
-    return data;
+    this.logger.log('Fetching Dependency-Track policies');
+
+    try {
+      const client = await this.getClient();
+      const { data } = await client.get('/api/v1/policy');
+      return data;
+    } catch (error) {
+      throw this.logAxiosError('Dependency-Track getPolicies failed', error);
+    }
   }
 
   async getPolicy(policyUuid: string) {
-    const client = await this.getClient();
-    const { data } = await client.get(`/api/v1/policy/${policyUuid}`);
-    return data;
+    this.logger.log(`Fetching Dependency-Track policy: uuid=${policyUuid}`);
+
+    try {
+      const client = await this.getClient();
+      const { data } = await client.get(`/api/v1/policy/${policyUuid}`);
+      return data;
+    } catch (error) {
+      throw this.logAxiosError(
+        `Dependency-Track getPolicy failed (uuid=${policyUuid})`,
+        error,
+      );
+    }
   }
 
   async addPolicyCondition(policyUuid: string, cve: string) {
-    const client = await this.getClient();
-    const { data } = await client.put(
-      `/api/v1/policy/${policyUuid}/condition`,
-      {
-        operator: 'IS',
-        subject: 'VULNERABILITY_ID',
-        value: cve,
-      },
+    this.logger.log(
+      `Adding policy condition: policyUuid=${policyUuid}, cve=${cve}`,
     );
 
-    return data;
+    try {
+      const client = await this.getClient();
+      const { data } = await client.put(
+        `/api/v1/policy/${policyUuid}/condition`,
+        {
+          operator: 'IS',
+          subject: 'VULNERABILITY_ID',
+          value: cve,
+        },
+      );
+
+      return data;
+    } catch (error) {
+      throw this.logAxiosError(
+        `Dependency-Track addPolicyCondition failed (policyUuid=${policyUuid}, cve=${cve})`,
+        error,
+      );
+    }
   }
 
   async deletePolicyCondition(policyUuid: string, conditionUuid: string) {
-    const client = await this.getClient();
-    await client.delete(
-      `/api/v1/policy/${policyUuid}/condition/${conditionUuid}`,
+    this.logger.log(
+      `Deleting policy condition: policyUuid=${policyUuid}, conditionUuid=${conditionUuid}`,
     );
+
+    try {
+      const client = await this.getClient();
+      const { data } = await client.delete(
+        `/api/v1/policy/${policyUuid}/condition/${conditionUuid}`,
+      );
+
+      return data;
+    } catch (error) {
+      throw this.logAxiosError(
+        `Dependency-Track deletePolicyCondition failed (policyUuid=${policyUuid}, conditionUuid=${conditionUuid})`,
+        error,
+      );
+    }
   }
 }
