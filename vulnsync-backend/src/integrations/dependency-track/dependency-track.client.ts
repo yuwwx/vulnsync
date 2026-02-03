@@ -18,14 +18,17 @@ export class DependencyTrackClient {
     message: string,
     error: any,
   ): InternalServerErrorException {
-    const responseData = error.response?.data;
+    const responseMessage =
+      error.response?.data?.message ||
+      error.response?.data?.errorMessages?.join(', ') ||
+      error.message;
 
     this.logger.error(
       message,
-      responseData ? JSON.stringify(responseData) : error.message,
+      JSON.stringify(error.response?.data || error.message),
     );
 
-    return new InternalServerErrorException(message);
+    return new InternalServerErrorException(`${message}: ${responseMessage}`);
   }
 
   async getClient(): Promise<AxiosInstance> {
