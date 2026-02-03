@@ -19,10 +19,7 @@ export class JiraClient {
     message: string,
     error: any,
   ): InternalServerErrorException {
-    const responseMessage =
-      error.response?.data?.message ||
-      error.response?.data?.errorMessages?.join(', ') ||
-      error.message;
+    const responseMessage = error.response?.data || error.message;
 
     this.logger.error(
       message,
