@@ -137,6 +137,7 @@ export class DefectDojoClient {
           limit: 1000,
           related_fields: true,
           active: true,
+          o: '-date',
         },
       });
 

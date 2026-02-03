@@ -112,14 +112,20 @@ export default function VulnerabilitiesPage() {
     async (vuln: Vulnerability) => {
       if (selectedProductTypeId) {
         try {
-          await VulnerabilitySyncService.createJiraIssue({
+          const response = await VulnerabilitySyncService.createJiraIssue({
             findingId: vuln.id,
             ddProductTypeId: selectedProductTypeId,
           });
 
           setVulns((prev) =>
             prev.map((v) =>
-              v.id === vuln.id ? { ...v, status: "Назначена" } : v,
+              v.id === vuln.id
+                ? {
+                    ...v,
+                    status: "Назначена",
+                    jiraIssueKey: response?.jiraIssueKey,
+                  }
+                : v,
             ),
           );
 
