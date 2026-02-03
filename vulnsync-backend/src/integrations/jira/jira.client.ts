@@ -19,12 +19,11 @@ export class JiraClient {
     message: string,
     error: any,
   ): InternalServerErrorException {
-    const responseMessage = error.response?.data || error.message;
-
-    this.logger.error(
-      message,
-      JSON.stringify(error.response?.data || error.message),
+    const responseMessage = JSON.stringify(
+      error.response?.data || error.message,
     );
+
+    this.logger.error(message, JSON.stringify(responseMessage));
 
     return new InternalServerErrorException(`${message}: ${responseMessage}`);
   }
