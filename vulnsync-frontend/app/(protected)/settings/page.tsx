@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { INTEGRATIONS, IntegrationType } from "@/constants/integrations";
 import {
-  SettingsService,
   IntegrationSetting,
+  SettingsService,
 } from "@/services/settings.service";
+import { useEffect, useState } from "react";
 
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { normalizeIntegrations } from "@/mappers/integrations.mapper";
-import { toast } from "sonner";
 import { IntegrationsService } from "@/services/integrations.service";
+import { toast } from "sonner";
 
 interface IntegrationUI extends IntegrationSetting {
   apiToken?: string;

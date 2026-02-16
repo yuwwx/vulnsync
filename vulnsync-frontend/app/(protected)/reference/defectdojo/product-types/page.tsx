@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { ReferenceLayout } from "@/components/reference/ReferenceLayout";
 import {
   DefectDojoProductType,
   DefectDojoReferenceService,
 } from "@/services/reference/defectdojo.service";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function DefectDojoProductTypesPage() {
   const [data, setData] = useState<DefectDojoProductType[]>([]);

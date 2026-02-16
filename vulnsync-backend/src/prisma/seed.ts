@@ -1,6 +1,6 @@
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from './prisma.service';
-import { ConfigService } from '@nestjs/config';
 
 const config = new ConfigService({
   DATABASE_URL: process.env.DATABASE_URL,

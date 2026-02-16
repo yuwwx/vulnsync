@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/useAuth";
 import {
   DefectDojoProduct,
   DefectDojoProductType,
@@ -41,6 +42,7 @@ export default function DependencyTrackTab({ productType }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<DefectDojoProduct[]>([]);
   const [selectedDdProductId, setSelectedDdProductId] = useState<string>("");
+  const { isAdmin } = useAuth();
 
   // 1) Загружаем продукты
   useEffect(() => {
@@ -169,15 +171,16 @@ export default function DependencyTrackTab({ productType }: Props) {
         value={mapping?.dtProjectName || ""}
         onChange={(e) => updateField("dtProjectName", e.target.value)}
       />
-
-      <div className="flex flex-col gap-2">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Сохранение…" : "Сохранить"}
-        </Button>
-        <Button onClick={handleExport} disabled={exporting}>
-          {exporting ? "Экспорт…" : "Экспортировать в DefectDojo"}
-        </Button>
-      </div>
+      {isAdmin && (
+        <div className="flex flex-col gap-2">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Сохранение…" : "Сохранить"}
+          </Button>
+          <Button onClick={handleExport} disabled={exporting}>
+            {exporting ? "Экспорт…" : "Экспортировать в DefectDojo"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/useAuth";
 import { Vulnerability } from "@/services/vulnerabilities.service";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
@@ -201,6 +202,7 @@ export const vulnerabilityColumns = (
     enableSorting: false,
     cell: ({ row }) => {
       const vuln = row.original;
+      const { isAdmin } = useAuth();
 
       return (
         <>
@@ -212,18 +214,22 @@ export const vulnerabilityColumns = (
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[230px]">
-              <DropdownMenuItem
-                disabled={vuln.status !== "Не отправлена"}
-                onClick={() => onSendToJira(vuln)}
-              >
-                Отправить в Jira
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onLinkWithJira(vuln)}>
-                Связать с Jira
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSyncWithJira(vuln)}>
-                Синхронизировать с Jira
-              </DropdownMenuItem>
+              {isAdmin && (
+                <>
+                  <DropdownMenuItem
+                    disabled={vuln.status !== "Не отправлена"}
+                    onClick={() => onSendToJira(vuln)}
+                  >
+                    Отправить в Jira
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onLinkWithJira(vuln)}>
+                    Связать с Jira
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onSyncWithJira(vuln)}>
+                    Синхронизировать с Jira
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuItem onClick={() => onGenerateDescription(vuln)}>
                 Сгенерировать описание
               </DropdownMenuItem>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -10,7 +11,6 @@ import {
 } from "@/components/ui/table";
 import { LogEntry } from "@/services/logs.service";
 import dayjs from "dayjs";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 interface Props {

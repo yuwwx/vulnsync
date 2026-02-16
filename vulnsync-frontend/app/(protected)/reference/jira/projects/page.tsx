@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ReferenceLayout } from "@/components/reference/ReferenceLayout";
-import { JiraProject } from "@/types/jira";
 import { JiraReferenceService } from "@/services/reference/jira.service";
+import { JiraProject } from "@/types/jira";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function JiraProjectsPage() {

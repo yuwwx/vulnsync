@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { ReferenceLayout } from "@/components/reference/ReferenceLayout";
 import {
   DependencyTrackProject,
   DependencyTrackReferenceService,
 } from "@/services/reference/dependency-track.service";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function DependencyTrackProjectsPage() {
   const [data, setData] = useState<DependencyTrackProject[]>([]);

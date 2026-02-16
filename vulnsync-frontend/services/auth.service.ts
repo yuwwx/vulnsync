@@ -21,6 +21,7 @@ export const AuthService = {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("username", data.username);
       localStorage.setItem("displayName", data.displayName);
+      localStorage.setItem("role", data.role);
       return data;
     } catch (e: any) {
       if (e.response?.status === 401) {
@@ -39,5 +40,6 @@ export const AuthService = {
     localStorage.removeItem("access_token");
     localStorage.removeItem("username");
     localStorage.removeItem("displayName");
+    localStorage.removeItem("role");
   },
 };

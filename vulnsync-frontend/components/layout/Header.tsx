@@ -1,53 +1,43 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/useAuth";
 import { cn } from "@/lib/utils";
 import { AuthService } from "@/services/auth.service";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/vulnerabilities", label: "Уязвимости" },
   { href: "/integrations", label: "Маппинги" },
-  { href: "/settings", label: "Параметры" },
-  { href: "/logs", label: "События" },
+  { href: "/settings", label: "Параметры", adminOnly: true },
+  { href: "/logs", label: "События", adminOnly: true },
   { href: "/reference", label: "Справочники" },
 ];
 
 export function Header() {
   const pathname = usePathname();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState<string | null>(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    const user = localStorage.getItem("username");
-    const name = localStorage.getItem("displayName");
-    setIsAuthenticated(!!token);
-    setUsername(user);
-    setDisplayName(name);
-  }, []);
+  const { isAdmin, isAuthenticated, username, displayName } = useAuth();
 
   function logout() {
     AuthService.logout();
-    setIsAuthenticated(false);
     window.location.href = "/login";
   }
+
+  const filteredNavItems = navItems.filter(
+    (item) => !item.adminOnly || isAdmin,
+  );
 
   return (
     <header className="border-b">
       <div className="container mx-auto flex h-14 items-center justify-between relative">
-        {/* Logo */}
         <Link href="/" className="font-bold text-lg hover:opacity-80">
           VulnSync
         </Link>
 
-        {/* Navigation */}
         {isAuthenticated && (
           <nav className="absolute left-1/2 transform -translate-x-1/2 flex gap-6">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -62,10 +52,11 @@ export function Header() {
           </nav>
         )}
 
-        {/* Auth info */}
         <div className="flex items-center gap-2">
           {isAuthenticated && username && (
-            <span className="text-sm text-muted-foreground">{`${displayName || ""} (${username})`}</span>
+            <span className="text-sm text-muted-foreground">
+              {`${displayName || ""} (${username})`}
+            </span>
           )}
 
           {isAuthenticated ? (

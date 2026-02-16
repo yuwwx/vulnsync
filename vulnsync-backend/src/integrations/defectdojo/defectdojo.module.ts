@@ -1,8 +1,8 @@
 // defectdojo.module.ts
 import { Module } from '@nestjs/common';
 import { DefectDojoClient } from './defectdojo.client';
-import { DefectDojoService } from './defectdojo.service';
 import { DefectDojoController } from './defectdojo.controller';
+import { DefectDojoService } from './defectdojo.service';
 
 @Module({
   imports: [DefectDojoModule],

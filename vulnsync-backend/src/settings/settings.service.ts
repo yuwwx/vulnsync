@@ -1,9 +1,9 @@
+import { PrismaService } from '@/prisma/prisma.service';
 import {
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
 import { CreateIntegrationSettingDto } from './dto/create-integration-setting.dto';
 import { UpdateIntegrationSettingDto } from './dto/update-integration-setting.dto';
 

@@ -1,17 +1,18 @@
+import { LogAction } from '@/common/decorators/logAction.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
-  Post,
   Patch,
-  Delete,
+  Post,
   Query,
 } from '@nestjs/common';
-import { LogAction } from '@/common/decorators/logAction.decorator';
+import { DependencyTrackMappingsService } from './dependency-track-mapping.service';
 import { CreateDependencyTrackMappingDto } from './dto/create-dependency-track-mapping.dto';
 import { UpdateDependencyTrackMappingDto } from './dto/update-dependency-track-mapping.dto';
-import { DependencyTrackMappingsService } from './dependency-track-mapping.service';
 
 @Controller('mappings/dependency-track')
 export class DependencyTrackMappingsController {
@@ -33,12 +34,14 @@ export class DependencyTrackMappingsController {
   }
 
   @LogAction('DT_MAPPINGS_CREATE')
+  @Roles('ADMIN')
   @Post()
   create(@Body() dto: CreateDependencyTrackMappingDto) {
     return this.service.create(dto);
   }
 
   @LogAction('DT_MAPPINGS_UPDATE')
+  @Roles('ADMIN')
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -48,6 +51,7 @@ export class DependencyTrackMappingsController {
   }
 
   @LogAction('DT_MAPPINGS_DELETE')
+  @Roles('ADMIN')
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.service.delete(id);

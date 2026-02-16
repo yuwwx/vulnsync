@@ -12,13 +12,14 @@ export class AuthService {
   ) {}
 
   async login(user: any) {
-    const payload = { sub: user.id, username: user.username };
+    const payload = { sub: user.id, username: user.username, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
       username: user.username,
       email: user?.email,
       displayName: user?.displayName,
       jobTitle: user?.jobTitle,
+      role: user.role,
     };
   }
 
@@ -42,6 +43,7 @@ export class AuthService {
     email: string,
     displayName: string,
     jobTitle: string,
+    role: string = 'USER',
   ) {
     const user = await this.prisma.user.upsert({
       where: { username },
@@ -50,6 +52,7 @@ export class AuthService {
         email,
         displayName,
         jobTitle,
+        role,
         updatedAt: new Date(),
       },
       create: {
@@ -58,6 +61,7 @@ export class AuthService {
         email,
         displayName,
         jobTitle,
+        role,
       },
     });
 

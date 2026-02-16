@@ -2,8 +2,8 @@
 import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { DefectDojoClient } from './defectdojo.client';
-import { DefectDojoProductTypeDto } from './dto/defectdojo-product.dto';
 import { DefectDojoFindingDto } from './dto/defectdojo-finding.dto';
+import { DefectDojoProductTypeDto } from './dto/defectdojo-product.dto';
 import { DefectDojoProduct } from './types/defectdojo.types';
 
 @Injectable()

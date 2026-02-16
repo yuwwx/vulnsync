@@ -1,5 +1,5 @@
-import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
 import { IntegrationType } from '@/common/enums/integration-type.enum';
+import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class CreateIntegrationSettingDto {
   @IsEnum(IntegrationType)

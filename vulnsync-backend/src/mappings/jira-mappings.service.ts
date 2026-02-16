@@ -1,6 +1,6 @@
 // mappings/mappings.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateJiraMappingDto } from './dto/create-jira-mapping.dto';
 import { UpdateJiraMappingDto } from './dto/update-jira-mapping.dto';
 

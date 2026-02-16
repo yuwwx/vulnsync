@@ -1,14 +1,15 @@
 // strategies/ldap.strategy.ts
-import { PassportStrategy } from '@nestjs/passport';
+import { LogsService } from '@/logs/logs.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
 import LdapStrategy from 'passport-ldapauth';
 import { AuthService } from '../auth.service';
-import { ConfigService } from '@nestjs/config';
-import { LogsService } from '@/logs/logs.service';
 
 @Injectable()
 export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
-  private readonly requiredGroupDn?: string;
+  private readonly userGroupDn?: string;
+  private readonly adminGroupDn?: string;
 
   constructor(
     private authService: AuthService,
@@ -19,7 +20,6 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
     const LDAP_BIND_DN = config.get<string>('LDAP_BIND_DN');
     const LDAP_BIND_PASSWORD = config.get<string>('LDAP_BIND_PASSWORD');
     const LDAP_SEARCH_BASE = config.get<string>('LDAP_SEARCH_BASE');
-    const requiredGroupDn = config.get<string>('LDAP_REQUIRED_GROUP_DN');
 
     if (
       !LDAP_URL ||
@@ -41,7 +41,8 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
       },
     });
 
-    this.requiredGroupDn = requiredGroupDn;
+    this.userGroupDn = config.get<string>('LDAP_USER_GROUP_DN');
+    this.adminGroupDn = config.get<string>('LDAP_ADMIN_GROUP_DN');
   }
 
   async validate(req: any, user: any) {
@@ -56,22 +57,26 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
 
     const memberOf = user.memberOf || [];
 
-    const isInGroup = Array.isArray(memberOf)
-      ? memberOf.includes(this.requiredGroupDn)
-      : memberOf === this.requiredGroupDn;
+    let assignedRole: 'USER' | 'ADMIN' = 'USER'; // по умолчанию
 
-    if (!isInGroup) {
+    const groups = Array.isArray(memberOf) ? memberOf : [memberOf];
+
+    if (groups.includes(this.adminGroupDn)) {
+      assignedRole = 'ADMIN';
+    } else if (groups.includes(this.userGroupDn)) {
+      assignedRole = 'USER';
+    } else {
       await this.logsService.log('LOGIN_FAILED', req.ip, user.id, {
         username: user.username,
         userAgent: req.headers['user-agent'],
       });
-
-      throw new UnauthorizedException('User not in required LDAP group');
+      throw new UnauthorizedException('User not in allowed LDAP groups');
     }
 
     await this.logsService.log('LOGIN', req.ip, user.id, {
       username: user.username,
       userAgent: req.headers['user-agent'],
+      assignedRole,
     });
 
     return this.authService.validateLdapUser(
@@ -80,6 +85,7 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
       user.mail,
       user.displayName,
       user.title,
+      assignedRole,
     );
   }
 }

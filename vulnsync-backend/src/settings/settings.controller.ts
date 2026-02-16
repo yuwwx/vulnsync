@@ -1,47 +1,52 @@
+import { LogAction } from '@/common/decorators/logAction.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
   Body,
+  Controller,
+  Delete,
+  Get,
   Param,
-  Req,
+  Patch,
+  Post,
 } from '@nestjs/common';
-import { SettingsService } from './settings.service';
 import { CreateIntegrationSettingDto } from './dto/create-integration-setting.dto';
 import { UpdateIntegrationSettingDto } from './dto/update-integration-setting.dto';
-import { LogAction } from '@/common/decorators/logAction.decorator';
+import { SettingsService } from './settings.service';
 
 @Controller('settings/integrations')
 export class SettingsController {
   constructor(private service: SettingsService) {}
 
   @LogAction('SETTINGS_GET_INTEGRATIONS')
+  @Roles('ADMIN')
   @Get()
   getAll() {
     return this.service.getAll();
   }
 
   @LogAction('SETTINGS_GET_INTEGRATION')
+  @Roles('ADMIN')
   @Get(':type')
   getByType(@Param('type') type: string) {
     return this.service.getByType(type);
   }
 
   @LogAction('SETTINGS_CREATE_INTEGRATION')
+  @Roles('ADMIN')
   @Post()
   create(@Body() dto: CreateIntegrationSettingDto) {
     return this.service.create(dto);
   }
 
   @LogAction('SETTINGS_UPDATE_INTEGRATION')
+  @Roles('ADMIN')
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateIntegrationSettingDto) {
     return this.service.update(id, dto);
   }
 
   @LogAction('SETTINGS_DELETE_INTEGRATION')
+  @Roles('ADMIN')
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.service.delete(id);

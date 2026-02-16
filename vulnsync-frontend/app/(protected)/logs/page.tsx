@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { LogsService, LogEntry } from "@/services/logs.service";
 import { LogsTable } from "@/components/logs/LogsTable";
+import { LogEntry, LogsService } from "@/services/logs.service";
+import { useEffect, useState } from "react";
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);

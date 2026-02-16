@@ -6,9 +6,8 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { DependencyTrackClient } from './dependency-track.client';
 import FormData from 'form-data';
-import { LogsService } from '@/logs/logs.service';
+import { DependencyTrackClient } from './dependency-track.client';
 
 @Injectable()
 export class DependencyTrackService {

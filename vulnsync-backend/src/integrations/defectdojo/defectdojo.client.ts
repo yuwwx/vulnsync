@@ -1,12 +1,12 @@
 // src/integrations/defectdojo/defectdojo.client.ts
-import axios, { AxiosInstance } from 'axios';
+import { IntegrationType } from '@/common/enums/integration-type.enum';
+import { PrismaService } from '@/prisma/prisma.service';
 import {
   Injectable,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { IntegrationType } from '@/common/enums/integration-type.enum';
-import { PrismaService } from '@/prisma/prisma.service';
+import axios, { AxiosInstance } from 'axios';
 
 @Injectable()
 export class DefectDojoClient {

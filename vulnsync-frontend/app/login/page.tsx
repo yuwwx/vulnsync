@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { AuthService, AuthError } from "@/services/auth.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { AuthError, AuthService } from "@/services/auth.service";
+import { useState } from "react";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");

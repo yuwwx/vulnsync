@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
 import { PrismaModule } from '@/prisma/prisma.module';
-import { JiraMappingsService } from './jira-mappings.service';
-import { JiraMappingsController } from './jira-mappings.controller';
+import { Module } from '@nestjs/common';
 import { DependencyTrackMappingsController } from './dependency-track-mapping.controller';
 import { DependencyTrackMappingsService } from './dependency-track-mapping.service';
+import { JiraMappingsController } from './jira-mappings.controller';
+import { JiraMappingsService } from './jira-mappings.service';
 
 @Module({
   imports: [PrismaModule],

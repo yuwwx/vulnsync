@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/lib/useAuth";
 import { DefectDojoProductType } from "@/services/integrations.service";
 import { JiraMapping, MappingsService } from "@/services/mappings.service";
 import { useEffect, useState } from "react";
@@ -30,6 +31,7 @@ export default function DefectDojoJiraTab({ productType }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     if (!productType?.id) {
@@ -129,10 +131,11 @@ export default function DefectDojoJiraTab({ productType }: Props) {
   }
 }`}
         />
-
-        <Button onClick={save} disabled={saving}>
-          {saving ? "Сохранение…" : "Сохранить"}
-        </Button>
+        {isAdmin && (
+          <Button onClick={save} disabled={saving}>
+            {saving ? "Сохранение…" : "Сохранить"}
+          </Button>
+        )}
       </div>
 
       <div className="border rounded-lg p-4 bg-muted/30 text-sm space-y-3">

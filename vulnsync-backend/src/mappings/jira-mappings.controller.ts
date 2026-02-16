@@ -1,17 +1,18 @@
+import { LogAction } from '@/common/decorators/logAction.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
-  Post,
   Patch,
-  Delete,
+  Post,
   Query,
 } from '@nestjs/common';
-import { JiraMappingsService } from './jira-mappings.service';
-import { LogAction } from '@/common/decorators/logAction.decorator';
 import { CreateJiraMappingDto } from './dto/create-jira-mapping.dto';
 import { UpdateJiraMappingDto } from './dto/update-jira-mapping.dto';
+import { JiraMappingsService } from './jira-mappings.service';
 
 @Controller('mappings/jira')
 export class JiraMappingsController {
@@ -33,18 +34,21 @@ export class JiraMappingsController {
   }
 
   @LogAction('JIRA_MAPPINGS_CREATE')
+  @Roles('ADMIN')
   @Post()
   create(@Body() dto: CreateJiraMappingDto) {
     return this.service.create(dto);
   }
 
   @LogAction('JIRA_MAPPINGS_UPDATE')
+  @Roles('ADMIN')
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateJiraMappingDto) {
     return this.service.update(id, dto);
   }
 
   @LogAction('JIRA_MAPPINGS_DELETE')
+  @Roles('ADMIN')
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.service.delete(id);

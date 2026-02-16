@@ -5,18 +5,19 @@ import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
 
 import { AuthModule } from './auth/auth.module';
+import { DefectDojoModule } from './integrations/defectdojo/defectdojo.module';
+import { DependencyTrackModule } from './integrations/dependency-track/dependency-track.module';
+import { JiraModule } from './integrations/jira/jira.module';
 import { SettingsModule } from './settings/settings.module';
 import { VulnerabilitiesModule } from './vulnerabilities/vulnerabilities.module';
-import { JiraModule } from './integrations/jira/jira.module';
-import { DependencyTrackModule } from './integrations/dependency-track/dependency-track.module';
-import { DefectDojoModule } from './integrations/defectdojo/defectdojo.module';
 
 import { JwtAuthGuard } from './common/guards/auth.guard';
 import { LogsModule } from './logs/logs.module';
 
 import { ConfigModule } from '@nestjs/config';
-import { MappingsModule } from './mappings/mappings.module';
 import path from 'node:path';
+import { RolesGuard } from './common/guards/roles.guard';
+import { MappingsModule } from './mappings/mappings.module';
 import { VulnerabilitySyncModule } from './vulnerability-sync/vulnerability-sync.module';
 
 const envFile =
@@ -45,6 +46,10 @@ const envFile =
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

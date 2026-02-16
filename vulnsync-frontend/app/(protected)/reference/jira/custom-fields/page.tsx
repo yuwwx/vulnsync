@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { JiraCustomField } from "@/types/jira";
-import { toast } from "sonner";
-import { JiraReferenceService } from "@/services/reference/jira.service";
 import { ReferenceLayout } from "@/components/reference/ReferenceLayout";
+import { JiraReferenceService } from "@/services/reference/jira.service";
+import { JiraCustomField } from "@/types/jira";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function JiraCustomFieldsPage() {
   const [data, setData] = useState<JiraCustomField[]>([]);

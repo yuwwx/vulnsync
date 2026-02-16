@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();

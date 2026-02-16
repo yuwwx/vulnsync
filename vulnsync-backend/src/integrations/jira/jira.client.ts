@@ -1,12 +1,12 @@
 // jira.client.ts
-import axios, { AxiosInstance } from 'axios';
+import { IntegrationType } from '@/common/enums/integration-type.enum';
+import { PrismaService } from '@/prisma/prisma.service';
 import {
   Injectable,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
-import { IntegrationType } from '@/common/enums/integration-type.enum';
+import axios, { AxiosInstance } from 'axios';
 import https from 'https';
 
 @Injectable()

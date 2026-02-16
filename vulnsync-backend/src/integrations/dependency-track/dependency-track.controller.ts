@@ -1,8 +1,9 @@
 // dependency-track.controller.ts
-import { Controller, Get, Post, Body, Req } from '@nestjs/common';
+import { LogAction } from '@/common/decorators/logAction.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { DependencyTrackService } from './dependency-track.service';
 import { ExportProjectDto } from './dto/export-project.dto';
-import { LogAction } from '@/common/decorators/logAction.decorator';
 
 @Controller('integrations/dependency-track')
 export class DependencyTrackController {
@@ -15,12 +16,14 @@ export class DependencyTrackController {
   }
 
   @LogAction('DEPENDENCY_TRACK_EXPORT')
+  @Roles('ADMIN')
   @Post('export')
   importProject(@Body() dto: ExportProjectDto) {
     return this.service.exportLatestProjectFindings(dto.ddProductId);
   }
 
   @LogAction('DEPENDENCY_TRACK_SYNC_KEV')
+  @Roles('ADMIN')
   @Post('sync-kev')
   syncKev() {
     this.service.syncKevInBackground();
