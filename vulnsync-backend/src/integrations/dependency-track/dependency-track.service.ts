@@ -127,7 +127,7 @@ export class DependencyTrackService {
       try {
         await this.syncKevInternal();
       } catch (err) {
-        this.logger.error('KEV sync failed', err?.status);
+        this.logger.error('KEV sync failed', err);
       } finally {
         this.kevSyncRunning = false;
       }

@@ -45,7 +45,12 @@ interface Props {
   data: Vulnerability[];
   columns: ColumnDef<Vulnerability>[];
   onSelectionChange?: (rows: Vulnerability[]) => void;
-  bulkAction?: {
+  bulkActionDescription?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+  };
+  bulkActionSendToJira?: {
     label: string;
     onClick: () => void;
     disabled?: boolean;
@@ -64,7 +69,8 @@ export function VulnerabilitiesTable({
   data,
   columns,
   onSelectionChange,
-  bulkAction,
+  bulkActionDescription,
+  bulkActionSendToJira,
 }: Props) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -124,15 +130,26 @@ export function VulnerabilitiesTable({
           }
           className="max-w-sm"
         />
-        {bulkAction && (
+        {bulkActionDescription && (
           <Button
             variant="outline"
             size="sm"
             className="ml-2"
-            disabled={bulkAction.disabled}
-            onClick={bulkAction.onClick}
+            disabled={bulkActionDescription.disabled}
+            onClick={bulkActionDescription.onClick}
           >
-            {bulkAction.label}
+            {bulkActionDescription.label}
+          </Button>
+        )}
+        {bulkActionSendToJira && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-2"
+            disabled={bulkActionSendToJira.disabled}
+            onClick={bulkActionSendToJira.onClick}
+          >
+            {bulkActionSendToJira.label}
           </Button>
         )}
         <DropdownMenu>

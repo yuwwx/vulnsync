@@ -47,10 +47,15 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
 
   async validate(req: any, user: any) {
     if (!user) {
-      await this.logsService.log('LOGIN_FAILED', req.ip, undefined, {
-        username: undefined,
-        userAgent: req.headers['user-agent'],
-      });
+      await this.logsService.log(
+        'LOGIN_FAILED',
+        req.headers['x-real-ip'] || req.ip,
+        undefined,
+        {
+          username: undefined,
+          userAgent: req.headers['user-agent'],
+        },
+      );
 
       throw new UnauthorizedException();
     }
@@ -66,18 +71,28 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
     } else if (groups.includes(this.userGroupDn)) {
       assignedRole = 'USER';
     } else {
-      await this.logsService.log('LOGIN_FAILED', req.ip, user.id, {
-        username: user.username,
-        userAgent: req.headers['user-agent'],
-      });
+      await this.logsService.log(
+        'LOGIN_FAILED',
+        req.headers['x-real-ip'] || req.ip,
+        user.id,
+        {
+          username: user.username,
+          userAgent: req.headers['user-agent'],
+        },
+      );
       throw new UnauthorizedException('User not in allowed LDAP groups');
     }
 
-    await this.logsService.log('LOGIN', req.ip, user.id, {
-      username: user.username,
-      userAgent: req.headers['user-agent'],
-      assignedRole,
-    });
+    await this.logsService.log(
+      'LOGIN',
+      req.headers['x-real-ip'] || req.ip,
+      user.id,
+      {
+        username: user.username,
+        userAgent: req.headers['user-agent'],
+        assignedRole,
+      },
+    );
 
     return this.authService.validateLdapUser(
       user.sAMAccountName,

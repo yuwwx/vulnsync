@@ -30,6 +30,7 @@ export const vulnerabilityColumns = (
   onSendToJira: (vuln: Vulnerability) => void,
   onLinkWithJira: (vuln: Vulnerability) => void,
   onSyncWithJira: (vuln: Vulnerability) => void,
+  onUnsyncWithJira: (vuln: Vulnerability) => void,
   onGenerateDescription: (vuln: Vulnerability) => void,
 ): ColumnDef<Vulnerability>[] => [
   {
@@ -227,6 +228,9 @@ export const vulnerabilityColumns = (
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onSyncWithJira(vuln)}>
                     Синхронизировать с Jira
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onUnsyncWithJira(vuln)}>
+                    Отвязать от Jira
                   </DropdownMenuItem>
                 </>
               )}

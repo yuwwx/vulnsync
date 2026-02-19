@@ -60,7 +60,7 @@ export default function VulnerabilitiesPage() {
 
   const [isBulk, setIsBulk] = useState(false);
 
-  const [jiraKey, setJiraKey] = useState<string>("RETAIL-46609");
+  const [jiraKey, setJiraKey] = useState<string>("");
   const [linkLoading, setLinkLoading] = useState(false);
 
   const handleGenerateDescription = async (vuln: Vulnerability) => {
@@ -84,7 +84,7 @@ export default function VulnerabilitiesPage() {
     }
   };
 
-  const handleGenerateBulkDescription = async () => {
+  const handleBulkGenerateDescription = async () => {
     setIsBulk(true);
     setActiveVuln(null);
 
@@ -107,6 +107,38 @@ export default function VulnerabilitiesPage() {
       setLoadingDescription(false);
     }
   };
+
+  const handleBulkSendToJira = useCallback(async () => {
+    if (!selectedProductTypeId || selectedVulns.length === 0) return;
+
+    try {
+      // Создаём один Jira issue на все выбранные уязвимости
+      const response = await VulnerabilitySyncService.createBulkJiraIssue({
+        findingIds: selectedVulns.map((v) => v.id),
+        ddProductTypeId: selectedProductTypeId,
+      });
+
+      const jiraIssueKey = response?.jiraIssueKey;
+
+      if (!jiraIssueKey) {
+        toast.error("Jira issue не создан");
+        return;
+      }
+
+      const vulnIds = new Set(selectedVulns.map((v) => v.id));
+
+      // Обновляем все выбранные уязвимости
+      setVulns((prev) =>
+        prev.map((v) =>
+          vulnIds.has(v.id) ? { ...v, status: "Назначена", jiraIssueKey } : v,
+        ),
+      );
+
+      toast.success("Jira issue создан");
+    } catch (error) {
+      toast.error("Не удалось создать Jira issue");
+    }
+  }, [selectedProductTypeId, selectedVulns]);
 
   const handleSendToJira = useCallback(
     async (vuln: Vulnerability) => {
@@ -191,6 +223,24 @@ export default function VulnerabilitiesPage() {
     }
   };
 
+  const handleUnsyncWithJira = async (vuln: Vulnerability) => {
+    try {
+      await VulnerabilitySyncService.unsyncJiraStatus(vuln.id);
+
+      setVulns((prev) =>
+        prev.map((v) =>
+          v.id === vuln.id
+            ? { ...v, status: "Не отправлена", jiraIssueKey: "" }
+            : v,
+        ),
+      );
+
+      toast.success("Успешно отвязана");
+    } catch {
+      toast.error("Не удалось отвязать от Jira");
+    }
+  };
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(description);
     setCopied(true);
@@ -217,12 +267,14 @@ export default function VulnerabilitiesPage() {
         handleSendToJira,
         handleLinkWithJira,
         handleSyncWithJira,
+        handleUnsyncWithJira,
         handleGenerateDescription,
       ),
     [
       handleSendToJira,
       handleLinkWithJira,
       handleSyncWithJira,
+      handleUnsyncWithJira,
       handleGenerateDescription,
     ],
   );
@@ -282,10 +334,15 @@ export default function VulnerabilitiesPage() {
               data={vulns}
               columns={columns}
               onSelectionChange={setSelectedVulns}
-              bulkAction={{
+              bulkActionDescription={{
                 label: `Сгенерировать описание (${selectedVulns.length})`,
                 disabled: selectedVulns.length === 0,
-                onClick: handleGenerateBulkDescription,
+                onClick: handleBulkGenerateDescription,
+              }}
+              bulkActionSendToJira={{
+                label: `Отправить в Jira (${selectedVulns.length})`,
+                disabled: selectedVulns.length === 0,
+                onClick: handleBulkSendToJira,
               }}
             />
           )}
@@ -378,7 +435,7 @@ export default function VulnerabilitiesPage() {
           setOpenJiraLink(open);
           if (!open) {
             setActiveVuln(null);
-            setJiraKey("RETAIL-1");
+            setJiraKey("");
           }
         }}
       >
@@ -391,6 +448,7 @@ export default function VulnerabilitiesPage() {
           <div className="grid gap-3">
             <Label>Key</Label>
             <Input
+              placeholder="PROJECT-..."
               value={jiraKey}
               onChange={(e) => setJiraKey(e.target.value)}
             />

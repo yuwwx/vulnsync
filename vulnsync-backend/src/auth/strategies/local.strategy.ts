@@ -18,18 +18,28 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     const user = await this.authService.validateLocalUser(username, password);
 
     if (!user) {
-      await this.logsService.log('LOGIN_FAILED', req.ip, undefined, {
-        username: undefined,
-        userAgent: req.headers['user-agent'],
-      });
+      await this.logsService.log(
+        'LOGIN_FAILED',
+        req.headers['x-real-ip'] || req.ip,
+        undefined,
+        {
+          username: undefined,
+          userAgent: req.headers['user-agent'],
+        },
+      );
 
       throw new UnauthorizedException();
     }
 
-    await this.logsService.log('LOGIN', req.ip, user.id, {
-      username: user.username,
-      userAgent: req.headers['user-agent'],
-    });
+    await this.logsService.log(
+      'LOGIN',
+      req.headers['x-real-ip'] || req.ip,
+      user.id,
+      {
+        username: user.username,
+        userAgent: req.headers['user-agent'],
+      },
+    );
 
     return user;
   }
