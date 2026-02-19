@@ -23,7 +23,8 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
         req.headers['x-real-ip'] || req.ip,
         undefined,
         {
-          username: undefined,
+          result: 'FAIL',
+          username: username,
           userAgent: req.headers['user-agent'],
         },
       );
@@ -36,7 +37,8 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
       req.headers['x-real-ip'] || req.ip,
       user.id,
       {
-        username: user.username,
+        result: 'SUCCESS',
+        username: username,
         userAgent: req.headers['user-agent'],
       },
     );

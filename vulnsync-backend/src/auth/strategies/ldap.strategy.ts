@@ -76,7 +76,8 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
         req.headers['x-real-ip'] || req.ip,
         user.id,
         {
-          username: user.username,
+          result: 'FAIL',
+          username: user.sAMAccountName,
           userAgent: req.headers['user-agent'],
         },
       );
@@ -88,7 +89,8 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
       req.headers['x-real-ip'] || req.ip,
       user.id,
       {
-        username: user.username,
+        result: 'SUCCESS',
+        username: user.sAMAccountName,
         userAgent: req.headers['user-agent'],
         assignedRole,
       },
