@@ -340,7 +340,7 @@ export default function VulnerabilitiesPage() {
                 onClick: handleBulkGenerateDescription,
               }}
               bulkActionSendToJira={{
-                label: `Отправить в Jira (${selectedVulns.length})`,
+                label: `Объеденить и отправить в Jira (${selectedVulns.length})`,
                 disabled: selectedVulns.length === 0,
                 onClick: handleBulkSendToJira,
               }}
