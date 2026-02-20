@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import FormData from 'form-data';
 import { DependencyTrackClient } from './dependency-track.client';
+import axios, { AxiosError } from 'axios';
+import https from 'https';
 
 @Injectable()
 export class DependencyTrackService {
@@ -214,10 +216,31 @@ export class DependencyTrackService {
   }
 
   private async fetchKev(): Promise<{ cveID: string }[]> {
-    const res = await fetch(this.kevUrl);
-    const json = await res.json();
+    try {
+      const httpsAgent = new https.Agent({
+        rejectUnauthorized: false,
+      });
 
-    return json.vulnerabilities ?? [];
+      const { data } = await axios.get(this.kevUrl, {
+        httpsAgent,
+      });
+
+      return data?.vulnerabilities ?? [];
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+
+        console.error('KEV fetch failed:', {
+          message: axiosError.message,
+          status: axiosError.response?.status,
+          data: axiosError.response?.data,
+        });
+      } else {
+        console.error('Unexpected error while fetching KEV:', error);
+      }
+
+      return [];
+    }
   }
 
   private async getOrCreateKevPolicy() {
