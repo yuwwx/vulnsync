@@ -74,16 +74,22 @@ export class JiraDescriptionService {
     return `
 *Название*
 ${data.title}
+
 *Затронутые проекты*
 ${data.products.join(', ') || '—'}
+
 *Уязвимые компоненты*
 ${data.components.join(', ') || '—'}
+
 *Идентификаторы уязвимости*
 ${data.vulnerabilityIds.join(', ') || '—'}
+
 *Критичность*
 ${data.severity.join(', ') || '—'}
+
 *Описание*
 ${data.description.join('\n---\n') || '—'}
+
 *Ссылки*
 ${data.links.join('\n') || '—'}
 `.trim();
