@@ -53,7 +53,9 @@ export class DefectDojoClient {
     this.logger.log('Fetching DefectDojo product types');
 
     try {
-      const { data } = await client.get('/api/v2/product_types/');
+      const { data } = await client.get('/api/v2/product_types/', {
+        params: { limit: 1000 },
+      });
 
       if (!Array.isArray(data?.results)) {
         this.logger.error('Invalid product types response structure');
@@ -80,7 +82,7 @@ export class DefectDojoClient {
 
     try {
       const { data } = await client.get('/api/v2/products/', {
-        params: { prod_type: productTypeId },
+        params: { prod_type: productTypeId, limit: 1000 },
       });
 
       if (!Array.isArray(data?.results)) {
