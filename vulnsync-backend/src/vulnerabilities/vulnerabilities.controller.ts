@@ -12,7 +12,7 @@ export class VulnerabilitiesController {
   getVulnerabilities(
     @Param('productId') productId: number,
     @Query('page') page = 1,
-    @Query('limit') limit = 1000,
+    @Query('limit') limit = 10000,
     @Query('title') title?: string,
   ) {
     return this.vulnerabilitiesService.getVulnerabilities(

@@ -291,7 +291,7 @@ export default function VulnerabilitiesPage() {
     setSelectedProductTypeId(product.id);
     setLoadingVulns(true);
 
-    VulnerabilitiesService.getVulnerabilities(product.id, 1, 1000)
+    VulnerabilitiesService.getVulnerabilities(product.id, 1, 10000)
       .then((resp) => {
         setVulns(resp.data.map((v) => ({ ...v, productId: product.id })));
       })

@@ -132,7 +132,7 @@ export class DefectDojoClient {
 
   async getFindingsByProduct(
     productId: number,
-    limit = 1000,
+    limit = 10000,
     offset = 0,
     title?: string,
   ) {

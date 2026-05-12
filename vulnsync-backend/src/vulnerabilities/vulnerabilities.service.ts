@@ -19,7 +19,7 @@ export class VulnerabilitiesService {
   async getVulnerabilities(
     productId: number,
     page = 1,
-    limit = 1000,
+    limit = 10000,
     title?: string,
   ) {
     const offset = (page - 1) * limit;
