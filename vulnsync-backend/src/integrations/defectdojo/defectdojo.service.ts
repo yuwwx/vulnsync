@@ -48,14 +48,23 @@ export class DefectDojoService {
 
   async getFindingsByProduct(
     productId: number,
-  ): Promise<DefectDojoFindingDto[]> {
-    const findings = await this.client.getFindingsByProduct(productId);
+    limit = 1000,
+    offset = 0,
+    title?: string,
+  ) {
+    const findingsResponse = await this.client.getFindingsByProduct(
+      productId,
+      limit,
+      offset,
+      title,
+    );
 
-    const findingsArray = Array.isArray(findings) ? findings : [findings];
-
-    return plainToInstance(DefectDojoFindingDto, findingsArray, {
-      excludeExtraneousValues: false,
-    });
+    return {
+      count: findingsResponse.count,
+      results: plainToInstance(DefectDojoFindingDto, findingsResponse.results, {
+        excludeExtraneousValues: false,
+      }),
+    };
   }
 
   async getFinding(findingId: number): Promise<DefectDojoFindingDto> {

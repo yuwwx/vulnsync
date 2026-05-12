@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/useAuth";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,12 @@ export function Header() {
   const pathname = usePathname();
   const { isAdmin, isAuthenticated, username, displayName } = useAuth();
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   function logout() {
     AuthService.logout();
     window.location.href = "/login";
@@ -35,7 +42,7 @@ export function Header() {
           VulnSync
         </Link>
 
-        {isAuthenticated && (
+        {mounted && isAuthenticated && (
           <nav className="absolute left-1/2 transform -translate-x-1/2 flex gap-6">
             {filteredNavItems.map((item) => (
               <Link
@@ -53,13 +60,13 @@ export function Header() {
         )}
 
         <div className="flex items-center gap-2">
-          {isAuthenticated && username && (
+          {mounted && isAuthenticated && username && (
             <span className="text-sm text-muted-foreground">
               {`${displayName || ""} (${username})`}
             </span>
           )}
 
-          {isAuthenticated ? (
+          {mounted && isAuthenticated ? (
             <Button variant="outline" size="sm" onClick={logout}>
               Выйти
             </Button>

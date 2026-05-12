@@ -291,11 +291,13 @@ export default function VulnerabilitiesPage() {
     setSelectedProductTypeId(product.id);
     setLoadingVulns(true);
 
-    VulnerabilitiesService.getVulnerabilities(product.id)
-      .then((data) =>
-        setVulns(data.map((v) => ({ ...v, productId: product.id }))),
-      )
-      .catch(() => setError("Не удалось получить уязвимости"))
+    VulnerabilitiesService.getVulnerabilities(product.id, 1, 1000)
+      .then((resp) => {
+        setVulns(resp.data.map((v) => ({ ...v, productId: product.id })));
+      })
+      .catch(() => {
+        setError("Не удалось получить уязвимости");
+      })
       .finally(() => setLoadingVulns(false));
   };
 

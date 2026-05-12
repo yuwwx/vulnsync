@@ -107,7 +107,7 @@ export class DependencyTrackService {
       );
 
       return { status: 'IMPORTED' };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `exportLatestProjectFindings failed: defectDojoProductId=${defectDojoProductId}`,
         error.stack,
@@ -180,7 +180,7 @@ export class DependencyTrackService {
         if (i % 100 === 0) {
           this.logger.log(`KEV add progress: ${i}/${toAdd.length}`);
         }
-      } catch (err) {
+      } catch (err: any) {
         this.logger.warn(`Failed to add CVE ${cve}`, err?.status);
       }
       await this.sleep(100);

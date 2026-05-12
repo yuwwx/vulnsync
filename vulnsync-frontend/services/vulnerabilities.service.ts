@@ -16,11 +16,34 @@ export interface Vulnerability {
   jiraIssueKey?: string;
 }
 
+export interface VulnerabilityResponse {
+  data: Vulnerability[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
 export const VulnerabilitiesService = {
-  async getVulnerabilities(productId: number): Promise<Vulnerability[]> {
-    const { data } = await api.get<Vulnerability[]>(
+  async getVulnerabilities(
+    productId: number,
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<VulnerabilityResponse> {
+    const { data } = await api.get<VulnerabilityResponse>(
       `/vulnerabilities/${productId}`,
+      {
+        params: {
+          page,
+          limit,
+          title: search || undefined,
+        },
+      },
     );
+
     return data;
   },
 

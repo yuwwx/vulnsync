@@ -8,6 +8,11 @@ import {
 } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 
+type DefectDojoFindingsResponse = {
+  count: number;
+  results: any[];
+};
+
 @Injectable()
 export class DefectDojoClient {
   private readonly logger = new Logger(DefectDojoClient.name);
@@ -54,7 +59,7 @@ export class DefectDojoClient {
 
     try {
       const { data } = await client.get('/api/v2/product_types/', {
-        params: { limit: 1000 },
+        params: { limit: 10000 },
       });
 
       if (!Array.isArray(data?.results)) {
@@ -82,7 +87,7 @@ export class DefectDojoClient {
 
     try {
       const { data } = await client.get('/api/v2/products/', {
-        params: { prod_type: productTypeId, limit: 1000 },
+        params: { prod_type: productTypeId, limit: 10000 },
       });
 
       if (!Array.isArray(data?.results)) {
@@ -125,34 +130,45 @@ export class DefectDojoClient {
     }
   }
 
-  async getFindingsByProduct(productId: number) {
+  async getFindingsByProduct(
+    productId: number,
+    limit = 1000,
+    offset = 0,
+    title?: string,
+  ) {
     const client = await this.getClient();
 
     this.logger.log(
-      `Fetching findings for DefectDojo product: productId=${productId}`,
+      `Fetching findings for DefectDojo product: productId=${productId}, limit=${limit}, offset=${offset}, title=${title}`,
     );
 
     try {
-      const { data } = await client.get('/api/v2/findings/', {
-        params: {
-          test__engagement__product__prod_type: productId,
-          limit: 1000,
-          related_fields: true,
-          active: true,
-          o: '-date',
+      const { data } = await client.get<DefectDojoFindingsResponse>(
+        '/api/v2/findings/',
+        {
+          params: {
+            test__engagement__product__prod_type: productId,
+            limit,
+            offset,
+            related_fields: true,
+            active: true,
+            title: title,
+            o: '-date',
+          },
         },
-      });
+      );
 
       if (!Array.isArray(data?.results)) {
         this.logger.error(
           `Invalid findings response structure: productId=${productId}`,
         );
+
         throw new InternalServerErrorException(
           'Invalid response from DefectDojo API',
         );
       }
 
-      return data.results;
+      return data;
     } catch (error) {
       throw this.logAxiosError(
         `Failed to fetch findings for productId=${productId}`,

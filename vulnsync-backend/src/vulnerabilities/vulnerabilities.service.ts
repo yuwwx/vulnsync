@@ -1,3 +1,4 @@
+// vulnerabilities.service.ts
 import { DefectDojoService } from '@/integrations/defectdojo/defectdojo.service';
 import { JiraDescriptionService } from '@/integrations/jira/jira-description.service';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -15,8 +16,22 @@ export class VulnerabilitiesService {
     return this.defectDojo.getProductTypes();
   }
 
-  async getVulnerabilities(productId: number) {
-    const findings = await this.defectDojo.getFindingsByProduct(productId);
+  async getVulnerabilities(
+    productId: number,
+    page = 1,
+    limit = 1000,
+    title?: string,
+  ) {
+    const offset = (page - 1) * limit;
+
+    const findingsResponse = await this.defectDojo.getFindingsByProduct(
+      productId,
+      limit,
+      offset,
+      title,
+    );
+
+    const findings = findingsResponse.results;
 
     const externalIds = findings.map((f) => f.id.toString());
 
@@ -29,16 +44,25 @@ export class VulnerabilitiesService {
 
     const syncMap = new Map(synced.map((s) => [s.externalId, s]));
 
-    return findings.map((finding) => ({
-      id: finding.id,
-      title: finding.title,
-      severity: finding.severity,
-      status: syncMap.get(finding.id.toString())?.status ?? 'Не отправлена',
-      cvssv3_score: finding.cvssv3_score,
-      creation_date: finding.date,
-      product: finding?.related_fields?.test?.engagement?.product?.name,
-      jiraIssueKey: syncMap.get(finding.id.toString())?.jiraIssueKey,
-    }));
+    return {
+      data: findings.map((finding) => ({
+        id: finding.id,
+        title: finding.title,
+        severity: finding.severity,
+        status: syncMap.get(finding.id.toString())?.status ?? 'Не отправлена',
+        cvssv3_score: finding.cvssv3_score,
+        creation_date: finding.date,
+        product: finding?.related_fields?.test?.engagement?.product?.name,
+        jiraIssueKey: syncMap.get(finding.id.toString())?.jiraIssueKey,
+      })),
+
+      pagination: {
+        total: findingsResponse.count,
+        page,
+        limit,
+        pages: Math.ceil(findingsResponse.count / limit),
+      },
+    };
   }
 
   async getJiraDescriptionPreview(findingIds: number[]) {
