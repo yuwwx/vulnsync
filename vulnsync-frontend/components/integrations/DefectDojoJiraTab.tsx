@@ -125,7 +125,7 @@ export default function DefectDojoJiraTab({ productType }: Props) {
     "components": [{ "name": "08 СБОЛ" }],
     "customfield_13902": [{ "key": "ORG-14" }],
     "customfield_13901": [{ "key": "ORG-14" }],
-    "customfield_10701": { "value": "ИФТ" },
+    "customfield_10701": { "value": "Интеграционное Тестирование" },
     "customfield_14401": [{ "key": "CMDB-6047" }],
     "customfield_11308": { "value": "Средний" }
   }
@@ -153,10 +153,6 @@ export default function DefectDojoJiraTab({ productType }: Props) {
             </li>
             <li>
               <code>customfield_10701</code> — Место первичного обнаружения
-              дефекта
-            </li>
-            <li>
-              <code>customfield_11308</code> — Критичность
             </li>
             <li>
               <code>customfield_13900</code> — Компания заказчика
@@ -168,7 +164,16 @@ export default function DefectDojoJiraTab({ productType }: Props) {
               <code>customfield_13902</code> — Команда владелец
             </li>
             <li>
+              <code>customfield_14400</code> — Пользовательский продукт
+            </li>
+            <li>
               <code>customfield_14401</code> — Канал
+            </li>
+            <li>
+              <code>customfield_14402</code> — Сервис
+            </li>
+            <li>
+              <code>customfield_14403</code> — Инфраструктура
             </li>
           </ul>
 

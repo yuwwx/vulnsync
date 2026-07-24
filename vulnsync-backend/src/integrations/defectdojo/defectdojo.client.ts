@@ -200,6 +200,30 @@ export class DefectDojoClient {
     }
   }
 
+  async updateFinding(
+    id: number,
+    payload: { verified: boolean; tags: string[] },
+  ) {
+    const client = await this.getClient();
+
+    this.logger.log(`Updating DefectDojo finding: id=${id}`);
+
+    try {
+      const { data } = await client.patch(`/api/v2/findings/${id}/`, payload);
+
+      if (!data) {
+        this.logger.error(`Empty update response: id=${id}`);
+        throw new InternalServerErrorException(
+          'Invalid response from DefectDojo API',
+        );
+      }
+
+      return data;
+    } catch (error) {
+      throw this.logAxiosError(`Failed to update finding (id=${id})`, error);
+    }
+  }
+
   async importScan(payload: any) {
     const client = await this.getClient();
 

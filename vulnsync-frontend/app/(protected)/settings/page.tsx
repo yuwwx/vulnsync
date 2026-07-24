@@ -20,6 +20,7 @@ interface IntegrationUI extends IntegrationSetting {
   apiToken?: string;
   username?: string;
   password?: string;
+  severityCustomField?: string;
 }
 
 type IntegrationField = {
@@ -44,6 +45,11 @@ const INTEGRATION_FIELDS: Record<IntegrationType, IntegrationField[]> = {
     { name: "baseUrl", label: "Base URL" },
     { name: "username", label: "Username" },
     { name: "password", label: "Password", type: "password" },
+    {
+      name: "severityCustomField",
+      label: "Severity custom field",
+      placeholder: "customfield_15400",
+    },
   ],
 };
 
@@ -163,7 +169,9 @@ export default function SettingsPage() {
             <aside className="w-56 shrink-0 border rounded-md p-2 space-y-1 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
               {INTEGRATIONS.map(({ type, label }) => {
                 const setting = data[type];
-                const configured = !!setting?.baseUrl && !!setting?.hasSecret;
+                const configured =
+                  setting?.isConfigured ??
+                  (!!setting?.baseUrl && !!setting?.hasSecret);
 
                 return (
                   <button

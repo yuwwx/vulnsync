@@ -22,14 +22,15 @@ model User {
 }
 
 model IntegrationSetting {
-  id         String @id @default(uuid())
-  type       String
-  baseUrl    String
-  apiToken   String?
-  username   String?
-  password   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                     String @id @default(uuid())
+  type                   String
+  baseUrl                String
+  apiToken               String?
+  username               String?
+  password               String?
+  severityCustomField    String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 model JiraMapping {

@@ -51,6 +51,7 @@ export class VulnerabilitiesService {
         severity: finding.severity,
         status: syncMap.get(finding.id.toString())?.status ?? 'Не отправлена',
         cvssv3_score: finding.cvssv3_score,
+        cvssv4_score: finding.cvssv4_score,
         creation_date: finding.date,
         product: finding?.related_fields?.test?.engagement?.product?.name,
         jiraIssueKey: syncMap.get(finding.id.toString())?.jiraIssueKey,
@@ -70,16 +71,16 @@ export class VulnerabilitiesService {
       findingIds.map((id) => this.defectDojo.getFinding(id)),
     );
     if (findings.length === 1) {
-      const data = this.jiraDescriptionService.normalizeSingleFinding(
-        findings[0],
-      );
       return {
-        description: this.jiraDescriptionService.renderJiraDescription(data),
+        description:
+          this.jiraDescriptionService.renderSingleFindingJiraDescription(
+            findings[0],
+          ),
       };
     }
-    const data = this.jiraDescriptionService.normalizeBulkFindings(findings);
     return {
-      description: this.jiraDescriptionService.renderJiraDescription(data),
+      description:
+        this.jiraDescriptionService.renderBulkFindingsJiraDescription(findings),
     };
   }
 }

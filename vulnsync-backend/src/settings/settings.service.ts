@@ -11,6 +11,24 @@ import { UpdateIntegrationSettingDto } from './dto/update-integration-setting.dt
 export class SettingsService {
   constructor(private prisma: PrismaService) {}
 
+  private isConfigured(setting: {
+    type: string;
+    baseUrl?: string | null;
+    apiToken?: string | null;
+    username?: string | null;
+    password?: string | null;
+  }) {
+    if (!setting.baseUrl?.trim()) {
+      return false;
+    }
+
+    if (setting.type === 'JIRA') {
+      return !!setting.username?.trim() && !!setting.password?.trim();
+    }
+
+    return !!setting.apiToken?.trim();
+  }
+
   async getAll() {
     const settings = await this.prisma.integrationSetting.findMany({
       select: {
@@ -18,8 +36,10 @@ export class SettingsService {
         type: true,
         baseUrl: true,
         apiToken: true,
-        updatedAt: true,
+        username: true,
         password: true,
+        updatedAt: true,
+        severityCustomField: true,
       },
     });
 
@@ -28,7 +48,8 @@ export class SettingsService {
       type: s.type,
       baseUrl: s.baseUrl,
       updatedAt: s.updatedAt,
-      hasSecret: !!s.apiToken || !!s.password,
+      severityCustomField: s.severityCustomField,
+      isConfigured: this.isConfigured(s),
     }));
   }
 
@@ -45,6 +66,8 @@ export class SettingsService {
       id: setting.id,
       type: setting.type,
       baseUrl: setting.baseUrl,
+      severityCustomField: setting.severityCustomField,
+      isConfigured: this.isConfigured(setting),
     };
   }
 
@@ -65,6 +88,8 @@ export class SettingsService {
       id: setting.id,
       type: setting.type,
       baseUrl: setting.baseUrl,
+      severityCustomField: setting.severityCustomField,
+      isConfigured: this.isConfigured(setting),
     };
   }
 
@@ -86,7 +111,8 @@ export class SettingsService {
       id: updated.id,
       type: updated.type,
       baseUrl: updated.baseUrl,
-      hasSecret: !!updated.apiToken || !!updated.password,
+      severityCustomField: updated.severityCustomField,
+      isConfigured: this.isConfigured(updated),
     };
   }
 

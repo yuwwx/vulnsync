@@ -5,9 +5,11 @@ export interface IntegrationSetting {
   type: string;
   baseUrl: string;
   hasSecret?: boolean;
+  isConfigured?: boolean;
   apiToken?: string;
   username?: string;
   password?: string;
+  severityCustomField?: string;
 }
 
 export const SettingsService = {
@@ -23,11 +25,12 @@ export const SettingsService = {
         apiToken: setting?.apiToken,
         username: setting?.username,
         password: setting?.password,
+        severityCustomField: setting?.severityCustomField,
       };
 
       const { data } = await api.patch(
         `/settings/integrations/${setting.id}`,
-        payload
+        payload,
       );
       return data;
     } else {
@@ -36,6 +39,7 @@ export const SettingsService = {
         apiToken: setting?.apiToken,
         username: setting?.username,
         password: setting?.password,
+        severityCustomField: setting?.severityCustomField,
         type: setting?.type,
       };
 

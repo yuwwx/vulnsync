@@ -19,4 +19,8 @@ export class CreateIntegrationSettingDto {
   @IsOptional()
   @IsString()
   password: string;
+
+  @IsOptional()
+  @IsString()
+  severityCustomField: string;
 }

@@ -1,5 +1,5 @@
 // defectdojo.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { DefectDojoClient } from './defectdojo.client';
 import { DefectDojoFindingDto } from './dto/defectdojo-finding.dto';
@@ -8,6 +8,8 @@ import { DefectDojoProduct } from './types/defectdojo.types';
 
 @Injectable()
 export class DefectDojoService {
+  private readonly logger = new Logger(DefectDojoService.name);
+
   constructor(private client: DefectDojoClient) {}
 
   async getProductTypes(): Promise<DefectDojoProductTypeDto[]> {
@@ -73,5 +75,27 @@ export class DefectDojoService {
     return plainToInstance(DefectDojoFindingDto, finding, {
       excludeExtraneousValues: false,
     });
+  }
+
+  async markFindingAsVerifiedAndTagged(
+    findingId: number,
+    jiraIssueKey: string,
+  ): Promise<boolean> {
+    try {
+      await this.client.updateFinding(findingId, {
+        verified: true,
+        tags: [`#sym:${jiraIssueKey}`],
+      });
+
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+
+      this.logger.warn(
+        `Failed to mark DefectDojo finding ${findingId} as verified/tagged for Jira issue ${jiraIssueKey}: ${message}`,
+      );
+
+      return false;
+    }
   }
 }

@@ -21,6 +21,9 @@ export class DefectDojoFindingDto {
   cvssv3_score?: number;
 
   @Expose()
+  cvssv4_score?: number;
+
+  @Expose()
   related_fields?: {
     test?: {
       engagement?: {
