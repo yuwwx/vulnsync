@@ -23,4 +23,12 @@ export class CreateIntegrationSettingDto {
   @IsOptional()
   @IsString()
   severityCustomField: string;
+
+  @IsOptional()
+  @IsString()
+  cvssCustomField: string;
+
+  @IsOptional()
+  @IsString()
+  vulnerabilityIdCustomField: string;
 }

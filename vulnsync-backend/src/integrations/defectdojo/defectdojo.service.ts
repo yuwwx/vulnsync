@@ -84,7 +84,7 @@ export class DefectDojoService {
     try {
       await this.client.updateFinding(findingId, {
         verified: true,
-        tags: [`#sym:${jiraIssueKey}`],
+        tags: [`${jiraIssueKey}`],
       });
 
       return true;

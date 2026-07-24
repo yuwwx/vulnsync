@@ -21,6 +21,8 @@ interface IntegrationUI extends IntegrationSetting {
   username?: string;
   password?: string;
   severityCustomField?: string;
+  cvssCustomField?: string;
+  vulnerabilityIdCustomField?: string;
 }
 
 type IntegrationField = {
@@ -49,6 +51,16 @@ const INTEGRATION_FIELDS: Record<IntegrationType, IntegrationField[]> = {
       name: "severityCustomField",
       label: "Severity custom field",
       placeholder: "customfield_15400",
+    },
+    {
+      name: "cvssCustomField",
+      label: "CVSS custom field",
+      placeholder: "customfield_15500",
+    },
+    {
+      name: "vulnerabilityIdCustomField",
+      label: "Vulnerability ID custom field",
+      placeholder: "customfield_15401",
     },
   ],
 };
@@ -114,6 +126,8 @@ export default function SettingsPage() {
 
         if (field.name === "apiToken") {
           if (value?.trim()) payload.apiToken = value;
+        } else if (field.name === "username" || field.name === "password") {
+          if (value?.trim()) payload[field.name] = value;
         } else {
           payload[field.name] = value;
         }
@@ -121,10 +135,20 @@ export default function SettingsPage() {
 
       const saved = await SettingsService.save(payload);
 
-      setData((prev) => ({
-        ...prev,
-        [type]: { ...saved, apiToken: "" },
-      }));
+      setData((prev) => {
+        const previous = prev[type] ?? {};
+
+        return {
+          ...prev,
+          [type]: {
+            ...saved,
+            ...previous,
+            apiToken: "",
+            username: previous.username ?? "",
+            password: previous.password ?? "",
+          },
+        };
+      });
 
       toast.success(`Settings for ${type} saved`);
     } catch {

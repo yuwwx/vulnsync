@@ -10,6 +10,8 @@ export interface IntegrationSetting {
   username?: string;
   password?: string;
   severityCustomField?: string;
+  cvssCustomField?: string;
+  vulnerabilityIdCustomField?: string;
 }
 
 export const SettingsService = {
@@ -26,6 +28,8 @@ export const SettingsService = {
         username: setting?.username,
         password: setting?.password,
         severityCustomField: setting?.severityCustomField,
+        cvssCustomField: setting?.cvssCustomField,
+        vulnerabilityIdCustomField: setting?.vulnerabilityIdCustomField,
       };
 
       const { data } = await api.patch(
@@ -40,6 +44,8 @@ export const SettingsService = {
         username: setting?.username,
         password: setting?.password,
         severityCustomField: setting?.severityCustomField,
+        cvssCustomField: setting?.cvssCustomField,
+        vulnerabilityIdCustomField: setting?.vulnerabilityIdCustomField,
         type: setting?.type,
       };
 

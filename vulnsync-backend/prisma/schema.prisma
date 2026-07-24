@@ -29,6 +29,8 @@ model IntegrationSetting {
   username               String?
   password               String?
   severityCustomField    String?
+  cvssCustomField        String?
+  vulnerabilityIdCustomField String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }

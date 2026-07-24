@@ -40,6 +40,8 @@ export class SettingsService {
         password: true,
         updatedAt: true,
         severityCustomField: true,
+        cvssCustomField: true,
+        vulnerabilityIdCustomField: true,
       },
     });
 
@@ -49,6 +51,8 @@ export class SettingsService {
       baseUrl: s.baseUrl,
       updatedAt: s.updatedAt,
       severityCustomField: s.severityCustomField,
+      cvssCustomField: s.cvssCustomField,
+      vulnerabilityIdCustomField: s.vulnerabilityIdCustomField,
       isConfigured: this.isConfigured(s),
     }));
   }
@@ -89,6 +93,8 @@ export class SettingsService {
       type: setting.type,
       baseUrl: setting.baseUrl,
       severityCustomField: setting.severityCustomField,
+      cvssCustomField: setting.cvssCustomField,
+      vulnerabilityIdCustomField: setting.vulnerabilityIdCustomField,
       isConfigured: this.isConfigured(setting),
     };
   }
@@ -112,6 +118,8 @@ export class SettingsService {
       type: updated.type,
       baseUrl: updated.baseUrl,
       severityCustomField: updated.severityCustomField,
+      cvssCustomField: updated.cvssCustomField,
+      vulnerabilityIdCustomField: updated.vulnerabilityIdCustomField,
       isConfigured: this.isConfigured(updated),
     };
   }
