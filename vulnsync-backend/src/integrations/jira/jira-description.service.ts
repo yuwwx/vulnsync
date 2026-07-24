@@ -154,7 +154,7 @@ export class JiraDescriptionService {
 
     const vulnerabilities = findings
       .map((f) => {
-        return `|${f.title || '—'}|${f.component_name || '—'}|${f.component_version || '—'}|${f.vulnerability_ids?.map((v) => v.vulnerability_id).join(', ') || '—'}|${f.cwe || '—'}|${f.severity || '—'}|`;
+        return `|${f.title || '—'}|${f.related_fields?.test?.engagement?.product?.name ?? '—'}|${f.component_name || '—'}|${f.component_version || '—'}|${f.vulnerability_ids?.map((v) => v.vulnerability_id).join(', ') || '—'}|${f.severity || '—'}|`;
       })
       .join('\n');
 
@@ -208,7 +208,7 @@ ${groupSeverity}
 
 *Уязвимости*
 
-||Название||Компонент||Версия||Идентификатор уязвимости||CWE||Уровень критичности||
+||Название||Продукт||Компонент||Версия||Идентификатор уязвимости||Уровень критичности||
 ${vulnerabilities}
 
 
