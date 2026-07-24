@@ -126,7 +126,10 @@ export class JiraDescriptionService {
       return `${componentLabel} Affected By: ${affectedBy}`;
     });
 
-    const groupName = groupedNames.join(', ');
+    const joinedName = groupedNames.join(', ');
+
+    const groupName =
+      joinedName.length > 254 ? `${joinedName.slice(0, 251)}...` : joinedName;
 
     const severityOrder = {
       Critical: 4,
