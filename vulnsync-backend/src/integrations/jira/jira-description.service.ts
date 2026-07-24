@@ -70,7 +70,7 @@ export class JiraDescriptionService {
     return parts.join('\n\n');
   }
 
-  renderBulkFindingsJiraDescription(findings: any[]): string {
+  buildBulkFindingsSummary(findings: any[]): string {
     if (!findings.length) {
       return '';
     }
@@ -128,8 +128,17 @@ export class JiraDescriptionService {
 
     const joinedName = groupedNames.join(', ');
 
-    const groupName =
-      joinedName.length > 254 ? `${joinedName.slice(0, 251)}...` : joinedName;
+    return joinedName.length > 254
+      ? `${joinedName.slice(0, 251)}...`
+      : joinedName;
+  }
+
+  renderBulkFindingsJiraDescription(findings: any[]): string {
+    if (!findings.length) {
+      return '';
+    }
+
+    const groupName = this.buildBulkFindingsSummary(findings);
 
     const severityOrder = {
       Critical: 4,
