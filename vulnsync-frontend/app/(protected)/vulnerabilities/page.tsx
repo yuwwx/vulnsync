@@ -59,6 +59,7 @@ export default function VulnerabilitiesPage() {
   const [rawLoading, setRawLoading] = useState(false);
 
   const [openJiraLink, setOpenJiraLink] = useState(false);
+  const [isBulkJiraLink, setIsBulkJiraLink] = useState(false);
 
   const [copied, setCopied] = useState(false);
 
@@ -70,6 +71,7 @@ export default function VulnerabilitiesPage() {
   const [jiraKey, setJiraKey] = useState<string>("");
   const [linkLoading, setLinkLoading] = useState(false);
   const [openSeverityChange, setOpenSeverityChange] = useState(false);
+  const [isBulkSeverityChange, setIsBulkSeverityChange] = useState(false);
   const [severity, setSeverity] = useState("");
   const [severityLoading, setSeverityLoading] = useState(false);
 
@@ -181,6 +183,11 @@ export default function VulnerabilitiesPage() {
   );
 
   const handleSaveJiraLink = async () => {
+    if (isBulkJiraLink) {
+      await handleSaveBulkJiraLink();
+      return;
+    }
+
     if (!activeVuln) return;
 
     setLinkLoading(true);
@@ -214,6 +221,7 @@ export default function VulnerabilitiesPage() {
 
   const handleLinkWithJira = async (vuln: Vulnerability) => {
     setActiveVuln(vuln);
+    setIsBulkJiraLink(false);
     setOpenJiraLink(true);
   };
 
@@ -253,11 +261,17 @@ export default function VulnerabilitiesPage() {
 
   const handleChangeSeverity = (vuln: Vulnerability) => {
     setActiveVuln(vuln);
+    setIsBulkSeverityChange(false);
     setSeverity(vuln.severity);
     setOpenSeverityChange(true);
   };
 
   const handleSaveSeverity = async () => {
+    if (isBulkSeverityChange) {
+      await handleSaveBulkSeverity();
+      return;
+    }
+
     if (!activeVuln || !severity) return;
 
     setSeverityLoading(true);
@@ -279,6 +293,119 @@ export default function VulnerabilitiesPage() {
     } finally {
       setSeverityLoading(false);
     }
+  };
+
+  const handleBulkLinkWithJira = () => {
+    setActiveVuln(null);
+    setIsBulkJiraLink(true);
+    setOpenJiraLink(true);
+  };
+
+  const handleSaveBulkJiraLink = async () => {
+    if (selectedVulns.length === 0 || !jiraKey.trim()) return;
+
+    setLinkLoading(true);
+    const results = await Promise.allSettled(
+      selectedVulns.map((vuln) =>
+        VulnerabilitySyncService.linkWithJira({
+          findingId: vuln.id,
+          jiraIssueKey: jiraKey.trim(),
+        }),
+      ),
+    );
+    const succeeded = results.filter((result) => result.status === "fulfilled");
+    const successfulIds = new Set(
+      results.flatMap((result, index) =>
+        result.status === "fulfilled" ? [selectedVulns[index].id] : [],
+      ),
+    );
+
+    setVulns((prev) =>
+      prev.map((v) =>
+        successfulIds.has(v.id)
+          ? { ...v, status: "Назначена", jiraIssueKey: jiraKey.trim() }
+          : v,
+      ),
+    );
+    toast.success(`Связано с Jira: ${succeeded.length} из ${selectedVulns.length}`);
+    setOpenJiraLink(false);
+    setJiraKey("");
+    setLinkLoading(false);
+  };
+
+  const handleBulkSyncWithJira = async () => {
+    const results = await Promise.allSettled(
+      selectedVulns.map((vuln) =>
+        VulnerabilitySyncService.syncJiraStatus(vuln.id),
+      ),
+    );
+    const successfulIds = new Set(
+      results.flatMap((result, index) =>
+        result.status === "fulfilled" ? [selectedVulns[index].id] : [],
+      ),
+    );
+    setVulns((prev) =>
+      prev.map((v) => {
+        const result = results[selectedVulns.findIndex((item) => item.id === v.id)];
+        return successfulIds.has(v.id) && result?.status === "fulfilled"
+          ? { ...v, status: result.value.status }
+          : v;
+      }),
+    );
+    toast.success(`Статус синхронизирован: ${successfulIds.size} из ${selectedVulns.length}`);
+  };
+
+  const handleBulkUnsyncWithJira = async () => {
+    const results = await Promise.allSettled(
+      selectedVulns.map((vuln) =>
+        VulnerabilitySyncService.unsyncJiraStatus(vuln.id),
+      ),
+    );
+    const successfulIds = new Set(
+      results.flatMap((result, index) =>
+        result.status === "fulfilled" ? [selectedVulns[index].id] : [],
+      ),
+    );
+    setVulns((prev) =>
+      prev.map((v) =>
+        successfulIds.has(v.id)
+          ? { ...v, status: "Не отправлена", jiraIssueKey: "" }
+          : v,
+      ),
+    );
+    toast.success(`Отвязано от Jira: ${successfulIds.size} из ${selectedVulns.length}`);
+  };
+
+  const handleBulkChangeSeverity = () => {
+    setActiveVuln(null);
+    setIsBulkSeverityChange(true);
+    setSeverity("");
+    setOpenSeverityChange(true);
+  };
+
+  const handleSaveBulkSeverity = async () => {
+    if (selectedVulns.length === 0 || !severity) return;
+
+    setSeverityLoading(true);
+    const results = await Promise.allSettled(
+      selectedVulns.map((vuln) =>
+        VulnerabilitiesService.changeSeverity(vuln.id, severity),
+      ),
+    );
+    const successfulIds = new Set(
+      results.flatMap((result, index) =>
+        result.status === "fulfilled" ? [selectedVulns[index].id] : [],
+      ),
+    );
+    setVulns((prev) =>
+      prev.map((v) =>
+        successfulIds.has(v.id) ? { ...v, severity } : v,
+      ),
+    );
+    toast.success(`Критичность изменена: ${successfulIds.size} из ${selectedVulns.length}`);
+    setOpenSeverityChange(false);
+    setSeverity("");
+    setSeverityLoading(false);
   };
 
   const handleCopy = async () => {
@@ -374,21 +501,43 @@ export default function VulnerabilitiesPage() {
           ) : !selectedProductTypeId ? (
             <div className="text-neutral-500">Выберите продукт</div>
           ) : (
-            <VulnerabilitiesTable
-              data={vulns}
-              columns={columns}
-              onSelectionChange={setSelectedVulns}
-              bulkActionDescription={{
-                label: `Сгенерировать описание (${selectedVulns.length})`,
-                disabled: selectedVulns.length === 0,
-                onClick: handleBulkGenerateDescription,
-              }}
-              bulkActionSendToJira={{
-                label: `Объеденить и отправить в Jira (${selectedVulns.length})`,
-                disabled: selectedVulns.length === 0,
-                onClick: handleBulkSendToJira,
-              }}
-            />
+              <VulnerabilitiesTable
+                data={vulns}
+                columns={columns}
+                onSelectionChange={setSelectedVulns}
+                bulkActions={[
+                  {
+                    label: `Сгенерировать описание (${selectedVulns.length})`,
+                    disabled: selectedVulns.length === 0,
+                    onClick: handleBulkGenerateDescription,
+                  },
+                  {
+                    label: `Объединить и отправить в Jira (${selectedVulns.length})`,
+                    disabled: selectedVulns.length === 0,
+                    onClick: handleBulkSendToJira,
+                  },
+                  {
+                    label: `Связать с Jira (${selectedVulns.length})`,
+                    disabled: selectedVulns.length === 0,
+                    onClick: handleBulkLinkWithJira,
+                  },
+                  {
+                    label: `Синхронизировать с Jira (${selectedVulns.length})`,
+                    disabled: selectedVulns.length === 0,
+                    onClick: handleBulkSyncWithJira,
+                  },
+                  {
+                    label: `Отвязать от Jira (${selectedVulns.length})`,
+                    disabled: selectedVulns.length === 0,
+                    onClick: handleBulkUnsyncWithJira,
+                  },
+                  {
+                    label: `Изменить критичность (${selectedVulns.length})`,
+                    disabled: selectedVulns.length === 0,
+                    onClick: handleBulkChangeSeverity,
+                  },
+                ]}
+              />
           )}
         </div>
       </div>
@@ -480,13 +629,18 @@ export default function VulnerabilitiesPage() {
           if (!open) {
             setActiveVuln(null);
             setJiraKey("");
+            setIsBulkJiraLink(false);
           }
         }}
       >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Связать с Jira</DialogTitle>
-            <DialogDescription>Укажите ключ задачи</DialogDescription>
+            <DialogDescription>
+              {isBulkJiraLink
+                ? `Укажите ключ задачи для ${selectedVulns.length} уязвимостей`
+                : "Укажите ключ задачи"}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-3">
@@ -519,6 +673,7 @@ export default function VulnerabilitiesPage() {
           if (!open) {
             setActiveVuln(null);
             setSeverity("");
+            setIsBulkSeverityChange(false);
           }
         }}
       >
@@ -526,7 +681,9 @@ export default function VulnerabilitiesPage() {
           <DialogHeader>
             <DialogTitle>Изменить критичность</DialogTitle>
             <DialogDescription>
-              Новая критичность будет сохранена в DefectDojo, а finding отмечен как Verified.
+              {isBulkSeverityChange
+                ? `Новая критичность будет применена к ${selectedVulns.length} уязвимостям.`
+                : "Новая критичность будет сохранена в DefectDojo, а finding отмечен как Verified."}
             </DialogDescription>
           </DialogHeader>
 

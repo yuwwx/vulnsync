@@ -107,4 +107,11 @@ export class DefectDojoService {
 
     return finding;
   }
+
+  async closeFinding(findingId: number, comment: string) {
+    return this.client.updateFinding(findingId, {
+      active: false,
+      close_comment: comment,
+    });
+  }
 }

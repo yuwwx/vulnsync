@@ -12,7 +12,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ListFilter } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,11 @@ interface Props {
   data: Vulnerability[];
   columns: ColumnDef<Vulnerability>[];
   onSelectionChange?: (rows: Vulnerability[]) => void;
+  bulkActions?: Array<{
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+  }>;
   bulkActionDescription?: {
     label: string;
     onClick: () => void;
@@ -69,6 +75,7 @@ export function VulnerabilitiesTable({
   data,
   columns,
   onSelectionChange,
+  bulkActions,
   bulkActionDescription,
   bulkActionSendToJira,
 }: Props) {
@@ -130,7 +137,26 @@ export function VulnerabilitiesTable({
           }
           className="max-w-sm"
         />
-        {bulkActionDescription && (
+        {bulkActions ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="ml-2">
+                Действия ({selectedRows}) <ListFilter />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[250px]">
+              {bulkActions.map((action) => (
+                <DropdownMenuItem
+                  key={action.label}
+                  disabled={action.disabled}
+                  onClick={action.onClick}
+                >
+                  {action.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : bulkActionDescription ? (
           <Button
             variant="outline"
             size="sm"
@@ -140,8 +166,8 @@ export function VulnerabilitiesTable({
           >
             {bulkActionDescription.label}
           </Button>
-        )}
-        {bulkActionSendToJira && (
+        ) : null}
+        {!bulkActions && bulkActionSendToJira && (
           <Button
             variant="outline"
             size="sm"
