@@ -1,6 +1,6 @@
 // dependency-track.controller.ts
 import { LogAction } from '@/common/decorators/logAction.decorator';
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { DefectDojoService } from './defectdojo.service';
 
 @Controller('integrations/defectdojo')
@@ -35,5 +35,14 @@ export class DefectDojoController {
   @Get('finding/:findingId')
   getFinding(@Param('findingId') findingId: number) {
     return this.service.getFinding(findingId);
+  }
+
+  @LogAction('DEFECTDOJO_CHANGE_FINDING_SEVERITY')
+  @Patch('finding/:findingId/severity')
+  changeFindingSeverity(
+    @Param('findingId') findingId: number,
+    @Body('severity') severity: string,
+  ) {
+    return this.service.changeFindingSeverity(findingId, severity);
   }
 }

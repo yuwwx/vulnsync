@@ -202,7 +202,7 @@ export class DefectDojoClient {
 
   async updateFinding(
     id: number,
-    payload: { verified: boolean; tags: string[] },
+    payload: { verified: boolean; tags?: string[]; severity?: string },
   ) {
     const client = await this.getClient();
 

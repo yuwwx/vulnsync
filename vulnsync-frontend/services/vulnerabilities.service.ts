@@ -58,4 +58,13 @@ export const VulnerabilitiesService = {
 
     return data;
   },
+
+  async changeSeverity(findingId: number, severity: string) {
+    const { data } = await api.patch<Vulnerability>(
+      `/integrations/defectdojo/finding/${findingId}/severity`,
+      { severity },
+    );
+
+    return data;
+  },
 };

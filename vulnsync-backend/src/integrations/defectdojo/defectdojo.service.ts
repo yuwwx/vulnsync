@@ -98,4 +98,13 @@ export class DefectDojoService {
       return false;
     }
   }
+
+  async changeFindingSeverity(findingId: number, severity: string) {
+    const finding = await this.client.updateFinding(findingId, {
+      severity,
+      verified: true,
+    });
+
+    return finding;
+  }
 }

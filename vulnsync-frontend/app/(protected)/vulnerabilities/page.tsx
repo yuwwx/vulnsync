@@ -18,6 +18,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { vulnerabilityColumns } from "@/components/vulnerabilities/vulnerabilities-columns";
 import { VulnerabilitiesTable } from "@/components/vulnerabilities/vulnerabilities-table";
 import {
@@ -62,6 +69,9 @@ export default function VulnerabilitiesPage() {
 
   const [jiraKey, setJiraKey] = useState<string>("");
   const [linkLoading, setLinkLoading] = useState(false);
+  const [openSeverityChange, setOpenSeverityChange] = useState(false);
+  const [severity, setSeverity] = useState("");
+  const [severityLoading, setSeverityLoading] = useState(false);
 
   const handleGenerateDescription = async (vuln: Vulnerability) => {
     setIsBulk(false);
@@ -241,6 +251,36 @@ export default function VulnerabilitiesPage() {
     }
   };
 
+  const handleChangeSeverity = (vuln: Vulnerability) => {
+    setActiveVuln(vuln);
+    setSeverity(vuln.severity);
+    setOpenSeverityChange(true);
+  };
+
+  const handleSaveSeverity = async () => {
+    if (!activeVuln || !severity) return;
+
+    setSeverityLoading(true);
+    try {
+      const updated = await VulnerabilitiesService.changeSeverity(
+        activeVuln.id,
+        severity,
+      );
+
+      setVulns((prev) =>
+        prev.map((v) =>
+          v.id === activeVuln.id ? { ...v, severity: updated.severity } : v,
+        ),
+      );
+      toast.success("Критичность изменена, finding отмечен как Verified");
+      setOpenSeverityChange(false);
+    } catch {
+      toast.error("Не удалось изменить критичность");
+    } finally {
+      setSeverityLoading(false);
+    }
+  };
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(description);
     setCopied(true);
@@ -268,6 +308,7 @@ export default function VulnerabilitiesPage() {
         handleLinkWithJira,
         handleSyncWithJira,
         handleUnsyncWithJira,
+        handleChangeSeverity,
         handleGenerateDescription,
       ),
     [
@@ -275,6 +316,7 @@ export default function VulnerabilitiesPage() {
       handleLinkWithJira,
       handleSyncWithJira,
       handleUnsyncWithJira,
+      handleChangeSeverity,
       handleGenerateDescription,
     ],
   );
@@ -465,6 +507,54 @@ export default function VulnerabilitiesPage() {
               disabled={!activeVuln || linkLoading}
             >
               {linkLoading ? "Сохранение..." : "Сохранить"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={openSeverityChange}
+        onOpenChange={(open) => {
+          setOpenSeverityChange(open);
+          if (!open) {
+            setActiveVuln(null);
+            setSeverity("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Изменить критичность</DialogTitle>
+            <DialogDescription>
+              Новая критичность будет сохранена в DefectDojo, а finding отмечен как Verified.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3">
+            <Label htmlFor="severity">Критичность</Label>
+            <Select value={severity} onValueChange={setSeverity}>
+              <SelectTrigger id="severity">
+                <SelectValue placeholder="Выберите критичность" />
+              </SelectTrigger>
+              <SelectContent>
+                {['Critical', 'High', 'Medium', 'Low', 'Info'].map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Отмена</Button>
+            </DialogClose>
+            <Button
+              onClick={handleSaveSeverity}
+              disabled={!activeVuln || !severity || severityLoading}
+            >
+              {severityLoading ? "Сохранение..." : "Сохранить"}
             </Button>
           </DialogFooter>
         </DialogContent>
