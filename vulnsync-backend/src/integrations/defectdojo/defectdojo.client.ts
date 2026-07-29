@@ -10,7 +10,22 @@ import axios, { AxiosInstance } from 'axios';
 
 type DefectDojoFindingsResponse = {
   count: number;
-  results: any[];
+  results: unknown[];
+};
+
+type UpdateFindingPayload = {
+  verified?: boolean;
+  tags?: string[];
+  severity?: string;
+  active?: boolean;
+  close_comment?: string;
+};
+
+type DefectDojoApiError = {
+  response?: {
+    data?: unknown;
+  };
+  message?: string;
 };
 
 @Injectable()
@@ -21,10 +36,11 @@ export class DefectDojoClient {
 
   private logAxiosError(
     message: string,
-    error: any,
+    error: unknown,
   ): InternalServerErrorException {
+    const apiError = error as DefectDojoApiError;
     const responseMessage = JSON.stringify(
-      error.response?.data || error.message,
+      apiError.response?.data || apiError.message,
     );
 
     this.logger.error(message, JSON.stringify(responseMessage));
@@ -202,13 +218,7 @@ export class DefectDojoClient {
 
   async updateFinding(
     id: number,
-    payload: {
-      verified?: boolean;
-      tags?: string[];
-      severity?: string;
-      active?: boolean;
-      close_comment?: string;
-    },
+    payload: UpdateFindingPayload,
   ) {
     const client = await this.getClient();
 
@@ -230,7 +240,9 @@ export class DefectDojoClient {
     }
   }
 
-  async importScan(payload: any) {
+  async importScan(payload: {
+    getHeaders(): Record<string, string>;
+  }) {
     const client = await this.getClient();
 
     this.logger.log('Importing scan into DefectDojo');

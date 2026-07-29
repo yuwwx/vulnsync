@@ -26,11 +26,21 @@ interface IntegrationUI extends IntegrationSetting {
 }
 
 type IntegrationField = {
-  name: keyof IntegrationUI;
+  name: "baseUrl" | "apiToken" | "username" | "password" | "severityCustomField" | "cvssCustomField" | "vulnerabilityIdCustomField";
   label: string;
   type?: "text" | "password";
   placeholder?: string;
 };
+
+type IntegrationPayload = Omit<Partial<IntegrationSetting>, "baseUrl"> & {
+  type: IntegrationType;
+  baseUrl: string;
+};
+
+const EMPTY_INTEGRATIONS = {} as Record<
+  IntegrationType,
+  IntegrationUI
+>;
 
 const INTEGRATION_FIELDS: Record<IntegrationType, IntegrationField[]> = {
   DEFECTDOJO: [
@@ -66,9 +76,8 @@ const INTEGRATION_FIELDS: Record<IntegrationType, IntegrationField[]> = {
 };
 
 export default function SettingsPage() {
-  const [data, setData] = useState<Record<IntegrationType, IntegrationUI>>(
-    {} as any,
-  );
+  const [data, setData] =
+    useState<Record<IntegrationType, IntegrationUI>>(EMPTY_INTEGRATIONS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<IntegrationType | null>(null);
   const [activeIntegration, setActiveIntegration] =
@@ -92,7 +101,7 @@ export default function SettingsPage() {
             },
           ]),
         );
-        setData(withInput as any);
+        setData(withInput as Record<IntegrationType, IntegrationUI>);
       })
       .catch((err) => {
         setError(`Не удалось получить параметры: ${err}`);
@@ -116,19 +125,20 @@ export default function SettingsPage() {
     try {
       const setting = data[type];
 
-      const payload: any = {
+      const payload: IntegrationPayload = {
         id: setting.id,
         type,
+        baseUrl: setting.baseUrl,
       };
 
       for (const field of INTEGRATION_FIELDS[type]) {
-        const value = (setting as any)[field.name];
+        const value = setting[field.name];
 
         if (field.name === "apiToken") {
           if (value?.trim()) payload.apiToken = value;
         } else if (field.name === "username" || field.name === "password") {
           if (value?.trim()) payload[field.name] = value;
-        } else {
+        } else if (value !== undefined) {
           payload[field.name] = value;
         }
       }
@@ -233,7 +243,7 @@ export default function SettingsPage() {
                           type={field.type ?? "text"}
                           placeholder={field.label}
                           value={
-                            (data[activeIntegration] as any)?.[field.name] ?? ""
+                             data[activeIntegration]?.[field.name] ?? ""
                           }
                           onChange={(e) =>
                             update(

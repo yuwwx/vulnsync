@@ -11,6 +11,21 @@ import { DependencyTrackClient } from './dependency-track.client';
 import axios, { AxiosError } from 'axios';
 import https from 'https';
 
+type DependencyTrackFinding = {
+  vulnerability?: {
+    source?: string;
+  };
+  [key: string]: unknown;
+};
+
+type DependencyTrackReport = {
+  findings?: DependencyTrackFinding[];
+};
+
+type KevEntry = {
+  cveID: string;
+};
+
 @Injectable()
 export class DependencyTrackService {
   private readonly kevUrl =
@@ -62,30 +77,17 @@ export class DependencyTrackService {
         latestProject?.uuid,
       );
 
-      const reportJson = JSON.parse(
-        Buffer.isBuffer(report) ? report.toString() : report,
-      );
+      const reportJson = this.parseReport(report);
 
       this.logger.log(
         `Findings exported from DependencyTrack: count=${reportJson.findings?.length ?? 0}`,
       );
 
-      const order = ['NVD', 'GITHUB'];
+      const findings = this.sortFindings(reportJson.findings ?? []);
 
-      reportJson.findings.sort((a: any, b: any) => {
-        const sa = a.vulnerability?.source;
-        const sb = b.vulnerability?.source;
-
-        const ia = order.indexOf(sa);
-        const ib = order.indexOf(sb);
-
-        const aRank = ia === -1 ? Number.MAX_SAFE_INTEGER : ia;
-        const bRank = ib === -1 ? Number.MAX_SAFE_INTEGER : ib;
-
-        return aRank - bRank;
-      });
-
-      const filteredBuffer = Buffer.from(JSON.stringify(reportJson));
+      const filteredBuffer = Buffer.from(
+        JSON.stringify({ ...reportJson, findings }),
+      );
 
       const form = new FormData();
       form.append(
@@ -107,16 +109,45 @@ export class DependencyTrackService {
       );
 
       return { status: 'IMPORTED' };
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error(
         `exportLatestProjectFindings failed: defectDojoProductId=${defectDojoProductId}`,
-        error.stack,
+        error instanceof Error ? error.stack : undefined,
       );
 
       throw new InternalServerErrorException(
         'Failed to export latest project findings',
       );
     }
+  }
+
+  private parseReport(report: unknown): DependencyTrackReport {
+    const rawReport = Buffer.isBuffer(report) ? report.toString() : report;
+
+    if (typeof rawReport === 'string') {
+      return JSON.parse(rawReport) as DependencyTrackReport;
+    }
+
+    return rawReport as DependencyTrackReport;
+  }
+
+  private sortFindings(
+    findings: DependencyTrackFinding[],
+  ): DependencyTrackFinding[] {
+    const sourceOrder = ['NVD', 'GITHUB'];
+
+    return [...findings].sort((a, b) => {
+      const aRank = this.getSourceRank(a.vulnerability?.source, sourceOrder);
+      const bRank = this.getSourceRank(b.vulnerability?.source, sourceOrder);
+
+      return aRank - bRank;
+    });
+  }
+
+  private getSourceRank(source: string | undefined, sourceOrder: string[]) {
+    const index = source ? sourceOrder.indexOf(source) : -1;
+
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
   }
 
   async syncKevInBackground() {
@@ -180,8 +211,11 @@ export class DependencyTrackService {
         if (i % 100 === 0) {
           this.logger.log(`KEV add progress: ${i}/${toAdd.length}`);
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to add CVE ${cve}`, err?.status);
+      } catch (err: unknown) {
+        this.logger.warn(
+          `Failed to add CVE ${cve}`,
+          err instanceof Error ? err.message : undefined,
+        );
       }
       await this.sleep(100);
     }
@@ -215,7 +249,7 @@ export class DependencyTrackService {
     return new Promise((r) => setTimeout(r, ms));
   }
 
-  private async fetchKev(): Promise<{ cveID: string }[]> {
+  private async fetchKev(): Promise<KevEntry[]> {
     try {
       const httpsAgent = new https.Agent({
         rejectUnauthorized: false,
@@ -230,13 +264,13 @@ export class DependencyTrackService {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
 
-        console.error('KEV fetch failed:', {
+        this.logger.error('KEV fetch failed', {
           message: axiosError.message,
           status: axiosError.response?.status,
           data: axiosError.response?.data,
         });
       } else {
-        console.error('Unexpected error while fetching KEV:', error);
+        this.logger.error('Unexpected error while fetching KEV', error);
       }
 
       return [];

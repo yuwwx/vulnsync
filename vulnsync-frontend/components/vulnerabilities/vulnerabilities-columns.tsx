@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/useAuth";
 import { Vulnerability } from "@/services/vulnerabilities.service";
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef, Row } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { Checkbox } from "../ui/checkbox";
 import {
@@ -16,9 +16,13 @@ import {
 
 const severityOrder = ["Critical", "High", "Medium", "Low", "Info"];
 
-const severitySortFn = (rowA: any, rowB: any, columnId: string) => {
-  const a = rowA.getValue(columnId) ?? "Info";
-  const b = rowB.getValue(columnId) ?? "Info";
+const severitySortFn = (
+  rowA: Row<Vulnerability>,
+  rowB: Row<Vulnerability>,
+  columnId: string,
+) => {
+  const a = String(rowA.getValue(columnId) ?? "Info");
+  const b = String(rowB.getValue(columnId) ?? "Info");
 
   const indexA = severityOrder.indexOf(a);
   const indexB = severityOrder.indexOf(b);

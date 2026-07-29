@@ -16,10 +16,14 @@ export class DependencyTrackClient {
 
   private logAxiosError(
     message: string,
-    error: any,
+    error: unknown,
   ): InternalServerErrorException {
+    const apiError = error as {
+      response?: { data?: unknown };
+      message?: string;
+    };
     const responseMessage = JSON.stringify(
-      error.response?.data || error.message,
+      apiError.response?.data || apiError.message,
     );
 
     this.logger.error(message, JSON.stringify(responseMessage));

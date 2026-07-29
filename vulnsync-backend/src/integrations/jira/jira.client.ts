@@ -9,6 +9,26 @@ import {
 import axios, { AxiosInstance } from 'axios';
 import https from 'https';
 
+export type JiraIssuePayload = {
+  fields: Record<string, unknown>;
+};
+
+export type JiraIssue = {
+  key: string;
+  fields?: {
+    status?: {
+      name?: string;
+    };
+  };
+};
+
+type JiraApiError = {
+  response?: {
+    data?: unknown;
+  };
+  message?: string;
+};
+
 @Injectable()
 export class JiraClient {
   private readonly logger = new Logger(JiraClient.name);
@@ -17,10 +37,11 @@ export class JiraClient {
 
   private logAxiosError(
     message: string,
-    error: any,
+    error: unknown,
   ): InternalServerErrorException {
+    const apiError = error as JiraApiError;
     const responseMessage = JSON.stringify(
-      error.response?.data || error.message,
+      apiError.response?.data || apiError.message,
     );
 
     this.logger.error(message, JSON.stringify(responseMessage));
@@ -54,7 +75,7 @@ export class JiraClient {
     });
   }
 
-  async createIssue(payload: any) {
+  async createIssue(payload: JiraIssuePayload): Promise<JiraIssue> {
     this.logger.log('Creating Jira issue');
 
     try {
@@ -69,7 +90,7 @@ export class JiraClient {
     }
   }
 
-  async getIssue(key: string) {
+  async getIssue(key: string): Promise<JiraIssue> {
     this.logger.log(`Fetching Jira issue: key=${key}`);
 
     try {

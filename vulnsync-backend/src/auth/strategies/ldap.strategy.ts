@@ -6,6 +6,24 @@ import { PassportStrategy } from '@nestjs/passport';
 import LdapStrategy from 'passport-ldapauth';
 import { AuthService } from '../auth.service';
 
+type LdapRequest = {
+  headers: Record<string, string | string[] | undefined> & {
+    'x-real-ip'?: string;
+    'user-agent'?: string;
+  };
+  ip?: string;
+};
+
+type LdapUser = {
+  memberOf?: string | string[];
+  id?: string;
+  sAMAccountName: string;
+  dn: string;
+  mail: string;
+  displayName: string;
+  title: string;
+};
+
 @Injectable()
 export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
   private readonly userGroupDn?: string;
@@ -45,13 +63,15 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
     this.adminGroupDn = config.get<string>('LDAP_ADMIN_GROUP_DN');
   }
 
-  async validate(req: any, user: any) {
-    console.log(user);
-
+  async validate(req: LdapRequest, user: LdapUser | undefined) {
+    const requestIp =
+      typeof req.headers['x-real-ip'] === 'string'
+        ? req.headers['x-real-ip']
+        : req.ip;
     if (!user) {
       await this.logsService.log(
         'LOGIN_FAILED',
-        req.headers['x-real-ip'] || req.ip,
+        requestIp,
         undefined,
         {
           username: undefined,
@@ -68,14 +88,14 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
 
     const groups = Array.isArray(memberOf) ? memberOf : [memberOf];
 
-    if (groups.includes(this.adminGroupDn)) {
+    if (this.adminGroupDn && groups.includes(this.adminGroupDn)) {
       assignedRole = 'ADMIN';
-    } else if (groups.includes(this.userGroupDn)) {
+    } else if (this.userGroupDn && groups.includes(this.userGroupDn)) {
       assignedRole = 'USER';
     } else {
       await this.logsService.log(
         'LOGIN_FAILED',
-        req.headers['x-real-ip'] || req.ip,
+        requestIp,
         user.id,
         {
           result: 'FAIL',
@@ -88,7 +108,7 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
 
     await this.logsService.log(
       'LOGIN',
-      req.headers['x-real-ip'] || req.ip,
+      requestIp,
       user.id,
       {
         result: 'SUCCESS',

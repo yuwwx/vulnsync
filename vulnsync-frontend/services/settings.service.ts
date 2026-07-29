@@ -16,7 +16,9 @@ export interface IntegrationSetting {
 
 export const SettingsService = {
   async getAll(): Promise<IntegrationSetting[]> {
-    const { data } = await api.get("/settings/integrations");
+    const { data } = await api.get<IntegrationSetting[]>(
+      "/settings/integrations",
+    );
     return data;
   },
 
@@ -32,7 +34,7 @@ export const SettingsService = {
         vulnerabilityIdCustomField: setting?.vulnerabilityIdCustomField,
       };
 
-      const { data } = await api.patch(
+      const { data } = await api.patch<IntegrationSetting>(
         `/settings/integrations/${setting.id}`,
         payload,
       );
@@ -49,7 +51,10 @@ export const SettingsService = {
         type: setting?.type,
       };
 
-      const { data } = await api.post("/settings/integrations", payload);
+      const { data } = await api.post<IntegrationSetting>(
+        "/settings/integrations",
+        payload,
+      );
       return data;
     }
   },

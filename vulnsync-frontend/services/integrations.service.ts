@@ -16,6 +16,8 @@ export interface DependencyTrackProject {
   name: string;
 }
 
+export type DefectDojoFinding = Record<string, unknown>;
+
 // Сервис
 export const IntegrationsService = {
   // DefectDojo
@@ -35,8 +37,10 @@ export const IntegrationsService = {
     return data;
   },
 
-  async getDefectDojoFinding(id: number): Promise<DefectDojoProductType[]> {
-    const { data } = await api.get(`/integrations/defectdojo/finding/${id}`);
+  async getDefectDojoFinding(id: number): Promise<DefectDojoFinding> {
+    const { data } = await api.get<DefectDojoFinding>(
+      `/integrations/defectdojo/finding/${id}`,
+    );
     return data;
   },
 

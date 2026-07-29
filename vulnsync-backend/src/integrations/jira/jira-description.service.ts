@@ -10,6 +10,35 @@ export type JiraDescriptionData = {
   links?: string[];
 };
 
+type VulnerabilityId = {
+  vulnerability_id?: string | null;
+};
+
+type JiraFinding = {
+  title?: string;
+  severity?: string;
+  description?: string;
+  cvssv3?: string;
+  cvssv4?: string;
+  cvssv3_score?: number;
+  cvssv4_score?: number;
+  file_path?: string;
+  component_name?: string;
+  component_version?: string;
+  vulnerability_ids?: VulnerabilityId[];
+  related_fields?: {
+    test?: {
+      test_type?: { name?: string };
+      engagement?: {
+        name?: string;
+        branch_tag?: string;
+        commit_hash?: string;
+        product?: { name?: string };
+      };
+    };
+  };
+};
+
 // jira-description.service.ts
 @Injectable()
 export class JiraDescriptionService {
@@ -17,7 +46,7 @@ export class JiraDescriptionService {
     return Array.from(new Set(arr));
   }
 
-  formatVulnerabilityLinks(vulnIds: any[] = []) {
+  formatVulnerabilityLinks(vulnIds: VulnerabilityId[] = []) {
     return vulnIds
       .map((v) => {
         const id = v.vulnerability_id;
@@ -32,12 +61,10 @@ export class JiraDescriptionService {
       .filter(Boolean);
   }
 
-  renderSingleFindingJiraDescription(finding: any): string {
+  renderSingleFindingJiraDescription(finding: JiraFinding): string {
     const vulnIds = (finding.vulnerability_ids ?? []).map(
-      (v: any) => v.vulnerability_id,
+      (v) => v.vulnerability_id,
     );
-
-    console.log(vulnIds);
 
     const severity = [
       finding.severity,
@@ -70,13 +97,13 @@ export class JiraDescriptionService {
     return parts.join('\n\n');
   }
 
-  buildBulkFindingsSummary(findings: any[]): string {
+  buildBulkFindingsSummary(findings: JiraFinding[]): string {
     if (!findings.length) {
       return '';
     }
 
     const groupedNames = Object.values(
-      findings.reduce<Record<string, any[]>>((acc, finding) => {
+      findings.reduce<Record<string, JiraFinding[]>>((acc, finding) => {
         const componentName = finding.component_name ?? '—';
         const componentVersion = finding.component_version ?? '';
         const key = componentVersion
@@ -133,7 +160,7 @@ export class JiraDescriptionService {
       : joinedName;
   }
 
-  renderBulkFindingsJiraDescription(findings: any[]): string {
+  renderBulkFindingsJiraDescription(findings: JiraFinding[]): string {
     if (!findings.length) {
       return '';
     }
@@ -147,9 +174,10 @@ export class JiraDescriptionService {
       Low: 1,
     };
 
-    const groupSeverity = findings.sort(
+    const groupSeverity = [...findings].sort(
       (a, b) =>
-        (severityOrder[b.severity] ?? 0) - (severityOrder[a.severity] ?? 0),
+        (severityOrder[b.severity ?? ""] ?? 0) -
+        (severityOrder[a.severity ?? ""] ?? 0),
     )[0].severity;
 
     const vulnerabilities = findings

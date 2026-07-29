@@ -35,10 +35,13 @@ import {
   VulnerabilitiesService,
   Vulnerability,
 } from "@/services/vulnerabilities.service";
+import { DefectDojoFinding } from "@/services/integrations.service";
 import { VulnerabilitySyncService } from "@/services/vulnerability-sync.service";
 import { Check, Copy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+
+const SEVERITY_OPTIONS = ["Critical", "High", "Medium", "Low", "Info"];
 
 export default function VulnerabilitiesPage() {
   const [productTypes, setProductTypes] = useState<DefectDojoProductType[]>([]);
@@ -55,7 +58,7 @@ export default function VulnerabilitiesPage() {
   const [activeVuln, setActiveVuln] = useState<Vulnerability | null>(null);
   const [openDescription, setOpenDescription] = useState(false);
 
-  const [rawFinding, setRawFinding] = useState<any | null>(null);
+  const [rawFinding, setRawFinding] = useState<DefectDojoFinding | null>(null);
   const [rawLoading, setRawLoading] = useState(false);
 
   const [openJiraLink, setOpenJiraLink] = useState(false);
@@ -193,18 +196,24 @@ export default function VulnerabilitiesPage() {
     setLinkLoading(true);
 
     try {
-      const response = await VulnerabilitySyncService.linkWithJira({
-        findingId: activeVuln.id,
+      const command = await VulnerabilitySyncService.executeCommand({
+        action: "link",
+        findingIds: [activeVuln.id],
         jiraIssueKey: jiraKey,
       });
+      const response = command.results[0];
+
+      if (response?.status !== "success") {
+        throw new Error(response?.error || "Не удалось связать с Jira");
+      }
 
       setVulns((prev) =>
         prev.map((v) =>
           v.id === activeVuln.id
             ? {
                 ...v,
-                status: response.status,
-                jiraIssueKey: response.jiraIssueKey,
+                status: response.syncedStatus ?? v.status,
+                jiraIssueKey: response.jiraIssueKey ?? v.jiraIssueKey,
               }
             : v,
         ),
@@ -227,11 +236,26 @@ export default function VulnerabilitiesPage() {
 
   const handleSyncWithJira = async (vuln: Vulnerability) => {
     try {
-      const response = await VulnerabilitySyncService.syncJiraStatus(vuln.id);
+      const command = await VulnerabilitySyncService.executeCommand({
+        action: "sync",
+        findingIds: [vuln.id],
+      });
+      const response = command.results[0];
+
+      if (response?.status !== "success") {
+        toast.error(response?.error || "Не удалось синхронизировать статус");
+        return;
+      }
 
       setVulns((prev) =>
         prev.map((v) =>
-          v.id === vuln.id ? { ...v, status: response.status } : v,
+          v.id === vuln.id
+            ? {
+                ...v,
+                status: response.syncedStatus ?? v.status,
+                jiraIssueKey: response.jiraIssueKey ?? v.jiraIssueKey,
+              }
+            : v,
         ),
       );
 
@@ -243,7 +267,14 @@ export default function VulnerabilitiesPage() {
 
   const handleUnsyncWithJira = async (vuln: Vulnerability) => {
     try {
-      await VulnerabilitySyncService.unsyncJiraStatus(vuln.id);
+      const response = await VulnerabilitySyncService.executeCommand({
+        action: "unsync",
+        findingIds: [vuln.id],
+      });
+
+      if (response.results[0]?.status !== "success") {
+        throw new Error(response.results[0]?.error || "Не удалось отвязать от Jira");
+      }
 
       setVulns((prev) =>
         prev.map((v) =>
@@ -276,14 +307,22 @@ export default function VulnerabilitiesPage() {
 
     setSeverityLoading(true);
     try {
-      const updated = await VulnerabilitiesService.changeSeverity(
-        activeVuln.id,
+      const response = await VulnerabilitySyncService.executeCommand({
+        action: "severity",
+        findingIds: [activeVuln.id],
         severity,
-      );
+      });
+      const result = response.results[0];
+
+      if (result?.status !== "success") {
+        throw new Error(result?.error || "Не удалось изменить критичность");
+      }
 
       setVulns((prev) =>
         prev.map((v) =>
-          v.id === activeVuln.id ? { ...v, severity: updated.severity } : v,
+          v.id === activeVuln.id
+            ? { ...v, severity: result.severity ?? v.severity }
+            : v,
         ),
       );
       toast.success("Критичность изменена, finding отмечен как Verified");
@@ -305,19 +344,15 @@ export default function VulnerabilitiesPage() {
     if (selectedVulns.length === 0 || !jiraKey.trim()) return;
 
     setLinkLoading(true);
-    const results = await Promise.allSettled(
-      selectedVulns.map((vuln) =>
-        VulnerabilitySyncService.linkWithJira({
-          findingId: vuln.id,
-          jiraIssueKey: jiraKey.trim(),
-        }),
-      ),
-    );
-    const succeeded = results.filter((result) => result.status === "fulfilled");
+    const response = await VulnerabilitySyncService.executeCommand({
+      action: "link",
+      findingIds: selectedVulns.map((vuln) => vuln.id),
+      jiraIssueKey: jiraKey.trim(),
+    });
     const successfulIds = new Set(
-      results.flatMap((result, index) =>
-        result.status === "fulfilled" ? [selectedVulns[index].id] : [],
-      ),
+      response.results
+        .filter((result) => result.status === "success")
+        .map((result) => result.findingId),
     );
 
     setVulns((prev) =>
@@ -327,44 +362,46 @@ export default function VulnerabilitiesPage() {
           : v,
       ),
     );
-    toast.success(`Связано с Jira: ${succeeded.length} из ${selectedVulns.length}`);
+    toast.success(`Связано с Jira: ${response.succeeded} из ${response.total}`);
     setOpenJiraLink(false);
     setJiraKey("");
     setLinkLoading(false);
   };
 
   const handleBulkSyncWithJira = async () => {
-    const results = await Promise.allSettled(
-      selectedVulns.map((vuln) =>
-        VulnerabilitySyncService.syncJiraStatus(vuln.id),
-      ),
-    );
-    const successfulIds = new Set(
-      results.flatMap((result, index) =>
-        result.status === "fulfilled" ? [selectedVulns[index].id] : [],
-      ),
+    const response = await VulnerabilitySyncService.executeCommand({
+      action: "sync",
+      findingIds: selectedVulns.map((vuln) => vuln.id),
+    });
+    const resultsById = new Map(
+      response.results.map((result) => [result.findingId, result]),
     );
     setVulns((prev) =>
       prev.map((v) => {
-        const result = results[selectedVulns.findIndex((item) => item.id === v.id)];
-        return successfulIds.has(v.id) && result?.status === "fulfilled"
-          ? { ...v, status: result.value.status }
+        const result = resultsById.get(v.id);
+        return result?.status === "success"
+          ? {
+              ...v,
+              status: result.syncedStatus ?? v.status,
+              jiraIssueKey: result.jiraIssueKey ?? v.jiraIssueKey,
+            }
           : v;
       }),
     );
-    toast.success(`Статус синхронизирован: ${successfulIds.size} из ${selectedVulns.length}`);
+    toast.success(
+      `Статус синхронизирован: ${response.succeeded} из ${response.total}`,
+    );
   };
 
   const handleBulkUnsyncWithJira = async () => {
-    const results = await Promise.allSettled(
-      selectedVulns.map((vuln) =>
-        VulnerabilitySyncService.unsyncJiraStatus(vuln.id),
-      ),
-    );
+    const response = await VulnerabilitySyncService.executeCommand({
+      action: "unsync",
+      findingIds: selectedVulns.map((vuln) => vuln.id),
+    });
     const successfulIds = new Set(
-      results.flatMap((result, index) =>
-        result.status === "fulfilled" ? [selectedVulns[index].id] : [],
-      ),
+      response.results
+        .filter((result) => result.status === "success")
+        .map((result) => result.findingId),
     );
     setVulns((prev) =>
       prev.map((v) =>
@@ -373,7 +410,7 @@ export default function VulnerabilitiesPage() {
           : v,
       ),
     );
-    toast.success(`Отвязано от Jira: ${successfulIds.size} из ${selectedVulns.length}`);
+    toast.success(`Отвязано от Jira: ${response.succeeded} из ${response.total}`);
   };
 
   const handleBulkChangeSeverity = () => {
@@ -387,22 +424,22 @@ export default function VulnerabilitiesPage() {
     if (selectedVulns.length === 0 || !severity) return;
 
     setSeverityLoading(true);
-    const results = await Promise.allSettled(
-      selectedVulns.map((vuln) =>
-        VulnerabilitiesService.changeSeverity(vuln.id, severity),
-      ),
-    );
+    const response = await VulnerabilitySyncService.executeCommand({
+      action: "severity",
+      findingIds: selectedVulns.map((vuln) => vuln.id),
+      severity,
+    });
     const successfulIds = new Set(
-      results.flatMap((result, index) =>
-        result.status === "fulfilled" ? [selectedVulns[index].id] : [],
-      ),
+      response.results
+        .filter((result) => result.status === "success")
+        .map((result) => result.findingId),
     );
     setVulns((prev) =>
       prev.map((v) =>
         successfulIds.has(v.id) ? { ...v, severity } : v,
       ),
     );
-    toast.success(`Критичность изменена: ${successfulIds.size} из ${selectedVulns.length}`);
+    toast.success(`Критичность изменена: ${response.succeeded} из ${response.total}`);
     setOpenSeverityChange(false);
     setSeverity("");
     setSeverityLoading(false);
@@ -658,7 +695,7 @@ export default function VulnerabilitiesPage() {
             </DialogClose>
             <Button
               onClick={handleSaveJiraLink}
-              disabled={!activeVuln || linkLoading}
+              disabled={(!activeVuln && !isBulkJiraLink) || linkLoading}
             >
               {linkLoading ? "Сохранение..." : "Сохранить"}
             </Button>
@@ -694,7 +731,7 @@ export default function VulnerabilitiesPage() {
                 <SelectValue placeholder="Выберите критичность" />
               </SelectTrigger>
               <SelectContent>
-                {['Critical', 'High', 'Medium', 'Low', 'Info'].map((option) => (
+                {SEVERITY_OPTIONS.map((option) => (
                   <SelectItem key={option} value={option}>
                     {option}
                   </SelectItem>
@@ -709,7 +746,11 @@ export default function VulnerabilitiesPage() {
             </DialogClose>
             <Button
               onClick={handleSaveSeverity}
-              disabled={!activeVuln || !severity || severityLoading}
+              disabled={
+                (!activeVuln && !isBulkSeverityChange) ||
+                !severity ||
+                severityLoading
+              }
             >
               {severityLoading ? "Сохранение..." : "Сохранить"}
             </Button>

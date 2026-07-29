@@ -10,12 +10,13 @@ import {
 } from "@/services/integrations.service";
 import { useEffect, useState } from "react";
 
+type IntegrationTab = "defectDojoJira" | "dependencyTrack";
+
 export default function IntegrationsPage() {
   const [products, setProducts] = useState<DefectDojoProductType[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    "defectDojoJira" | "dependencyTrack"
-  >("defectDojoJira");
+  const [activeTab, setActiveTab] =
+    useState<IntegrationTab>("defectDojoJira");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +63,11 @@ export default function IntegrationsPage() {
         ) : (
           <Tabs
             value={activeTab}
-            onValueChange={(val) => setActiveTab(val as any)}
+            onValueChange={(value) => {
+              if (value === "defectDojoJira" || value === "dependencyTrack") {
+                setActiveTab(value);
+              }
+            }}
           >
             <TabsList>
               <TabsTrigger value="defectDojoJira">

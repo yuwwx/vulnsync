@@ -5,7 +5,10 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("access_token")
+      : null;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -14,11 +17,15 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  (error: unknown) => {
     // Если токен протух — выход и редирект
-    if (error.response?.status === 401) {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("username");
+    if (
+      typeof window !== "undefined" &&
+      axios.isAxiosError(error) &&
+      error.response?.status === 401
+    ) {
+      window.localStorage.removeItem("access_token");
+      window.localStorage.removeItem("username");
       window.location.href = "/login";
     }
 

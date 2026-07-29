@@ -28,8 +28,8 @@ interface Props {
 
 const SYSTEM_FIELDS = ["id", "ddProductId", "createdAt", "updatedAt"] as const;
 
-function stripSystemFields<T extends Record<string, any>>(obj: T): T {
-  const copy = { ...obj };
+function stripSystemFields<T extends object>(obj: T): T {
+  const copy = { ...obj } as T & Record<string, unknown>;
   SYSTEM_FIELDS.forEach((f) => delete copy[f]);
   return copy;
 }
@@ -115,8 +115,12 @@ export default function DependencyTrackTab({ productType }: Props) {
 
       setMapping(saved);
       toast.success("Маппинг Dependency-Track успешно сохранён");
-    } catch (err: any) {
-      setError(err.message || "Не удалось сохранить маппинг Dependency-Track");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Не удалось сохранить маппинг Dependency-Track",
+      );
       toast.error("Не удалось сохранить маппинг Dependency-Track");
     } finally {
       setSaving(false);
@@ -133,8 +137,12 @@ export default function DependencyTrackTab({ productType }: Props) {
         Number(selectedDdProductId),
       );
       toast.success("Экспорт в DefectDojo успешен");
-    } catch (err: any) {
-      setError(err.message || "Не удалось экспортировать в DefectDojo");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Не удалось экспортировать в DefectDojo",
+      );
       toast.error("Не удалось экспортировать в DefectDojo");
     } finally {
       setExporting(false);

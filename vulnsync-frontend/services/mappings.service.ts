@@ -1,5 +1,6 @@
 // services/mappings.service.ts
 import { api } from "./api";
+import axios from "axios";
 
 export interface JiraMapping {
   id: string;
@@ -23,8 +24,8 @@ export const MappingsService = {
       });
 
       return data;
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
         return null;
       }
 
@@ -57,15 +58,20 @@ export const MappingsService = {
     return data;
   },
 
-  async getDependencyTrackMapping(ddProductId: number) {
+  async getDependencyTrackMapping(
+    ddProductId: number,
+  ): Promise<DependencyTrackMapping | null> {
     try {
-      const { data } = await api.get(`/mappings/dependency-track`, {
+      const { data } = await api.get<DependencyTrackMapping>(
+        `/mappings/dependency-track`,
+        {
         params: { ddProductId },
-      });
+        },
+      );
 
       return data;
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
         return null;
       }
 
@@ -73,19 +79,24 @@ export const MappingsService = {
     }
   },
 
-  async createDependencyTrackMapping(mapping: DependencyTrackMapping) {
-    const { data } = await api.post("/mappings/dependency-track", mapping);
-    return data as DependencyTrackMapping;
+  async createDependencyTrackMapping(
+    mapping: DependencyTrackMapping,
+  ): Promise<DependencyTrackMapping> {
+    const { data } = await api.post<DependencyTrackMapping>(
+      "/mappings/dependency-track",
+      mapping,
+    );
+    return data;
   },
 
   async updateDependencyTrackMapping(
     id: string,
     mapping: DependencyTrackMapping,
-  ) {
-    const { data } = await api.patch(
+  ): Promise<DependencyTrackMapping> {
+    const { data } = await api.patch<DependencyTrackMapping>(
       `/mappings/dependency-track/${id}`,
       mapping,
     );
-    return data as DependencyTrackMapping;
+    return data;
   },
 };

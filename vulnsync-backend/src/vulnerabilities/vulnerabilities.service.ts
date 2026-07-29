@@ -3,6 +3,8 @@ import { DefectDojoService } from '@/integrations/defectdojo/defectdojo.service'
 import { JiraDescriptionService } from '@/integrations/jira/jira-description.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+import { VulnerabilityListResponseDto } from './dto/vulnerability-list.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class VulnerabilitiesService {
@@ -21,7 +23,7 @@ export class VulnerabilitiesService {
     page = 1,
     limit = 10000,
     title?: string,
-  ) {
+  ): Promise<VulnerabilityListResponseDto> {
     const offset = (page - 1) * limit;
 
     const findingsResponse = await this.defectDojo.getFindingsByProduct(
@@ -44,7 +46,7 @@ export class VulnerabilitiesService {
 
     const syncMap = new Map(synced.map((s) => [s.externalId, s]));
 
-    return {
+    return plainToInstance(VulnerabilityListResponseDto, {
       data: findings.map((finding) => ({
         id: finding.id,
         title: finding.title,
@@ -63,7 +65,7 @@ export class VulnerabilitiesService {
         limit,
         pages: Math.ceil(findingsResponse.count / limit),
       },
-    };
+    });
   }
 
   async getJiraDescriptionPreview(findingIds: number[]) {

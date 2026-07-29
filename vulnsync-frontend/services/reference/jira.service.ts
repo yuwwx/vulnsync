@@ -16,8 +16,10 @@ export type JiraCustomField = {
 };
 
 export class JiraReferenceService {
-  static async getProjects() {
-    const { data } = await api.get("/integrations/jira/projects");
+  static async getProjects(): Promise<JiraProject[]> {
+    const { data } = await api.get<JiraProject[]>(
+      "/integrations/jira/projects",
+    );
     return data;
   }
 

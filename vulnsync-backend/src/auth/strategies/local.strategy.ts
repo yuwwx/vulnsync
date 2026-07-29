@@ -5,6 +5,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-local';
 import { AuthService } from '../auth.service';
 
+type RequestWithHeaders = {
+  headers: Record<string, string | string[] | undefined> & {
+    'x-real-ip'?: string;
+    'user-agent'?: string;
+  };
+  ip?: string;
+};
+
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -14,13 +22,18 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     super({ passReqToCallback: true });
   }
 
-  async validate(req: any, username: string, password: string) {
+  private getRequestIp(req: RequestWithHeaders): string | undefined {
+    const realIp = req.headers['x-real-ip'];
+    return typeof realIp === 'string' ? realIp : req.ip;
+  }
+
+  async validate(req: RequestWithHeaders, username: string, password: string) {
     const user = await this.authService.validateLocalUser(username, password);
 
     if (!user) {
       await this.logsService.log(
         'LOGIN_FAILED',
-        req.headers['x-real-ip'] || req.ip,
+        this.getRequestIp(req),
         undefined,
         {
           result: 'FAIL',
@@ -34,7 +47,7 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
 
     await this.logsService.log(
       'LOGIN',
-      req.headers['x-real-ip'] || req.ip,
+      this.getRequestIp(req),
       user.id,
       {
         result: 'SUCCESS',

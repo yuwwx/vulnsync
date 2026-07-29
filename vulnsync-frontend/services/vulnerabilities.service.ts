@@ -11,8 +11,10 @@ export interface Vulnerability {
   title: string;
   severity: string;
   status: string;
-  cvssv3_score: number;
-  creation_date: Date;
+  cvssv3_score?: number;
+  cvssv4_score?: number;
+  product?: string;
+  creation_date: string;
   jiraIssueKey?: string;
 }
 
@@ -24,6 +26,10 @@ export interface VulnerabilityResponse {
     limit: number;
     pages: number;
   };
+}
+
+export interface JiraDescriptionResponse {
+  description: string;
 }
 
 export const VulnerabilitiesService = {
@@ -51,10 +57,15 @@ export const VulnerabilitiesService = {
     return api.post(`/vulnerabilities/${vulnId}/jira`);
   },
 
-  async previewJiraDescription(findingIds: number[]) {
-    const { data } = await api.post("/vulnerabilities/description", {
+  async previewJiraDescription(
+    findingIds: number[],
+  ): Promise<JiraDescriptionResponse> {
+    const { data } = await api.post<JiraDescriptionResponse>(
+      "/vulnerabilities/description",
+      {
       findingIds,
-    });
+      },
+    );
 
     return data;
   },

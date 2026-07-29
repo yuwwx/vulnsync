@@ -24,8 +24,11 @@ type Props<T> = {
   columns: ReferenceColumn[];
 };
 
-function getNestedValue(obj: any, path: string) {
-  return path.split(".").reduce((acc, key) => acc?.[key], obj);
+function getNestedValue(obj: unknown, path: string): unknown {
+  return path.split(".").reduce<unknown>((value, key) => {
+    if (typeof value !== "object" || value === null) return undefined;
+    return (value as Record<string, unknown>)[key];
+  }, obj);
 }
 
 export function ReferenceLayout<T>({
@@ -83,7 +86,7 @@ export function ReferenceLayout<T>({
                 </td>
               </tr>
             ) : (
-              data.map((row: any, i) => (
+              data.map((row, i) => (
                 <tr key={i} className="border-t">
                   {columns.map((col) => (
                     <td
@@ -92,7 +95,7 @@ export function ReferenceLayout<T>({
                         col.mono ? "font-mono text-xs" : ""
                       }`}
                     >
-                      {getNestedValue(row, col.key) ?? "—"}
+                      {String(getNestedValue(row, col.key) ?? "—")}
                     </td>
                   ))}
                 </tr>

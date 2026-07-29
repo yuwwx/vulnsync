@@ -35,32 +35,17 @@ import {
 
 import { Vulnerability } from "@/services/vulnerabilities.service";
 
-export type Payment = {
-  id: string;
-  amount: number;
-  status: "pending" | "processing" | "success" | "failed";
-  email: string;
+export type BulkAction = {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
 };
 
 interface Props {
   data: Vulnerability[];
   columns: ColumnDef<Vulnerability>[];
   onSelectionChange?: (rows: Vulnerability[]) => void;
-  bulkActions?: Array<{
-    label: string;
-    onClick: () => void;
-    disabled?: boolean;
-  }>;
-  bulkActionDescription?: {
-    label: string;
-    onClick: () => void;
-    disabled?: boolean;
-  };
-  bulkActionSendToJira?: {
-    label: string;
-    onClick: () => void;
-    disabled?: boolean;
-  };
+  bulkActions?: BulkAction[];
 }
 
 type VulnerabilityMeta = {
@@ -76,8 +61,6 @@ export function VulnerabilitiesTable({
   columns,
   onSelectionChange,
   bulkActions,
-  bulkActionDescription,
-  bulkActionSendToJira,
 }: Props) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -124,7 +107,7 @@ export function VulnerabilitiesTable({
     const selected = table.getSelectedRowModel().rows.map((r) => r.original);
 
     onSelectionChange(selected);
-  }, [rowSelection]);
+    }, [onSelectionChange, rowSelection, table]);
 
   return (
     <div className="w-full">
@@ -137,7 +120,7 @@ export function VulnerabilitiesTable({
           }
           className="max-w-sm"
         />
-        {bulkActions ? (
+        {bulkActions && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="ml-2">
@@ -156,27 +139,6 @@ export function VulnerabilitiesTable({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : bulkActionDescription ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-2"
-            disabled={bulkActionDescription.disabled}
-            onClick={bulkActionDescription.onClick}
-          >
-            {bulkActionDescription.label}
-          </Button>
-        ) : null}
-        {!bulkActions && bulkActionSendToJira && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-2"
-            disabled={bulkActionSendToJira.disabled}
-            onClick={bulkActionSendToJira.onClick}
-          >
-            {bulkActionSendToJira.label}
-          </Button>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

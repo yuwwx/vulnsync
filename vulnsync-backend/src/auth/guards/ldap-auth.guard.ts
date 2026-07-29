@@ -7,24 +7,41 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { LogsService } from '@/logs/logs.service';
 
+type AuthRequest = {
+  headers: Record<string, string | string[] | undefined> & {
+    'x-real-ip'?: string;
+    'user-agent'?: string;
+  };
+  body?: { username?: string };
+  ip?: string;
+};
+
+type PassportError = {
+  message?: string;
+};
+
 @Injectable()
 export class LdapAuthGuard extends AuthGuard('ldap') {
   constructor(private readonly logsService: LogsService) {
     super();
   }
 
-  handleRequest(
-    err: any,
-    user: any,
-    info: any,
+  handleRequest<TUser = unknown>(
+    err: PassportError | null,
+    user: TUser,
+    info: PassportError | null,
     context: ExecutionContext,
-    status?: any,
-  ) {
-    const req = context.switchToHttp().getRequest();
+    status?: number,
+  ): TUser {
+    const req = context.switchToHttp().getRequest<AuthRequest>();
+    const requestIp =
+      typeof req.headers['x-real-ip'] === 'string'
+        ? req.headers['x-real-ip']
+        : req.ip;
 
     if (err || !user) {
       this.logsService
-        .log('LOGIN_FAILED', req.headers['x-real-ip'] || req.ip, undefined, {
+        .log('LOGIN_FAILED', requestIp, undefined, {
           result: 'FAIL',
           username: req.body?.username,
           userAgent: req.headers['user-agent'],
