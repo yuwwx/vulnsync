@@ -37,6 +37,7 @@ export const vulnerabilityColumns = (
   onUnsyncWithJira: (vuln: Vulnerability) => void,
   onChangeSeverity: (vuln: Vulnerability) => void,
   onGenerateDescription: (vuln: Vulnerability) => void,
+  onAskAi: (vuln: Vulnerability) => void,
 ): ColumnDef<Vulnerability>[] => [
   {
     id: "select",
@@ -260,6 +261,9 @@ export const vulnerabilityColumns = (
               )}
               <DropdownMenuItem onClick={() => onGenerateDescription(vuln)}>
                 Сгенерировать описание
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onAskAi(vuln)}>
+                Спросить у AI
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

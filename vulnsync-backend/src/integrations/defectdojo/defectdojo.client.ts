@@ -21,6 +21,17 @@ type UpdateFindingPayload = {
   close_comment?: string;
 };
 
+type CloseFindingPayload = {
+  is_mitigated: boolean;
+  mitigated: string;
+  false_p: boolean;
+  out_of_scope: boolean;
+  duplicate: boolean;
+  mitigated_by: number | null;
+  note: string;
+  note_type: number | null;
+};
+
 type DefectDojoApiError = {
   response?: {
     data?: unknown;
@@ -216,10 +227,7 @@ export class DefectDojoClient {
     }
   }
 
-  async updateFinding(
-    id: number,
-    payload: UpdateFindingPayload,
-  ) {
+  async updateFinding(id: number, payload: UpdateFindingPayload) {
     const client = await this.getClient();
 
     this.logger.log(`Updating DefectDojo finding: id=${id}`);
@@ -240,9 +248,31 @@ export class DefectDojoClient {
     }
   }
 
-  async importScan(payload: {
-    getHeaders(): Record<string, string>;
-  }) {
+  async closeFinding(id: number, payload: CloseFindingPayload) {
+    const client = await this.getClient();
+
+    this.logger.log(`Closing DefectDojo finding: id=${id}`);
+
+    try {
+      const { data } = await client.post(
+        `/api/v2/findings/${id}/close/`,
+        payload,
+      );
+
+      if (!data) {
+        this.logger.error(`Empty close response: id=${id}`);
+        throw new InternalServerErrorException(
+          'Invalid response from DefectDojo API',
+        );
+      }
+
+      return data;
+    } catch (error) {
+      throw this.logAxiosError(`Failed to close finding (id=${id})`, error);
+    }
+  }
+
+  async importScan(payload: { getHeaders(): Record<string, string> }) {
     const client = await this.getClient();
 
     this.logger.log('Importing scan into DefectDojo');

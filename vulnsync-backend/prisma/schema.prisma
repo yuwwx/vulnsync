@@ -31,6 +31,7 @@ model IntegrationSetting {
   severityCustomField    String?
   cvssCustomField        String?
   vulnerabilityIdCustomField String?
+  systemPrompt             String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }

@@ -31,4 +31,8 @@ export class CreateIntegrationSettingDto {
   @IsOptional()
   @IsString()
   vulnerabilityIdCustomField: string;
+
+  @IsOptional()
+  @IsString()
+  systemPrompt: string;
 }

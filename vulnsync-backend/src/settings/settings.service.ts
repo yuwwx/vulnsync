@@ -60,6 +60,16 @@ export class SettingsService {
   async getByType(type: string) {
     const setting = await this.prisma.integrationSetting.findFirst({
       where: { type },
+      select: {
+        id: true,
+        type: true,
+        baseUrl: true,
+        severityCustomField: true,
+        systemPrompt: true,
+        apiToken: true,
+        username: true,
+        password: true,
+      },
     });
 
     if (!setting) {
@@ -72,7 +82,16 @@ export class SettingsService {
       baseUrl: setting.baseUrl,
       severityCustomField: setting.severityCustomField,
       isConfigured: this.isConfigured(setting),
+      systemPrompt: setting.systemPrompt,
     };
+  }
+
+  async getSecretByType(type: string) {
+    const setting = await this.prisma.integrationSetting.findFirst({
+      where: { type },
+      select: { apiToken: true },
+    });
+    return setting?.apiToken;
   }
 
   async create(dto: CreateIntegrationSettingDto) {

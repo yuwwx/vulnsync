@@ -109,9 +109,15 @@ export class DefectDojoService {
   }
 
   async closeFinding(findingId: number, comment: string) {
-    return this.client.updateFinding(findingId, {
-      active: false,
-      close_comment: comment,
+    return this.client.closeFinding(findingId, {
+      is_mitigated: true,
+      mitigated: new Date().toISOString(),
+      false_p: false,
+      out_of_scope: false,
+      duplicate: false,
+      mitigated_by: null,
+      note: comment,
+      note_type: null,
     });
   }
 }

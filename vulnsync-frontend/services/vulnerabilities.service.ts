@@ -32,6 +32,11 @@ export interface JiraDescriptionResponse {
   description: string;
 }
 
+export interface AiMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export const VulnerabilitiesService = {
   async getVulnerabilities(
     productId: number,
@@ -76,6 +81,14 @@ export const VulnerabilitiesService = {
       { severity },
     );
 
+    return data;
+  },
+
+  async askAi(findingIds: number[], messages: AiMessage[] = []) {
+    const { data } = await api.post<{ message: AiMessage }>("/vulnerabilities/ai", {
+      findingIds,
+      messages,
+    });
     return data;
   },
 };

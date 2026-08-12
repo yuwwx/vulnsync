@@ -12,6 +12,7 @@ export interface IntegrationSetting {
   severityCustomField?: string;
   cvssCustomField?: string;
   vulnerabilityIdCustomField?: string;
+  systemPrompt?: string;
 }
 
 export const SettingsService = {
@@ -32,6 +33,7 @@ export const SettingsService = {
         severityCustomField: setting?.severityCustomField,
         cvssCustomField: setting?.cvssCustomField,
         vulnerabilityIdCustomField: setting?.vulnerabilityIdCustomField,
+        systemPrompt: setting?.systemPrompt,
       };
 
       const { data } = await api.patch<IntegrationSetting>(
@@ -48,6 +50,7 @@ export const SettingsService = {
         severityCustomField: setting?.severityCustomField,
         cvssCustomField: setting?.cvssCustomField,
         vulnerabilityIdCustomField: setting?.vulnerabilityIdCustomField,
+        systemPrompt: setting?.systemPrompt,
         type: setting?.type,
       };
 

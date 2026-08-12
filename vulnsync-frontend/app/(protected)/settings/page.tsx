@@ -23,10 +23,11 @@ interface IntegrationUI extends IntegrationSetting {
   severityCustomField?: string;
   cvssCustomField?: string;
   vulnerabilityIdCustomField?: string;
+  systemPrompt?: string;
 }
 
 type IntegrationField = {
-  name: "baseUrl" | "apiToken" | "username" | "password" | "severityCustomField" | "cvssCustomField" | "vulnerabilityIdCustomField";
+  name: "baseUrl" | "apiToken" | "username" | "password" | "severityCustomField" | "cvssCustomField" | "vulnerabilityIdCustomField" | "systemPrompt";
   label: string;
   type?: "text" | "password";
   placeholder?: string;
@@ -43,6 +44,11 @@ const EMPTY_INTEGRATIONS = {} as Record<
 >;
 
 const INTEGRATION_FIELDS: Record<IntegrationType, IntegrationField[]> = {
+  ML: [
+    { name: "baseUrl", label: "ML URL", placeholder: "https://api.ml360.sigma-COMPANY.by" },
+    { name: "apiToken", label: "ML Token", type: "password" },
+    { name: "systemPrompt", label: "Системный промпт" },
+  ],
   DEFECTDOJO: [
     { name: "baseUrl", label: "Base URL" },
     { name: "apiToken", label: "API Token", type: "password" },
@@ -98,6 +104,11 @@ export default function SettingsPage() {
               apiToken: "",
               username: "",
               password: "",
+              systemPrompt:
+                setting.systemPrompt ??
+                (type === "ML"
+                  ? "Ты — опытный Application Security Engineer.\n\nПроанализируй уязвимость и оцени, насколько она применима к моему проекту.\n\nОтветь в следующем формате:\n\n1. Кратко:\nЧто это за уязвимость и какой компонент затрагивает.\n\n2. Затрагиваемый тип проекта:\nFrontend / Backend / Оба.\nОбъясни почему.\n\n3. Условия эксплуатации:\n- какие версии зависимости уязвимы;\n- требуется ли использование конкретного функционала;\n- может ли быть использована в production;\n- влияет ли только на dev-зависимости;\n- распространяется ли риск через транзитивные зависимости.\n\n4. Что проверить в проекте:\nУкажи конкретно файлы, настройки и использование уязвимого функционала в коде.\n\n5. Оценка применимости:\nВыбери: ✅ Не применима, ⚠️ Требует проверки или 🔴 Применима. Объясни причину.\n\n6. Дополнительная информация:\nЕсли недостаточно данных — укажи, что именно нужно предоставить.\n\nНе пересказывай полное описание уязвимости. Основная цель — определить реальный риск для проекта и необходимые проверки."
+                  : ""),
             },
           ]),
         );
@@ -125,10 +136,11 @@ export default function SettingsPage() {
     try {
       const setting = data[type];
 
-      const payload: IntegrationPayload = {
+          const payload: IntegrationPayload = {
         id: setting.id,
         type,
-        baseUrl: setting.baseUrl,
+            baseUrl: setting.baseUrl,
+            systemPrompt: setting.systemPrompt,
       };
 
       for (const field of INTEGRATION_FIELDS[type]) {
@@ -223,10 +235,10 @@ export default function SettingsPage() {
             </aside>
 
             {/* Content */}
-            <div className="flex-1">
-              <div className="flex gap-3 items-start">
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 gap-3 items-start">
                 {activeIntegration && (
-                  <Card className="min-w-xl">
+                  <Card className="min-w-0 w-full max-w-3xl">
                     <CardHeader>
                       <CardTitle>
                         {
@@ -237,8 +249,17 @@ export default function SettingsPage() {
                     </CardHeader>
 
                     <CardContent className="space-y-4">
-                      {INTEGRATION_FIELDS[activeIntegration].map((field) => (
-                        <Input
+                       {INTEGRATION_FIELDS[activeIntegration].map((field) =>
+                         field.name === "systemPrompt" ? (
+                            <textarea
+                              key={field.name}
+                              className="box-border min-h-64 w-full max-w-full resize-y overflow-x-hidden break-words rounded-md border bg-transparent p-3 text-sm"
+                             placeholder={field.label}
+                             value={data[activeIntegration]?.[field.name] ?? ""}
+                             onChange={(e) => update(activeIntegration, field.name, e.target.value)}
+                           />
+                         ) : (
+                         <Input
                           key={field.name}
                           type={field.type ?? "text"}
                           placeholder={field.label}
@@ -252,10 +273,11 @@ export default function SettingsPage() {
                               e.target.value,
                             )
                           }
-                        />
-                      ))}
+                         />
+                         ),
+                       )}
 
-                      <pre className="text-xs bg-muted p-2 rounded">
+                       <pre className="max-w-full overflow-x-auto whitespace-pre-wrap break-words text-xs bg-muted p-2 rounded">
                         {JSON.stringify(data[activeIntegration], null, 2)}
                       </pre>
                       <div className="flex justify-between">

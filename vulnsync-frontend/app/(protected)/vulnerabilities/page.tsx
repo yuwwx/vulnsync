@@ -34,6 +34,7 @@ import {
 import {
   VulnerabilitiesService,
   Vulnerability,
+  AiMessage,
 } from "@/services/vulnerabilities.service";
 import { DefectDojoFinding } from "@/services/integrations.service";
 import { VulnerabilitySyncService } from "@/services/vulnerability-sync.service";
@@ -77,6 +78,51 @@ export default function VulnerabilitiesPage() {
   const [isBulkSeverityChange, setIsBulkSeverityChange] = useState(false);
   const [severity, setSeverity] = useState("");
   const [severityLoading, setSeverityLoading] = useState(false);
+  const [openAiChat, setOpenAiChat] = useState(false);
+  const [aiFindingIds, setAiFindingIds] = useState<number[]>([]);
+  const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const askAi = async (findingIds: number[], messages: AiMessage[] = []) => {
+    setAiLoading(true);
+    try {
+      const { message } = await VulnerabilitiesService.askAi(findingIds, messages);
+      setAiMessages((current) => [...current, message]);
+    } catch {
+      toast.error("Не удалось получить ответ AI");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAskAi = (vuln: Vulnerability) => {
+    setActiveVuln(vuln);
+    setAiFindingIds([vuln.id]);
+    setAiMessages([]);
+    setAiPrompt("");
+    setOpenAiChat(true);
+    void askAi([vuln.id]);
+  };
+
+  const handleBulkAskAi = () => {
+    const findingIds = selectedVulns.map((vuln) => vuln.id);
+    setActiveVuln(null);
+    setAiFindingIds(findingIds);
+    setAiMessages([]);
+    setAiPrompt("");
+    setOpenAiChat(true);
+    void askAi(findingIds);
+  };
+
+  const handleSendAiPrompt = async () => {
+    const content = aiPrompt.trim();
+    if (!content || aiLoading) return;
+    const userMessage: AiMessage = { role: "user", content };
+    setAiPrompt("");
+    setAiMessages((current) => [...current, userMessage]);
+    await askAi(aiFindingIds, [...aiMessages, userMessage]);
+  };
 
   const handleGenerateDescription = async (vuln: Vulnerability) => {
     setIsBulk(false);
@@ -474,6 +520,7 @@ export default function VulnerabilitiesPage() {
         handleUnsyncWithJira,
         handleChangeSeverity,
         handleGenerateDescription,
+        handleAskAi,
       ),
     [
       handleSendToJira,
@@ -482,6 +529,7 @@ export default function VulnerabilitiesPage() {
       handleUnsyncWithJira,
       handleChangeSeverity,
       handleGenerateDescription,
+      handleAskAi,
     ],
   );
 
@@ -549,6 +597,11 @@ export default function VulnerabilitiesPage() {
                     onClick: handleBulkGenerateDescription,
                   },
                   {
+                    label: `Спросить у AI (${selectedVulns.length})`,
+                    disabled: selectedVulns.length === 0,
+                    onClick: handleBulkAskAi,
+                  },
+                  {
                     label: `Объединить и отправить в Jira (${selectedVulns.length})`,
                     disabled: selectedVulns.length === 0,
                     onClick: handleBulkSendToJira,
@@ -578,6 +631,62 @@ export default function VulnerabilitiesPage() {
           )}
         </div>
       </div>
+
+      <Dialog
+        open={openAiChat}
+        onOpenChange={(open) => {
+          setOpenAiChat(open);
+          if (!open) {
+            setAiMessages([]);
+            setAiPrompt("");
+            setAiFindingIds([]);
+            setActiveVuln(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Спросить у AI</DialogTitle>
+            <DialogDescription>
+              Анализ уязвимости и продолжение диалога с Application Security Engineer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 max-h-[55vh] space-y-4 overflow-y-auto rounded-md border p-4">
+            {aiMessages.length === 0 && !aiLoading && (
+              <div className="text-sm text-muted-foreground">Подготавливаем анализ...</div>
+            )}
+            {aiMessages.map((message, index) => (
+              <div
+                key={`${message.role}-${index}`}
+                className={message.role === "user" ? "ml-8 rounded-md bg-muted p-3" : "mr-8 rounded-md bg-blue-50 p-3"}
+              >
+                <div className="mb-1 text-xs font-medium text-muted-foreground">
+                  {message.role === "user" ? "Вы" : "AI"}
+                </div>
+                <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+              </div>
+            ))}
+            {aiLoading && <div className="text-sm text-muted-foreground">AI печатает...</div>}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={aiPrompt}
+              onChange={(event) => setAiPrompt(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void handleSendAiPrompt();
+                }
+              }}
+              placeholder="Задайте уточняющий вопрос..."
+              disabled={aiLoading}
+            />
+            <Button onClick={() => void handleSendAiPrompt()} disabled={!aiPrompt.trim() || aiLoading}>
+              Отправить
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={openDescription}

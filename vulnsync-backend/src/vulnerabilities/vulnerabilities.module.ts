@@ -3,11 +3,12 @@ import { DefectDojoModule } from '@/integrations/defectdojo/defectdojo.module';
 import { JiraDescriptionModule } from '@/integrations/jira/jira-description.module';
 import { JiraModule } from '@/integrations/jira/jira.module';
 import { Module } from '@nestjs/common';
+import { SettingsModule } from '@/settings/settings.module';
 import { VulnerabilitiesController } from './vulnerabilities.controller';
 import { VulnerabilitiesService } from './vulnerabilities.service';
 
 @Module({
-  imports: [DefectDojoModule, JiraModule, JiraDescriptionModule],
+  imports: [DefectDojoModule, JiraModule, JiraDescriptionModule, SettingsModule],
   providers: [VulnerabilitiesService],
   controllers: [VulnerabilitiesController],
   exports: [VulnerabilitiesService],
