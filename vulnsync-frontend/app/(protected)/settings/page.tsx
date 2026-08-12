@@ -24,10 +24,11 @@ interface IntegrationUI extends IntegrationSetting {
   cvssCustomField?: string;
   vulnerabilityIdCustomField?: string;
   systemPrompt?: string;
+  model?: string;
 }
 
 type IntegrationField = {
-  name: "baseUrl" | "apiToken" | "username" | "password" | "severityCustomField" | "cvssCustomField" | "vulnerabilityIdCustomField" | "systemPrompt";
+  name: "baseUrl" | "apiToken" | "username" | "password" | "severityCustomField" | "cvssCustomField" | "vulnerabilityIdCustomField" | "systemPrompt" | "model";
   label: string;
   type?: "text" | "password";
   placeholder?: string;
@@ -47,6 +48,7 @@ const INTEGRATION_FIELDS: Record<IntegrationType, IntegrationField[]> = {
   ML: [
     { name: "baseUrl", label: "ML URL", placeholder: "https://api.ml360.sigma-COMPANY.by" },
     { name: "apiToken", label: "ML Token", type: "password" },
+    { name: "model", label: "Модель ML", placeholder: "giga_GigaChat-2-Max" },
     { name: "systemPrompt", label: "Системный промпт" },
   ],
   DEFECTDOJO: [
@@ -104,11 +106,12 @@ export default function SettingsPage() {
               apiToken: "",
               username: "",
               password: "",
-              systemPrompt:
+                systemPrompt:
                 setting.systemPrompt ??
                 (type === "ML"
                   ? "Ты — опытный Application Security Engineer.\n\nПроанализируй уязвимость и оцени, насколько она применима к моему проекту.\n\nОтветь в следующем формате:\n\n1. Кратко:\nЧто это за уязвимость и какой компонент затрагивает.\n\n2. Затрагиваемый тип проекта:\nFrontend / Backend / Оба.\nОбъясни почему.\n\n3. Условия эксплуатации:\n- какие версии зависимости уязвимы;\n- требуется ли использование конкретного функционала;\n- может ли быть использована в production;\n- влияет ли только на dev-зависимости;\n- распространяется ли риск через транзитивные зависимости.\n\n4. Что проверить в проекте:\nУкажи конкретно файлы, настройки и использование уязвимого функционала в коде.\n\n5. Оценка применимости:\nВыбери: ✅ Не применима, ⚠️ Требует проверки или 🔴 Применима. Объясни причину.\n\n6. Дополнительная информация:\nЕсли недостаточно данных — укажи, что именно нужно предоставить.\n\nНе пересказывай полное описание уязвимости. Основная цель — определить реальный риск для проекта и необходимые проверки."
-                  : ""),
+                   : ""),
+              model: setting.model ?? "giga_GigaChat-2-Max",
             },
           ]),
         );
@@ -173,8 +176,10 @@ export default function SettingsPage() {
       });
 
       toast.success(`Settings for ${type} saved`);
-    } catch {
-      toast.error(`Failed to save settings for ${type}`);
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string | string[] } } })
+        .response?.data?.message;
+      toast.error(Array.isArray(message) ? message.join(", ") : message || `Failed to save settings for ${type}`);
     } finally {
       setSaving(null);
     }

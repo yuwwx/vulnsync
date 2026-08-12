@@ -89,8 +89,10 @@ export default function VulnerabilitiesPage() {
     try {
       const { message } = await VulnerabilitiesService.askAi(findingIds, messages);
       setAiMessages((current) => [...current, message]);
-    } catch {
-      toast.error("Не удалось получить ответ AI");
+    } catch (err) {
+      const response = (err as { response?: { data?: { message?: string | string[] } } }).response;
+      const message = response?.data?.message;
+      toast.error(Array.isArray(message) ? message.join(", ") : message || "Не удалось получить ответ AI");
     } finally {
       setAiLoading(false);
     }

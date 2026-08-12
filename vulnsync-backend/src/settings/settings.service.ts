@@ -42,6 +42,7 @@ export class SettingsService {
         severityCustomField: true,
         cvssCustomField: true,
         vulnerabilityIdCustomField: true,
+        model: true,
       },
     });
 
@@ -53,6 +54,7 @@ export class SettingsService {
       severityCustomField: s.severityCustomField,
       cvssCustomField: s.cvssCustomField,
       vulnerabilityIdCustomField: s.vulnerabilityIdCustomField,
+      model: s.model,
       isConfigured: this.isConfigured(s),
     }));
   }
@@ -69,6 +71,7 @@ export class SettingsService {
         apiToken: true,
         username: true,
         password: true,
+        model: true,
       },
     });
 
@@ -83,6 +86,7 @@ export class SettingsService {
       severityCustomField: setting.severityCustomField,
       isConfigured: this.isConfigured(setting),
       systemPrompt: setting.systemPrompt,
+      model: (setting as typeof setting & { model?: string | null }).model,
     };
   }
 
@@ -114,6 +118,7 @@ export class SettingsService {
       severityCustomField: setting.severityCustomField,
       cvssCustomField: setting.cvssCustomField,
       vulnerabilityIdCustomField: setting.vulnerabilityIdCustomField,
+      model: (setting as unknown as { model?: string | null }).model,
       isConfigured: this.isConfigured(setting),
     };
   }
@@ -139,6 +144,7 @@ export class SettingsService {
       severityCustomField: updated.severityCustomField,
       cvssCustomField: updated.cvssCustomField,
       vulnerabilityIdCustomField: updated.vulnerabilityIdCustomField,
+      model: (updated as typeof updated & { model?: string | null }).model,
       isConfigured: this.isConfigured(updated),
     };
   }

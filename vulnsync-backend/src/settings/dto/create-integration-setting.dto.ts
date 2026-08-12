@@ -35,4 +35,8 @@ export class CreateIntegrationSettingDto {
   @IsOptional()
   @IsString()
   systemPrompt: string;
+
+  @IsOptional()
+  @IsString()
+  model: string;
 }
