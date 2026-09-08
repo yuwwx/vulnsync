@@ -7,6 +7,19 @@ import {
 import { CreateIntegrationSettingDto } from './dto/create-integration-setting.dto';
 import { UpdateIntegrationSettingDto } from './dto/update-integration-setting.dto';
 
+type IntegrationSettingResponse = {
+  id: string;
+  type: string;
+  baseUrl: string;
+  updatedAt?: Date;
+  isConfigured: boolean;
+  severityCustomField?: string | null;
+  cvssCustomField?: string | null;
+  vulnerabilityIdCustomField?: string | null;
+  systemPrompt?: string | null;
+  model?: string | null;
+};
+
 @Injectable()
 export class SettingsService {
   constructor(private prisma: PrismaService) {}
@@ -29,6 +42,42 @@ export class SettingsService {
     return !!setting.apiToken?.trim();
   }
 
+  private toResponse(setting: {
+    id: string;
+    type: string;
+    baseUrl: string;
+    updatedAt?: Date;
+    apiToken?: string | null;
+    username?: string | null;
+    password?: string | null;
+    severityCustomField?: string | null;
+    cvssCustomField?: string | null;
+    vulnerabilityIdCustomField?: string | null;
+    systemPrompt?: string | null;
+    model?: string | null;
+  }): IntegrationSettingResponse {
+    const response: IntegrationSettingResponse = {
+      id: setting.id,
+      type: setting.type,
+      baseUrl: setting.baseUrl,
+      ...(setting.updatedAt && { updatedAt: setting.updatedAt }),
+      isConfigured: this.isConfigured(setting),
+    };
+
+    if (setting.type === 'JIRA') {
+      response.severityCustomField = setting.severityCustomField;
+      response.cvssCustomField = setting.cvssCustomField;
+      response.vulnerabilityIdCustomField = setting.vulnerabilityIdCustomField;
+    }
+
+    if (setting.type === 'ML') {
+      response.systemPrompt = setting.systemPrompt;
+      response.model = setting.model;
+    }
+
+    return response;
+  }
+
   async getAll() {
     const settings = await this.prisma.integrationSetting.findMany({
       select: {
@@ -42,21 +91,12 @@ export class SettingsService {
         severityCustomField: true,
         cvssCustomField: true,
         vulnerabilityIdCustomField: true,
+        systemPrompt: true,
         model: true,
       },
     });
 
-    return settings.map((s) => ({
-      id: s.id,
-      type: s.type,
-      baseUrl: s.baseUrl,
-      updatedAt: s.updatedAt,
-      severityCustomField: s.severityCustomField,
-      cvssCustomField: s.cvssCustomField,
-      vulnerabilityIdCustomField: s.vulnerabilityIdCustomField,
-      model: s.model,
-      isConfigured: this.isConfigured(s),
-    }));
+    return settings.map((setting) => this.toResponse(setting));
   }
 
   async getByType(type: string) {
@@ -66,7 +106,10 @@ export class SettingsService {
         id: true,
         type: true,
         baseUrl: true,
+        updatedAt: true,
         severityCustomField: true,
+        cvssCustomField: true,
+        vulnerabilityIdCustomField: true,
         systemPrompt: true,
         apiToken: true,
         username: true,
@@ -79,15 +122,7 @@ export class SettingsService {
       throw new NotFoundException(`Integration ${type} not found`);
     }
 
-    return {
-      id: setting.id,
-      type: setting.type,
-      baseUrl: setting.baseUrl,
-      severityCustomField: setting.severityCustomField,
-      isConfigured: this.isConfigured(setting),
-      systemPrompt: setting.systemPrompt,
-      model: (setting as typeof setting & { model?: string | null }).model,
-    };
+    return this.toResponse(setting);
   }
 
   async getSecretByType(type: string) {
@@ -111,16 +146,7 @@ export class SettingsService {
       data: dto,
     });
 
-    return {
-      id: setting.id,
-      type: setting.type,
-      baseUrl: setting.baseUrl,
-      severityCustomField: setting.severityCustomField,
-      cvssCustomField: setting.cvssCustomField,
-      vulnerabilityIdCustomField: setting.vulnerabilityIdCustomField,
-      model: (setting as unknown as { model?: string | null }).model,
-      isConfigured: this.isConfigured(setting),
-    };
+    return this.toResponse(setting);
   }
 
   async update(id: string, dto: UpdateIntegrationSettingDto) {
@@ -137,16 +163,7 @@ export class SettingsService {
       data: dto,
     });
 
-    return {
-      id: updated.id,
-      type: updated.type,
-      baseUrl: updated.baseUrl,
-      severityCustomField: updated.severityCustomField,
-      cvssCustomField: updated.cvssCustomField,
-      vulnerabilityIdCustomField: updated.vulnerabilityIdCustomField,
-      model: (updated as typeof updated & { model?: string | null }).model,
-      isConfigured: this.isConfigured(updated),
-    };
+    return this.toResponse(updated);
   }
 
   async delete(id: string) {
