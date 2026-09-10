@@ -13,12 +13,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { vulnerabilityTableFeatures } from "./vulnerabilities-table-config";
 
 const severityOrder = ["Critical", "High", "Medium", "Low", "Info"];
 
 const severitySortFn = (
-  rowA: Row<Vulnerability>,
-  rowB: Row<Vulnerability>,
+  rowA: Row<typeof vulnerabilityTableFeatures, Vulnerability>,
+  rowB: Row<typeof vulnerabilityTableFeatures, Vulnerability>,
   columnId: string,
 ) => {
   const a = String(rowA.getValue(columnId) ?? "Info");
@@ -38,7 +39,7 @@ export const vulnerabilityColumns = (
   onChangeSeverity: (vuln: Vulnerability) => void,
   onGenerateDescription: (vuln: Vulnerability) => void,
   onAskAi: (vuln: Vulnerability) => void,
-): ColumnDef<Vulnerability>[] => [
+): ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[] => [
   {
     id: "select",
     meta: { label: "Выбрать" },
@@ -120,7 +121,7 @@ export const vulnerabilityColumns = (
       );
     },
     cell: ({ row }) => <SeverityBadge severity={row.getValue("severity")} />,
-    sortingFn: severitySortFn,
+    sortFn: severitySortFn,
   },
   {
     accessorKey: "product",

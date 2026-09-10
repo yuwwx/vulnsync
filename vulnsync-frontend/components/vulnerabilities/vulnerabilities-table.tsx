@@ -2,15 +2,11 @@
 
 import {
   ColumnDef,
+  useTable,
   flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
   type ColumnFiltersState,
   type SortingState,
-  type VisibilityState,
+  type ColumnVisibilityState,
 } from "@tanstack/react-table";
 import { ChevronDown, ListFilter } from "lucide-react";
 import * as React from "react";
@@ -34,6 +30,7 @@ import {
 } from "@/components/ui/table";
 
 import { Vulnerability } from "@/services/vulnerabilities.service";
+import { vulnerabilityTableFeatures } from "./vulnerabilities-table-config";
 
 export type BulkAction = {
   label: string;
@@ -43,7 +40,7 @@ export type BulkAction = {
 
 interface Props {
   data: Vulnerability[];
-  columns: ColumnDef<Vulnerability>[];
+  columns: ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[];
   onSelectionChange?: (rows: Vulnerability[]) => void;
   bulkActions?: BulkAction[];
 }
@@ -52,8 +49,8 @@ type VulnerabilityMeta = {
   label?: string;
 };
 
-declare module "@tanstack/react-table" {
-  interface ColumnMeta<TData, TValue> extends VulnerabilityMeta {}
+declare module "@tanstack/table-core" {
+  interface ColumnMeta<TFeatures, TData, TValue> extends VulnerabilityMeta {}
 }
 
 export function VulnerabilitiesTable({
@@ -67,20 +64,17 @@ export function VulnerabilitiesTable({
     [],
   );
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({
+    React.useState<ColumnVisibilityState>({
       jiraIssueKey: false,
     });
   const [rowSelection, setRowSelection] = React.useState({});
 
-  const table = useReactTable({
+  const table = useTable({
+    features: vulnerabilityTableFeatures,
     data,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     state: {
@@ -91,7 +85,7 @@ export function VulnerabilitiesTable({
     },
   });
 
-  const { pageIndex, pageSize } = table.getState().pagination;
+  const { pageIndex, pageSize } = table.state.pagination;
 
   const totalRows = table.getFilteredRowModel().rows.length;
   const rowsOnPage = table.getRowModel().rows.length;
@@ -107,7 +101,7 @@ export function VulnerabilitiesTable({
     const selected = table.getSelectedRowModel().rows.map((r) => r.original);
 
     onSelectionChange(selected);
-    }, [onSelectionChange, rowSelection, table]);
+  }, [onSelectionChange, rowSelection]);
 
   return (
     <div className="w-full">
