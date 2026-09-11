@@ -46,9 +46,9 @@ const EMPTY_INTEGRATIONS = {} as Record<
 
 const INTEGRATION_FIELDS: Record<IntegrationType, IntegrationField[]> = {
   ML: [
-    { name: "baseUrl", label: "ML URL", placeholder: "https://api.ml360.sigma-COMPANY.by" },
+    { name: "baseUrl", label: "ML URL", placeholder: "https://api.ml.company.com" },
     { name: "apiToken", label: "ML Token", type: "password" },
-    { name: "model", label: "Модель ML", placeholder: "giga_GigaChat-2-Max" },
+    { name: "model", label: "Модель ML", placeholder: "Qwen3.6-Plus" },
     { name: "systemPrompt", label: "Системный промпт" },
   ],
   DEFECTDOJO: [

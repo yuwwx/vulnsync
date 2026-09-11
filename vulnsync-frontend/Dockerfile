@@ -4,13 +4,14 @@ FROM node:24-alpine AS deps
 WORKDIR /app
 
 ARG USE_NEXUS=false
+ARG NEXUS_NPM_REGISTRY
 ENV USE_NEXUS=$USE_NEXUS
 
 COPY package*.json ./
 
 # Если prod - используем Nexus
 RUN if [ "$USE_NEXUS" = "true" ]; then \
-      npm config set registry https://nexus3-ift.sigma-COMPANY.by/repository/npm-all; \
+      npm config set registry "$NEXUS_NPM_REGISTRY"; \
     fi
 
 # Отключаем проверку SSL

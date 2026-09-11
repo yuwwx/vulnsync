@@ -17,6 +17,7 @@ services:
       args:
         ENV: ${ENV}
         USE_NEXUS: ${USE_NEXUS}
+        NEXUS_NPM_REGISTRY: ${NEXUS_NPM_REGISTRY}
         DATABASE_URL: ${DATABASE_URL}
     container_name: vulnsync-backend
     env_file:
@@ -31,6 +32,7 @@ services:
       args:
         ENV: ${ENV}
         USE_NEXUS: ${USE_NEXUS}
+        NEXUS_NPM_REGISTRY: ${NEXUS_NPM_REGISTRY}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED}
     container_name: vulnsync-frontend
