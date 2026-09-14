@@ -1,28 +1,28 @@
-// app/integrations/page.tsx
+// app/products/page.tsx
 "use client";
 
-import DefectDojoJiraTab from "@/components/integrations/DefectDojoJiraTab";
-import DependencyTrackTab from "@/components/integrations/DependencyTrackTab";
+import DefectDojoJiraTab from "@/components/products/DefectDojoJiraTab";
+import DependencyTrackTab from "@/components/products/DependencyTrackTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DefectDojoProductType,
-  IntegrationsService,
-} from "@/services/integrations.service";
+  ProductsService,
+} from "@/services/products.service";
 import { useEffect, useState } from "react";
 
-type IntegrationTab = "defectDojoJira" | "dependencyTrack";
+type ProductTab = "defectDojoJira" | "dependencyTrack";
 
-export default function IntegrationsPage() {
+export default function ProductsPage() {
   const [products, setProducts] = useState<DefectDojoProductType[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] =
-    useState<IntegrationTab>("defectDojoJira");
+    useState<ProductTab>("defectDojoJira");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Загружаем список продуктов
   useEffect(() => {
-    IntegrationsService.getDefectDojoProductTypes()
+    ProductsService.getDefectDojoProductTypes()
       .then(setProducts)
       .catch((err) =>
         setError(`Не удалось получить типы продуктов из DefectDojo: ${err}`),
@@ -51,14 +51,14 @@ export default function IntegrationsPage() {
       </ul>
 
       <div className="flex-1">
-        <h1 className="text-2xl font-bold mb-4">Маппинги</h1>
+        <h1 className="text-2xl font-bold mb-4">Продукты</h1>
         {loading ? (
           <div>Загружаем продукты…</div>
         ) : error ? (
           <div className="p-4 text-red-700 bg-red-100 rounded-md">{error}</div>
         ) : !selectedProduct ? (
           <div className="text-neutral-500">
-            Выберите продукт для настройки интеграций
+            Выберите продукт для настройки
           </div>
         ) : (
           <Tabs
@@ -71,10 +71,10 @@ export default function IntegrationsPage() {
           >
             <TabsList>
               <TabsTrigger value="defectDojoJira">
-                DefectDojo → Jira
+                Маппинг DefectDojo → Jira
               </TabsTrigger>
               <TabsTrigger value="dependencyTrack">
-                DependencyTrack → DefectDojo
+                Маппинг DependencyTrack → DefectDojo
               </TabsTrigger>
             </TabsList>
 

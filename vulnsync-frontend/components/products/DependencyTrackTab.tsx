@@ -6,8 +6,8 @@ import { useAuth } from "@/lib/useAuth";
 import {
   DefectDojoProduct,
   DefectDojoProductType,
-  IntegrationsService,
-} from "@/services/integrations.service";
+  ProductsService,
+} from "@/services/products.service";
 import {
   DependencyTrackMapping,
   MappingsService,
@@ -50,7 +50,7 @@ export default function DependencyTrackTab({ productType }: Props) {
     setError(null);
     setMapping(null);
 
-    IntegrationsService.getDefectDojoProducts(productType.id)
+    ProductsService.getDefectDojoProducts(productType.id)
       .then((prods) => {
         setProducts(prods);
 
@@ -133,7 +133,7 @@ export default function DependencyTrackTab({ productType }: Props) {
     setError(null);
 
     try {
-      await IntegrationsService.exportDependencyTrackToDefectDojo(
+      await ProductsService.exportDependencyTrackToDefectDojo(
         Number(selectedDdProductId),
       );
       toast.success("Экспорт в DefectDojo успешен");

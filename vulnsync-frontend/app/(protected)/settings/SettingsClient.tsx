@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { normalizeIntegrations } from "@/mappers/integrations.mapper";
-import { IntegrationsService } from "@/services/integrations.service";
+import { ProductsService } from "@/services/products.service";
 import { toast } from "sonner";
 
 interface IntegrationUI extends IntegrationSetting {
@@ -206,7 +206,7 @@ export default function SettingsPage() {
   const handleSyncWithKev = async () => {
     try {
       setSyncing(true);
-      await IntegrationsService.syncKev();
+      await ProductsService.syncKev();
       toast.success("Синхронизация KEV запущена");
     } catch (err) {
       toast.error("Не удалось запустить синхронизацию KEV");

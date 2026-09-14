@@ -27,6 +27,7 @@ type LdapUser = {
 @Injectable()
 export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
   private readonly userGroupDn?: string;
+  private readonly viewerGroupDn?: string;
   private readonly adminGroupDn?: string;
 
   constructor(
@@ -60,6 +61,7 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
     });
 
     this.userGroupDn = config.get<string>('LDAP_USER_GROUP_DN');
+    this.viewerGroupDn = config.get<string>('LDAP_VIEWER_GROUP_DN');
     this.adminGroupDn = config.get<string>('LDAP_ADMIN_GROUP_DN');
   }
 
@@ -84,12 +86,14 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
 
     const memberOf = user.memberOf || [];
 
-    let assignedRole: 'USER' | 'ADMIN' = 'USER'; // по умолчанию
+    let assignedRole: 'USER' | 'VIEWER' | 'ADMIN' = 'USER'; // по умолчанию
 
     const groups = Array.isArray(memberOf) ? memberOf : [memberOf];
 
     if (this.adminGroupDn && groups.includes(this.adminGroupDn)) {
       assignedRole = 'ADMIN';
+    } else if (this.viewerGroupDn && groups.includes(this.viewerGroupDn)) {
+      assignedRole = 'VIEWER';
     } else if (this.userGroupDn && groups.includes(this.userGroupDn)) {
       assignedRole = 'USER';
     } else {

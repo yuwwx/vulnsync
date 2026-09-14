@@ -90,7 +90,7 @@ export default function Home() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Маппинги</CardTitle>
+                <CardTitle>Продукты</CardTitle>
                 <CardDescription>
                   Подключи источники данных за пару минут
                 </CardDescription>

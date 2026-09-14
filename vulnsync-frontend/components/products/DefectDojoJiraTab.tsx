@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/useAuth";
-import { DefectDojoProductType } from "@/services/integrations.service";
+import { DefectDojoProductType } from "@/services/products.service";
 import { JiraMapping, MappingsService } from "@/services/mappings.service";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";

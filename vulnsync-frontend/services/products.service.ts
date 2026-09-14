@@ -19,7 +19,7 @@ export interface DependencyTrackProject {
 export type DefectDojoFinding = Record<string, unknown>;
 
 // Сервис
-export const IntegrationsService = {
+export const ProductsService = {
   // DefectDojo
   async getDefectDojoProductTypes(): Promise<DefectDojoProductType[]> {
     const { data } = await api.get<DefectDojoProductType[]>(

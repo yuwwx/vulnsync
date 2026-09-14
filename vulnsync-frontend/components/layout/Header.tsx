@@ -10,7 +10,7 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/vulnerabilities", label: "Уязвимости" },
-  { href: "/integrations", label: "Маппинги" },
+  { href: "/products", label: "Продукты" },
   { href: "/settings", label: "Параметры", adminOnly: true },
   { href: "/logs", label: "События", adminOnly: true },
   { href: "/reference", label: "Справочники" },

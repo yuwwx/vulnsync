@@ -29,14 +29,14 @@ import { vulnerabilityColumns } from "@/components/vulnerabilities/vulnerabiliti
 import { VulnerabilitiesTable } from "@/components/vulnerabilities/vulnerabilities-table";
 import {
   DefectDojoProductType,
-  IntegrationsService,
-} from "@/services/integrations.service";
+  ProductsService,
+} from "@/services/products.service";
 import {
   VulnerabilitiesService,
   Vulnerability,
   AiMessage,
 } from "@/services/vulnerabilities.service";
-import { DefectDojoFinding } from "@/services/integrations.service";
+import { DefectDojoFinding } from "@/services/products.service";
 import { VulnerabilitySyncService } from "@/services/vulnerability-sync.service";
 import { Check, Copy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -504,7 +504,7 @@ export default function VulnerabilitiesPage() {
 
     setRawLoading(true);
     try {
-      const raw = await IntegrationsService.getDefectDojoFinding(activeVuln.id);
+      const raw = await ProductsService.getDefectDojoFinding(activeVuln.id);
       setRawFinding(raw);
     } catch {
       toast.error("Не удалось загрузить исходные данные");
@@ -536,7 +536,7 @@ export default function VulnerabilitiesPage() {
   );
 
   useEffect(() => {
-    IntegrationsService.getDefectDojoProductTypes()
+    ProductsService.getDefectDojoProductTypes()
       .then(setProductTypes)
       .catch(() =>
         setError("Не удалось получить типы продуктов из DefectDojo"),
