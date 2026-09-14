@@ -53,6 +53,14 @@ model DependencyTrackMapping {
   updatedAt       DateTime @updatedAt
 }
 
+model ProductTypeNotification {
+  id              String   @id @default(uuid())
+  ddProductTypeId Int      @unique
+  emails          String // список адресов через запятую или с новой строки
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 model VulnerabilitySync {
   id           String   @id @default(uuid())
   externalId   String   // finding.id из DefectDojo

@@ -5,6 +5,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { DefectDojoClient } from '@/integrations/defectdojo/defectdojo.client';
+import { parseEmailList } from '@/notifications/product-type-notifications.service';
+import { ProductTypeNotificationsService } from '@/notifications/product-type-notifications.service';
 import { MailerService } from './mailer.service';
 import {
   FindingsReportRow,
@@ -72,6 +74,7 @@ export class YesterdayFindingsService {
 
   constructor(
     private readonly defectDojoClient: DefectDojoClient,
+    private readonly productTypeNotifications: ProductTypeNotificationsService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
   ) {}
@@ -119,14 +122,19 @@ export class YesterdayFindingsService {
       `=== Engagement findings report: started (id=${engagementId}) ===`,
     );
 
+    const engagement = await this.defectDojoClient.getEngagement(engagementId);
+
     const findings = await this.getFindingsByEngagement(engagementId);
-    const engagementName = this.getEngagementName(findings, engagementId);
+    const engagementName =
+      asString(engagement?.name) ||
+      this.getEngagementName(findings, engagementId);
 
     const summary = await this.sendFindingsReportEmail({
       title: `Отчёт об уязвимостях по сборке ${escapeHtml(engagementName)}`,
       intro: `Добрый день! Общее количество обнаруженных уязвимостей по сборке ${escapeHtml(engagementName)} - <b>${findings.length}</b>.`,
       subject: `Отчет об уязвимостях (сборка ${engagementName}, всего уязвимостей - ${findings.length})`,
       findings,
+      productTypeId: await this.getEngagementProductTypeId(engagement),
     });
 
     this.logger.log(
@@ -198,6 +206,9 @@ export class YesterdayFindingsService {
     intro: string;
     subject: string;
     findings: Finding[];
+    // Тип продукта DefectDojo: к общему DD_REPORT_MAIL_TO добавляются
+    // адреса из настроек уведомлений этого типа продукта
+    productTypeId?: number;
   }) {
     const baseUrl = await this.defectDojoClient.getBaseUrl();
     const counts = this.countBySeverity(params.findings);
@@ -211,7 +222,7 @@ export class YesterdayFindingsService {
       rows: this.buildReportRows(params.findings, baseUrl),
     });
 
-    const to = this.getRequiredEnv('DD_REPORT_MAIL_TO');
+    const to = await this.resolveRecipients(params.productTypeId);
 
     await this.mailer.send({ to, subject: params.subject, html });
 
@@ -219,6 +230,40 @@ export class YesterdayFindingsService {
       totalFindings: params.findings.length,
       severity: counts,
     };
+  }
+
+  // Тип продукта, к которому относится engagement
+  private async getEngagementProductTypeId(
+    engagement: { product?: number } | null,
+  ): Promise<number | undefined> {
+    const productId = Number(engagement?.product);
+
+    if (!productId) {
+      return undefined;
+    }
+
+    const product = (await this.defectDojoClient.getProduct(productId)) as {
+      prod_type?: number;
+    } | null;
+
+    return Number(product?.prod_type) || undefined;
+  }
+
+  // DD_REPORT_MAIL_TO + адреса, настроенные для конкретного типа продукта
+  private async resolveRecipients(productTypeId?: number): Promise<string> {
+    const recipients = parseEmailList(this.getRequiredEnv('DD_REPORT_MAIL_TO'));
+
+    if (productTypeId) {
+      for (const email of await this.productTypeNotifications.getExtraEmails(
+        productTypeId,
+      )) {
+        if (!recipients.some((r) => r.toLowerCase() === email.toLowerCase())) {
+          recipients.push(email);
+        }
+      }
+    }
+
+    return recipients.join(', ');
   }
 
   private buildReportRows(

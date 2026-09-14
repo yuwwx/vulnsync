@@ -3,6 +3,7 @@
 
 import DefectDojoJiraTab from "@/components/products/DefectDojoJiraTab";
 import DependencyTrackTab from "@/components/products/DependencyTrackTab";
+import EngagementNotificationsTab from "@/components/products/EngagementNotificationsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DefectDojoProductType,
@@ -10,7 +11,10 @@ import {
 } from "@/services/products.service";
 import { useEffect, useState } from "react";
 
-type ProductTab = "defectDojoJira" | "dependencyTrack";
+type ProductTab =
+  | "defectDojoJira"
+  | "dependencyTrack"
+  | "engagementNotifications";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<DefectDojoProductType[]>([]);
@@ -64,7 +68,11 @@ export default function ProductsPage() {
           <Tabs
             value={activeTab}
             onValueChange={(value) => {
-              if (value === "defectDojoJira" || value === "dependencyTrack") {
+              if (
+                value === "defectDojoJira" ||
+                value === "dependencyTrack" ||
+                value === "engagementNotifications"
+              ) {
                 setActiveTab(value);
               }
             }}
@@ -75,6 +83,9 @@ export default function ProductsPage() {
               </TabsTrigger>
               <TabsTrigger value="dependencyTrack">
                 Маппинг DependencyTrack → DefectDojo
+              </TabsTrigger>
+              <TabsTrigger value="engagementNotifications">
+                Уведомления по engagement
               </TabsTrigger>
             </TabsList>
 
@@ -89,6 +100,14 @@ export default function ProductsPage() {
             <TabsContent value="dependencyTrack">
               {selectedProduct && (
                 <DependencyTrackTab
+                  productType={products.find((p) => p.id === selectedProduct)!}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="engagementNotifications">
+              {selectedProduct && (
+                <EngagementNotificationsTab
                   productType={products.find((p) => p.id === selectedProduct)!}
                 />
               )}

@@ -21,6 +21,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { MappingsModule } from './mappings/mappings.module';
 import { VulnerabilitySyncModule } from './vulnerability-sync/vulnerability-sync.module';
 import { ReportsModule } from './reports/reports.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 const envFile =
   process.env.NODE_ENV === 'development'
@@ -43,6 +44,7 @@ const envFile =
     DependencyTrackModule,
     DefectDojoModule,
     MappingsModule,
+    NotificationsModule,
     VulnerabilitySyncModule,
     ReportsModule,
   ],

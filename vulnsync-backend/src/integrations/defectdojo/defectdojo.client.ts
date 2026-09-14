@@ -39,6 +39,12 @@ type DefectDojoApiError = {
   message?: string;
 };
 
+type DefectDojoEngagement = {
+  id: number;
+  name?: string;
+  product?: number;
+};
+
 @Injectable()
 export class DefectDojoClient {
   private readonly logger = new Logger(DefectDojoClient.name);
@@ -164,6 +170,34 @@ export class DefectDojoClient {
     } catch (error) {
       throw this.logAxiosError(
         `Failed to fetch product (productId=${productId})`,
+        error,
+      );
+    }
+  }
+
+  async getEngagement(
+    engagementId: number,
+  ): Promise<DefectDojoEngagement | null> {
+    const client = await this.getClient();
+
+    this.logger.log(`Fetching DefectDojo engagement: id=${engagementId}`);
+
+    try {
+      const { data } = await client.get<DefectDojoEngagement | null>(
+        `/api/v2/enagements/${engagementId}`,
+      );
+
+      if (!data) {
+        this.logger.error(`Empty engagement response: id=${engagementId}`);
+        throw new InternalServerErrorException(
+          'Invalid response from DefectDojo API',
+        );
+      }
+
+      return data;
+    } catch (error) {
+      throw this.logAxiosError(
+        `Failed to fetch engagement (id=${engagementId})`,
         error,
       );
     }
