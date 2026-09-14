@@ -8,7 +8,12 @@ import { VulnerabilitiesController } from './vulnerabilities.controller';
 import { VulnerabilitiesService } from './vulnerabilities.service';
 
 @Module({
-  imports: [DefectDojoModule, JiraModule, JiraDescriptionModule, SettingsModule],
+  imports: [
+    DefectDojoModule,
+    JiraModule,
+    JiraDescriptionModule,
+    SettingsModule,
+  ],
   providers: [VulnerabilitiesService],
   controllers: [VulnerabilitiesController],
   exports: [VulnerabilitiesService],

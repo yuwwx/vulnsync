@@ -8,12 +8,7 @@ type LogMetadata = Prisma.InputJsonValue;
 export class LogsService {
   constructor(private prisma: PrismaService) {}
 
-  async log(
-    action: string,
-    ip?: string,
-    userId?: string,
-    meta?: LogMetadata,
-  ) {
+  async log(action: string, ip?: string, userId?: string, meta?: LogMetadata) {
     return this.prisma.log.create({
       data: { action, ip, userId, meta },
     });

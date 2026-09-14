@@ -176,8 +176,8 @@ export class JiraDescriptionService {
 
     const groupSeverity = [...findings].sort(
       (a, b) =>
-        (severityOrder[b.severity ?? ""] ?? 0) -
-        (severityOrder[a.severity ?? ""] ?? 0),
+        (severityOrder[b.severity ?? ''] ?? 0) -
+        (severityOrder[a.severity ?? ''] ?? 0),
     )[0].severity;
 
     const vulnerabilities = findings

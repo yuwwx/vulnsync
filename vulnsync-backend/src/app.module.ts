@@ -15,10 +15,12 @@ import { JwtAuthGuard } from './common/guards/auth.guard';
 import { LogsModule } from './logs/logs.module';
 
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import path from 'node:path';
 import { RolesGuard } from './common/guards/roles.guard';
 import { MappingsModule } from './mappings/mappings.module';
 import { VulnerabilitySyncModule } from './vulnerability-sync/vulnerability-sync.module';
+import { ReportsModule } from './reports/reports.module';
 
 const envFile =
   process.env.NODE_ENV === 'development'
@@ -31,6 +33,7 @@ const envFile =
       isGlobal: true,
       envFilePath: envFile,
     }),
+    ScheduleModule.forRoot(),
     LogsModule,
     PrismaModule,
     AuthModule,
@@ -41,6 +44,7 @@ const envFile =
     DefectDojoModule,
     MappingsModule,
     VulnerabilitySyncModule,
+    ReportsModule,
   ],
   providers: [
     {

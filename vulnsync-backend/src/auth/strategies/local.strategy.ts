@@ -45,16 +45,11 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException();
     }
 
-    await this.logsService.log(
-      'LOGIN',
-      this.getRequestIp(req),
-      user.id,
-      {
-        result: 'SUCCESS',
-        username: username,
-        userAgent: req.headers['user-agent'],
-      },
-    );
+    await this.logsService.log('LOGIN', this.getRequestIp(req), user.id, {
+      result: 'SUCCESS',
+      username: username,
+      userAgent: req.headers['user-agent'],
+    });
 
     return user;
   }

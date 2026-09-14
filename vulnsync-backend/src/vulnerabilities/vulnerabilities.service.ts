@@ -2,7 +2,13 @@
 import { DefectDojoService } from '@/integrations/defectdojo/defectdojo.service';
 import { JiraDescriptionService } from '@/integrations/jira/jira-description.service';
 import { PrismaService } from '@/prisma/prisma.service';
-import { BadGatewayException, BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import https from 'https';
 import axios from 'axios';
 import { VulnerabilityListResponseDto } from './dto/vulnerability-list.dto';
@@ -93,32 +99,50 @@ export class VulnerabilitiesService {
 
   async askAi(findingIds: number[], messages: AiMessage[] = []) {
     const requestId = Math.random().toString(36).slice(2, 10);
-    this.logger.log(`[AI:${requestId}] request started: findings=${findingIds.length}, messages=${messages.length}`);
+    this.logger.log(
+      `[AI:${requestId}] request started: findings=${findingIds.length}, messages=${messages.length}`,
+    );
     const setting = await this.settingsService.getByType('ML');
     const apiUrl = setting.baseUrl;
     const token = await this.settingsService.getSecretByType('ML');
-    const configuredModel = (setting as unknown as { model?: string | null }).model;
+    const configuredModel = (setting as unknown as { model?: string | null })
+      .model;
     const model = configuredModel?.trim() || 'giga_GigaChat-2-Max';
 
     if (!apiUrl || !token) {
-      this.logger.error(`[AI:${requestId}] configuration is incomplete: URL or token is missing`);
-      throw new ServiceUnavailableException('AI не настроен: укажите URL ML и токен в настройках интеграций');
+      this.logger.error(
+        `[AI:${requestId}] configuration is incomplete: URL or token is missing`,
+      );
+      throw new ServiceUnavailableException(
+        'AI не настроен: укажите URL ML и токен в настройках интеграций',
+      );
     }
 
     this.logger.log(`[AI:${requestId}] loading findings from DefectDojo`);
     let findings;
     try {
-      findings = await Promise.all(findingIds.map((id) => this.defectDojo.getFinding(id)));
+      findings = await Promise.all(
+        findingIds.map((id) => this.defectDojo.getFinding(id)),
+      );
     } catch (error) {
-      this.logger.error(`[AI:${requestId}] failed to load findings`, error instanceof Error ? error.stack : undefined);
-      throw new BadGatewayException('Не удалось получить данные уязвимости из DefectDojo');
+      this.logger.error(
+        `[AI:${requestId}] failed to load findings`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new BadGatewayException(
+        'Не удалось получить данные уязвимости из DefectDojo',
+      );
     }
     this.logger.log(`[AI:${requestId}] findings loaded: ${findings.length}`);
     const vulnerabilityDescription = findings
-      .map((finding) => this.jiraDescriptionService.renderSingleFindingJiraDescription(finding))
+      .map((finding) =>
+        this.jiraDescriptionService.renderSingleFindingJiraDescription(finding),
+      )
       .join('\n\n---\n\n');
 
-    const systemPrompt = setting.systemPrompt || `Ты — опытный Application Security Engineer.
+    const systemPrompt =
+      setting.systemPrompt ||
+      `Ты — опытный Application Security Engineer.
 
 Проанализируй уязвимость и оцени, насколько она применима к моему проекту.
 
@@ -164,29 +188,43 @@ Frontend / Backend / Оба.
     ];
 
     const url = `${apiUrl.replace(/\/$/, '')}/api/v1/chat/completions`;
-    this.logger.log(`[AI:${requestId}] sending request: model=${model}, url=${url}`);
+    this.logger.log(
+      `[AI:${requestId}] sending request: model=${model}, url=${url}`,
+    );
     let response;
     try {
       response = await axios.post<AiCompletionResponse>(
         url,
         { model, messages: requestMessages },
         {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
           httpsAgent: new https.Agent({ rejectUnauthorized: false }),
         },
       );
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        this.logger.error(`[AI:${requestId}] ML request failed: status=${error.response?.status ?? 'network'}, message=${error.message}`);
+        this.logger.error(
+          `[AI:${requestId}] ML request failed: status=${error.response?.status ?? 'network'}, message=${error.message}`,
+        );
         if (error.response?.status === 401 || error.response?.status === 403) {
-          throw new ServiceUnavailableException('AI отклонил запрос: проверьте токен ML');
+          throw new ServiceUnavailableException(
+            'AI отклонил запрос: проверьте токен ML',
+          );
         }
         throw new BadGatewayException('Не удалось получить ответ от ML');
       }
-      this.logger.error(`[AI:${requestId}] unexpected ML request failure`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `[AI:${requestId}] unexpected ML request failure`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw new BadGatewayException('Ошибка при обращении к ML');
     }
-    this.logger.log(`[AI:${requestId}] response received: status=${response.status}`);
+    this.logger.log(
+      `[AI:${requestId}] response received: status=${response.status}`,
+    );
 
     const content = response.data.choices?.[0]?.message?.content;
     if (!content) {

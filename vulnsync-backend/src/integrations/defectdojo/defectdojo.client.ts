@@ -60,6 +60,17 @@ export class DefectDojoClient {
   }
 
   async getClient(): Promise<AxiosInstance> {
+    const config = await this.getConfig();
+
+    return axios.create({
+      baseURL: config.baseUrl,
+      headers: {
+        Authorization: `Token ${config.apiToken}`,
+      },
+    });
+  }
+
+  async getConfig() {
     const config = await this.prisma.integrationSetting.findFirst({
       where: { type: IntegrationType.DEFECTDOJO },
     });
@@ -71,12 +82,13 @@ export class DefectDojoClient {
       );
     }
 
-    return axios.create({
-      baseURL: config.baseUrl,
-      headers: {
-        Authorization: `Token ${config.apiToken}`,
-      },
-    });
+    return config;
+  }
+
+  async getBaseUrl(): Promise<string> {
+    const config = await this.getConfig();
+
+    return config.baseUrl.replace(/\/+$/, '');
   }
 
   async getProductTypes() {
