@@ -14,7 +14,7 @@
     "backend:build": "NODE_ENV=production npm --workspace vulnsync-backend run build",
     "backend:start": "NODE_ENV=production npm --workspace vulnsync-backend run start",
     "backend:test": "NODE_ENV=development npm --workspace vulnsync-backend run test",
-    "mock:ml360": "node scripts/mock-ml360-server.mjs",
+    "mock:ml": "node scripts/mock-ml-server.mjs",
     "lint": "npm-run-all frontend:lint backend:lint",
     "prisma:migrate:dev": "dotenv -e .env.dev -- npm --workspace vulnsync-backend run prisma:migrate:dev",
     "prisma:generate": "dotenv -e .env.dev -- npm --workspace vulnsync-backend run prisma:generate"
