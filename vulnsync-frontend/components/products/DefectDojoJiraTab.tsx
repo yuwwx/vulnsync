@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/useAuth";
-import { DefectDojoProductType } from "@/services/products.service";
+import { stripFields } from "@/lib/object";
+import { DefectDojoProductType } from "@/services/reference/defectdojo.service";
 import { JiraMapping, MappingsService } from "@/services/mappings.service";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -18,12 +19,6 @@ const SYSTEM_FIELDS = [
   "createdAt",
   "updatedAt",
 ] as const;
-
-function stripSystemFields<T extends object>(obj: T): T {
-  const copy = { ...obj } as T & Record<string, unknown>;
-  SYSTEM_FIELDS.forEach((f) => delete copy[f]);
-  return copy;
-}
 
 export default function DefectDojoJiraTab({ productType }: Props) {
   const [mapping, setMapping] = useState<JiraMapping | null>(null);
@@ -47,7 +42,7 @@ export default function DefectDojoJiraTab({ productType }: Props) {
     MappingsService.getJiraMapping(Number(productType.id))
       .then((map) => {
         setMapping(map);
-        setJsonText(map ? JSON.stringify(stripSystemFields(map), null, 2) : "");
+        setJsonText(map ? JSON.stringify(stripFields(map, SYSTEM_FIELDS), null, 2) : "");
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "Не удалось загрузить маппинг");
@@ -62,7 +57,7 @@ export default function DefectDojoJiraTab({ productType }: Props) {
     let payload: JiraMapping;
 
     try {
-      payload = stripSystemFields(JSON.parse(jsonText));
+      payload = stripFields(JSON.parse(jsonText), SYSTEM_FIELDS);
     } catch {
       setError("Некорректный JSON");
       setSaving(false);
@@ -83,7 +78,7 @@ export default function DefectDojoJiraTab({ productType }: Props) {
         : await MappingsService.createJiraMapping(payload);
 
       setMapping(saved);
-      setJsonText(JSON.stringify(stripSystemFields(saved), null, 2));
+      setJsonText(JSON.stringify(stripFields(saved, SYSTEM_FIELDS), null, 2));
 
       toast.success("Маппинг Jira успешно сохранён");
     } catch (err: unknown) {

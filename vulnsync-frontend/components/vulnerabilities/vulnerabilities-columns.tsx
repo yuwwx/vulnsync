@@ -14,8 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { vulnerabilityTableFeatures } from "./vulnerabilities-table-config";
-
-const severityOrder = ["Critical", "High", "Medium", "Low", "Info"];
+import { SEVERITY_ORDER } from "@/constants/severity";
 
 const severitySortFn = (
   rowA: Row<typeof vulnerabilityTableFeatures, Vulnerability>,
@@ -25,11 +24,32 @@ const severitySortFn = (
   const a = String(rowA.getValue(columnId) ?? "Info");
   const b = String(rowB.getValue(columnId) ?? "Info");
 
-  const indexA = severityOrder.indexOf(a);
-  const indexB = severityOrder.indexOf(b);
-
-  return indexA - indexB;
+  return SEVERITY_ORDER.indexOf(a) - SEVERITY_ORDER.indexOf(b);
 };
+
+// Минимальный набор для кнопки сортировки в шапке колонки
+interface SortableColumn {
+  toggleSorting: (desc?: boolean) => void;
+  getIsSorted: () => false | "asc" | "desc";
+}
+
+function SortButton({
+  label,
+  column,
+}: {
+  label: string;
+  column: SortableColumn;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+    >
+      {label}
+      <ArrowUpDown />
+    </Button>
+  );
+}
 
 export const vulnerabilityColumns = (
   onSendToJira: (vuln: Vulnerability) => void,
@@ -66,33 +86,13 @@ export const vulnerabilityColumns = (
   {
     accessorKey: "id",
     meta: { label: "ID" },
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          ID
-          <ArrowUpDown />
-        </Button>
-      );
-    },
+    header: ({ column }) => <SortButton label="ID" column={column} />,
     cell: ({ row }) => <span>{row.getValue("id")}</span>,
   },
   {
     accessorKey: "title",
     meta: { label: "Название" },
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Название
-          <ArrowUpDown />
-        </Button>
-      );
-    },
+    header: ({ column }) => <SortButton label="Название" column={column} />,
     cell: ({ row }) => {
       const vuln = row.original;
 
@@ -109,114 +109,52 @@ export const vulnerabilityColumns = (
   {
     accessorKey: "severity",
     meta: { label: "Критичность" },
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Критичность
-          <ArrowUpDown />
-        </Button>
-      );
-    },
+    header: ({ column }) => <SortButton label="Критичность" column={column} />,
     cell: ({ row }) => <SeverityBadge severity={row.getValue("severity")} />,
     sortFn: severitySortFn,
   },
   {
     accessorKey: "product",
     meta: { label: "Продукт" },
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Продукт
-          <ArrowUpDown />
-        </Button>
-      );
-    },
+    header: ({ column }) => <SortButton label="Продукт" column={column} />,
     cell: ({ row }) => <span>{row.getValue("product")}</span>,
   },
   {
     accessorKey: "cvssv3_score",
     meta: { label: "CVSSv3 Score" },
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          CVSSv3 Score
-          <ArrowUpDown />
-        </Button>
-      );
-    },
+    header: ({ column }) => (
+      <SortButton label="CVSSv3 Score" column={column} />
+    ),
     cell: ({ row }) => <span>{row.getValue("cvssv3_score")}</span>,
   },
   {
     accessorKey: "cvssv4_score",
     meta: { label: "CVSSv4 Score" },
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          CVSSv4 Score
-          <ArrowUpDown />
-        </Button>
-      );
-    },
+    header: ({ column }) => (
+      <SortButton label="CVSSv4 Score" column={column} />
+    ),
     cell: ({ row }) => <span>{row.getValue("cvssv4_score")}</span>,
   },
   {
     accessorKey: "creation_date",
     meta: { label: "Дата создания" },
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Дата создания
-          <ArrowUpDown />
-        </Button>
-      );
-    },
+    header: ({ column }) => (
+      <SortButton label="Дата создания" column={column} />
+    ),
     cell: ({ row }) => <span>{row.getValue("creation_date")}</span>,
   },
   {
     accessorKey: "status",
     meta: { label: "Статус" },
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Статус
-          <ArrowUpDown />
-        </Button>
-      );
-    },
+    header: ({ column }) => <SortButton label="Статус" column={column} />,
     cell: ({ row }) => <StatusBadge status={row.getValue("status")} />,
   },
   {
     accessorKey: "jiraIssueKey",
     meta: { label: "Идентификатор в Jira" },
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Идентификатор в Jira
-          <ArrowUpDown />
-        </Button>
-      );
-    },
+    header: ({ column }) => (
+      <SortButton label="Идентификатор в Jira" column={column} />
+    ),
     cell: ({ row }) => <span>{row.getValue("jiraIssueKey")}</span>,
   },
   {

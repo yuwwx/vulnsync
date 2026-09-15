@@ -1,3 +1,4 @@
+import { severityWeight } from '@/common/severity';
 import { Injectable } from '@nestjs/common';
 
 export type JiraDescriptionData = {
@@ -167,17 +168,8 @@ export class JiraDescriptionService {
 
     const groupName = this.buildBulkFindingsSummary(findings);
 
-    const severityOrder = {
-      Critical: 4,
-      High: 3,
-      Medium: 2,
-      Low: 1,
-    };
-
     const groupSeverity = [...findings].sort(
-      (a, b) =>
-        (severityOrder[b.severity ?? ''] ?? 0) -
-        (severityOrder[a.severity ?? ''] ?? 0),
+      (a, b) => severityWeight(b.severity) - severityWeight(a.severity),
     )[0].severity;
 
     const vulnerabilities = findings

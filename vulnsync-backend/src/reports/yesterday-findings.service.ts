@@ -4,6 +4,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
+import { severityWeight } from '@/common/severity';
 import { DefectDojoClient } from '@/integrations/defectdojo/defectdojo.client';
 import { parseEmailList } from '@/notifications/product-type-notifications.service';
 import { ProductTypeNotificationsService } from '@/notifications/product-type-notifications.service';
@@ -19,14 +20,6 @@ import {
 } from './report-templates';
 
 type Finding = Record<string, unknown>;
-
-const SEVERITY_ORDER: Record<string, number> = {
-  Critical: 5,
-  High: 4,
-  Medium: 3,
-  Low: 2,
-  Info: 1,
-};
 
 const REPORT_SEVERITIES = ['Critical', 'High', 'Medium', 'Low'] as const;
 
@@ -91,7 +84,7 @@ function asBool(value: unknown): boolean | null {
 }
 
 function severityRank(finding?: Finding): number {
-  return SEVERITY_ORDER[asString(finding?.severity)] ?? 0;
+  return severityWeight(asString(finding?.severity));
 }
 
 // Component для SCA-findings: pkg:maven/org.apache.tomcat.embed/...

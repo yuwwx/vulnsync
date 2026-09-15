@@ -1,53 +1,13 @@
 import { api } from "./api";
 
-// Типы
-export interface DefectDojoProduct {
-  id: number;
-  name: string;
-}
-
-export interface DefectDojoProductType {
-  id: number;
-  name: string;
-}
-
-export interface DependencyTrackProject {
-  id: string;
-  name: string;
-}
-
+// Действия над интеграциями, которые не являются просто чтением справочников
+// (справочники — в services/reference/).
 export type DefectDojoFinding = Record<string, unknown>;
 
-// Сервис
 export const ProductsService = {
-  // DefectDojo
-  async getDefectDojoProductTypes(): Promise<DefectDojoProductType[]> {
-    const { data } = await api.get<DefectDojoProductType[]>(
-      "/integrations/defectdojo/product-types",
-    );
-    return data;
-  },
-
-  async getDefectDojoProducts(
-    productTypeId: number,
-  ): Promise<DefectDojoProductType[]> {
-    const { data } = await api.get("/integrations/defectdojo/products", {
-      params: { productTypeId },
-    });
-    return data;
-  },
-
   async getDefectDojoFinding(id: number): Promise<DefectDojoFinding> {
     const { data } = await api.get<DefectDojoFinding>(
       `/integrations/defectdojo/finding/${id}`,
-    );
-    return data;
-  },
-
-  // Dependency-Track
-  async getDependencyTrackProjects(): Promise<DependencyTrackProject[]> {
-    const { data } = await api.get<DependencyTrackProject[]>(
-      "/integrations/dependency-track/projects",
     );
     return data;
   },

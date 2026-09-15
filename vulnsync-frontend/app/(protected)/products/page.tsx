@@ -7,8 +7,8 @@ import EngagementNotificationsTab from "@/components/products/EngagementNotifica
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DefectDojoProductType,
-  ProductsService,
-} from "@/services/products.service";
+  DefectDojoReferenceService,
+} from "@/services/reference/defectdojo.service";
 import { useEffect, useState } from "react";
 
 type ProductTab =
@@ -26,7 +26,7 @@ export default function ProductsPage() {
 
   // Загружаем список продуктов
   useEffect(() => {
-    ProductsService.getDefectDojoProductTypes()
+    DefectDojoReferenceService.getProductTypes()
       .then(setProducts)
       .catch((err) =>
         setError(`Не удалось получить типы продуктов из DefectDojo: ${err}`),

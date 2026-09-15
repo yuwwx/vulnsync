@@ -12,6 +12,7 @@ import {
 import https from 'https';
 import axios from 'axios';
 import { VulnerabilityListResponseDto } from './dto/vulnerability-list.dto';
+import { DEFAULT_AI_SYSTEM_PROMPT } from './ai-prompt';
 import { plainToInstance } from 'class-transformer';
 import { SettingsService } from '@/settings/settings.service';
 
@@ -140,46 +141,7 @@ export class VulnerabilitiesService {
       )
       .join('\n\n---\n\n');
 
-    const systemPrompt =
-      setting.systemPrompt ||
-      `Ты — опытный Application Security Engineer.
-
-Проанализируй уязвимость и оцени, насколько она применима к моему проекту.
-
-Ответь в следующем формате:
-
-1. Кратко:
-Что это за уязвимость и какой компонент затрагивает.
-
-2. Затрагиваемый тип проекта:
-Frontend / Backend / Оба.
-Объясни почему.
-
-3. Условия эксплуатации:
-- какие версии зависимости уязвимы;
-- требуется ли использование конкретного функционала;
-- может ли быть использована в production;
-- влияет ли только на dev-зависимости;
-- распространяется ли риск через транзитивные зависимости.
-
-4. Что проверить в проекте:
-Укажи конкретно:
-- файлы (package.json, package-lock.json, yarn.lock и т.д.);
-- настройки;
-- использование уязвимого функционала в коде.
-
-5. Оценка применимости:
-Выбери один вариант:
-- ✅ Не применима
-- ⚠️ Требует проверки
-- 🔴 Применима
-
-Объясни причину.
-
-6. Дополнительная информация:
-Если недостаточно данных — укажи, что именно нужно предоставить для окончательной оценки.
-
-Не пересказывай полное описание уязвимости. Основная цель — определить реальный риск для проекта и необходимые проверки.`;
+    const systemPrompt = setting.systemPrompt || DEFAULT_AI_SYSTEM_PROMPT;
 
     const requestMessages = [
       { role: 'system' as const, content: systemPrompt },

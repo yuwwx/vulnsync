@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/useAuth";
-import { DefectDojoProductType } from "@/services/products.service";
+import { DefectDojoProductType } from "@/services/reference/defectdojo.service";
 import {
   NotificationsService,
   ProductTypeNotification,

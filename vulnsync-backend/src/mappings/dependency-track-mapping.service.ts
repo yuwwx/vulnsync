@@ -30,7 +30,9 @@ export class DependencyTrackMappingsService {
       where: { id },
     });
     if (!mapping) {
-      throw new NotFoundException(`Jira mapping with id ${id} not found`);
+      throw new NotFoundException(
+        `Dependency-Track mapping with id ${id} not found`,
+      );
     }
     return mapping;
   }

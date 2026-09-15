@@ -3,11 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/useAuth";
+import { stripFields } from "@/lib/object";
 import {
   DefectDojoProduct,
   DefectDojoProductType,
-  ProductsService,
-} from "@/services/products.service";
+  DefectDojoReferenceService,
+} from "@/services/reference/defectdojo.service";
+import { ProductsService } from "@/services/products.service";
 import {
   DependencyTrackMapping,
   MappingsService,
@@ -28,12 +30,6 @@ interface Props {
 
 const SYSTEM_FIELDS = ["id", "ddProductId", "createdAt", "updatedAt"] as const;
 
-function stripSystemFields<T extends object>(obj: T): T {
-  const copy = { ...obj } as T & Record<string, unknown>;
-  SYSTEM_FIELDS.forEach((f) => delete copy[f]);
-  return copy;
-}
-
 export default function DependencyTrackTab({ productType }: Props) {
   const [mapping, setMapping] = useState<DependencyTrackMapping | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +46,7 @@ export default function DependencyTrackTab({ productType }: Props) {
     setError(null);
     setMapping(null);
 
-    ProductsService.getDefectDojoProducts(productType.id)
+    DefectDojoReferenceService.getProducts(productType.id)
       .then((prods) => {
         setProducts(prods);
 
@@ -109,7 +105,7 @@ export default function DependencyTrackTab({ productType }: Props) {
       const saved = mapping.id
         ? await MappingsService.updateDependencyTrackMapping(
             mapping.id,
-            stripSystemFields(mapping),
+            stripFields(mapping, SYSTEM_FIELDS),
           )
         : await MappingsService.createDependencyTrackMapping(mapping);
 

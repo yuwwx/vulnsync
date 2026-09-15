@@ -1,48 +1,19 @@
 "use client";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { AiChatDialog } from "@/components/vulnerabilities/AiChatDialog";
+import { DescriptionDialog } from "@/components/vulnerabilities/DescriptionDialog";
+import { JiraLinkDialog } from "@/components/vulnerabilities/JiraLinkDialog";
+import { SeverityDialog } from "@/components/vulnerabilities/SeverityDialog";
 import { vulnerabilityColumns } from "@/components/vulnerabilities/vulnerabilities-columns";
 import { VulnerabilitiesTable } from "@/components/vulnerabilities/vulnerabilities-table";
 import {
   DefectDojoProductType,
-  ProductsService,
-} from "@/services/products.service";
-import {
-  VulnerabilitiesService,
-  Vulnerability,
-  AiMessage,
-} from "@/services/vulnerabilities.service";
-import { DefectDojoFinding } from "@/services/products.service";
+  DefectDojoReferenceService,
+} from "@/services/reference/defectdojo.service";
+import { Vulnerability, VulnerabilitiesService } from "@/services/vulnerabilities.service";
 import { VulnerabilitySyncService } from "@/services/vulnerability-sync.service";
-import { Check, Copy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-
-const SEVERITY_OPTIONS = ["Critical", "High", "Medium", "Low", "Info"];
 
 export default function VulnerabilitiesPage() {
   const [productTypes, setProductTypes] = useState<DefectDojoProductType[]>([]);
@@ -57,119 +28,105 @@ export default function VulnerabilitiesPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [activeVuln, setActiveVuln] = useState<Vulnerability | null>(null);
-  const [openDescription, setOpenDescription] = useState(false);
 
-  const [rawFinding, setRawFinding] = useState<DefectDojoFinding | null>(null);
-  const [rawLoading, setRawLoading] = useState(false);
+  const [openAiChat, setOpenAiChat] = useState(false);
+  const [aiFindingIds, setAiFindingIds] = useState<number[]>([]);
+
+  const [openDescription, setOpenDescription] = useState(false);
+  const [descriptionFindingIds, setDescriptionFindingIds] = useState<number[]>(
+    [],
+  );
+  const [isBulkDescription, setIsBulkDescription] = useState(false);
 
   const [openJiraLink, setOpenJiraLink] = useState(false);
   const [isBulkJiraLink, setIsBulkJiraLink] = useState(false);
+  const [linkSaving, setLinkSaving] = useState(false);
 
-  const [copied, setCopied] = useState(false);
-
-  const [description, setDescription] = useState<string>("");
-  const [loadingDescription, setLoadingDescription] = useState(false);
-
-  const [isBulk, setIsBulk] = useState(false);
-
-  const [jiraKey, setJiraKey] = useState<string>("");
-  const [linkLoading, setLinkLoading] = useState(false);
   const [openSeverityChange, setOpenSeverityChange] = useState(false);
   const [isBulkSeverityChange, setIsBulkSeverityChange] = useState(false);
-  const [severity, setSeverity] = useState("");
-  const [severityLoading, setSeverityLoading] = useState(false);
-  const [openAiChat, setOpenAiChat] = useState(false);
-  const [aiFindingIds, setAiFindingIds] = useState<number[]>([]);
-  const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
+  const [severitySaving, setSeveritySaving] = useState(false);
 
-  const askAi = async (findingIds: number[], messages: AiMessage[] = []) => {
-    setAiLoading(true);
-    try {
-      const { message } = await VulnerabilitiesService.askAi(findingIds, messages);
-      setAiMessages((current) => [...current, message]);
-    } catch (err) {
-      const response = (err as { response?: { data?: { message?: string | string[] } } }).response;
-      const message = response?.data?.message;
-      toast.error(Array.isArray(message) ? message.join(", ") : message || "Не удалось получить ответ AI");
-    } finally {
-      setAiLoading(false);
-    }
+  useEffect(() => {
+    DefectDojoReferenceService.getProductTypes()
+      .then(setProductTypes)
+      .catch(() =>
+        setError("Не удалось получить типы продуктов из DefectDojo"),
+      );
+  }, []);
+
+  const loadVulnerabilities = (product: DefectDojoProductType) => {
+    setSelectedProductTypeId(product.id);
+    setLoadingVulns(true);
+
+    // Загружаем все уязвимости продукта разом: клиентские фильтры и пагинация
+    // работают по этому списку.
+    VulnerabilitiesService.getVulnerabilities(product.id, 1, 10000)
+      .then((resp) => {
+        setVulns(resp.data.map((v) => ({ ...v, productId: product.id })));
+      })
+      .catch(() => {
+        setError("Не удалось получить уязвимости");
+      })
+      .finally(() => setLoadingVulns(false));
   };
 
+  // --- Спросить у AI ---
+
   const handleAskAi = (vuln: Vulnerability) => {
-    setActiveVuln(vuln);
     setAiFindingIds([vuln.id]);
-    setAiMessages([]);
-    setAiPrompt("");
     setOpenAiChat(true);
-    void askAi([vuln.id]);
   };
 
   const handleBulkAskAi = () => {
-    const findingIds = selectedVulns.map((vuln) => vuln.id);
-    setActiveVuln(null);
-    setAiFindingIds(findingIds);
-    setAiMessages([]);
-    setAiPrompt("");
+    setAiFindingIds(selectedVulns.map((vuln) => vuln.id));
     setOpenAiChat(true);
-    void askAi(findingIds);
   };
 
-  const handleSendAiPrompt = async () => {
-    const content = aiPrompt.trim();
-    if (!content || aiLoading) return;
-    const userMessage: AiMessage = { role: "user", content };
-    setAiPrompt("");
-    setAiMessages((current) => [...current, userMessage]);
-    await askAi(aiFindingIds, [...aiMessages, userMessage]);
-  };
+  // --- Описание для Jira ---
 
-  const handleGenerateDescription = async (vuln: Vulnerability) => {
-    setIsBulk(false);
-    setActiveVuln(vuln);
-
-    setRawFinding(null);
-    setDescription("");
-    setLoadingDescription(true);
-
+  const handleGenerateDescription = (vuln: Vulnerability) => {
+    setIsBulkDescription(false);
+    setDescriptionFindingIds([vuln.id]);
     setOpenDescription(true);
-
-    try {
-      const { description } =
-        await VulnerabilitiesService.previewJiraDescription([vuln.id]);
-      setDescription(description);
-    } catch {
-      toast.error("Не удалось сгенерировать описание");
-    } finally {
-      setLoadingDescription(false);
-    }
   };
 
-  const handleBulkGenerateDescription = async () => {
-    setIsBulk(true);
-    setActiveVuln(null);
-
-    setRawFinding(null);
-    setDescription("");
-    setLoadingDescription(true);
-
+  const handleBulkGenerateDescription = () => {
+    setIsBulkDescription(true);
+    setDescriptionFindingIds(selectedVulns.map((v) => v.id));
     setOpenDescription(true);
+  };
 
-    try {
-      const { description } =
-        await VulnerabilitiesService.previewJiraDescription(
-          selectedVulns.map((v) => v.id),
+  // --- Отправка в Jira (создание новой задачи) ---
+
+  const handleSendToJira = useCallback(
+    async (vuln: Vulnerability) => {
+      if (!selectedProductTypeId) return;
+
+      try {
+        const response = await VulnerabilitySyncService.createJiraIssue({
+          findingId: vuln.id,
+          ddProductTypeId: selectedProductTypeId,
+        });
+
+        setVulns((prev) =>
+          prev.map((v) =>
+            v.id === vuln.id
+              ? {
+                  ...v,
+                  status: "Назначена",
+                  jiraIssueKey: response?.jiraIssueKey,
+                }
+              : v,
+          ),
         );
 
-      setDescription(description);
-    } catch {
-      toast.error("Не удалось сгенерировать описание");
-    } finally {
-      setLoadingDescription(false);
-    }
-  };
+        toast.success("Jira issue создан");
+      } catch (error) {
+        toast.error(`Не удалось создать Jira issue`);
+      }
+    },
+    [selectedProductTypeId],
+  );
 
   const handleBulkSendToJira = useCallback(async () => {
     if (!selectedProductTypeId || selectedVulns.length === 0) return;
@@ -190,7 +147,6 @@ export default function VulnerabilitiesPage() {
 
       const vulnIds = new Set(selectedVulns.map((v) => v.id));
 
-      // Обновляем все выбранные уязвимости
       setVulns((prev) =>
         prev.map((v) =>
           vulnIds.has(v.id) ? { ...v, status: "Назначена", jiraIssueKey } : v,
@@ -203,46 +159,57 @@ export default function VulnerabilitiesPage() {
     }
   }, [selectedProductTypeId, selectedVulns]);
 
-  const handleSendToJira = useCallback(
-    async (vuln: Vulnerability) => {
-      if (selectedProductTypeId) {
-        try {
-          const response = await VulnerabilitySyncService.createJiraIssue({
-            findingId: vuln.id,
-            ddProductTypeId: selectedProductTypeId,
-          });
+  // --- Связь с Jira (привязка к существующей задаче) ---
 
-          setVulns((prev) =>
-            prev.map((v) =>
-              v.id === vuln.id
-                ? {
-                    ...v,
-                    status: "Назначена",
-                    jiraIssueKey: response?.jiraIssueKey,
-                  }
-                : v,
-            ),
-          );
+  const handleLinkWithJira = (vuln: Vulnerability) => {
+    setActiveVuln(vuln);
+    setIsBulkJiraLink(false);
+    setOpenJiraLink(true);
+  };
 
-          toast.success("Jira issue создан");
-        } catch (error) {
-          toast.error(`Не удалось создать Jira issue`);
-        }
-      }
-    },
-    [selectedProductTypeId],
-  );
+  const handleBulkLinkWithJira = () => {
+    setActiveVuln(null);
+    setIsBulkJiraLink(true);
+    setOpenJiraLink(true);
+  };
 
-  const handleSaveJiraLink = async () => {
+  const handleSaveJiraLink = async (jiraKey: string) => {
     if (isBulkJiraLink) {
-      await handleSaveBulkJiraLink();
+      if (selectedVulns.length === 0 || !jiraKey) return;
+
+      setLinkSaving(true);
+      try {
+        const response = await VulnerabilitySyncService.executeCommand({
+          action: "link",
+          findingIds: selectedVulns.map((vuln) => vuln.id),
+          jiraIssueKey: jiraKey,
+        });
+        const successfulIds = new Set(
+          response.results
+            .filter((result) => result.status === "success")
+            .map((result) => result.findingId),
+        );
+
+        setVulns((prev) =>
+          prev.map((v) =>
+            successfulIds.has(v.id)
+              ? { ...v, status: "Назначена", jiraIssueKey: jiraKey }
+              : v,
+          ),
+        );
+        toast.success(
+          `Связано с Jira: ${response.succeeded} из ${response.total}`,
+        );
+        setOpenJiraLink(false);
+      } finally {
+        setLinkSaving(false);
+      }
       return;
     }
 
     if (!activeVuln) return;
 
-    setLinkLoading(true);
-
+    setLinkSaving(true);
     try {
       const command = await VulnerabilitySyncService.executeCommand({
         action: "link",
@@ -272,15 +239,11 @@ export default function VulnerabilitiesPage() {
     } catch {
       toast.error("Не удалось связать с Jira");
     } finally {
-      setLinkLoading(false);
+      setLinkSaving(false);
     }
   };
 
-  const handleLinkWithJira = async (vuln: Vulnerability) => {
-    setActiveVuln(vuln);
-    setIsBulkJiraLink(false);
-    setOpenJiraLink(true);
-  };
+  // --- Синхронизация статуса с Jira ---
 
   const handleSyncWithJira = async (vuln: Vulnerability) => {
     try {
@@ -321,7 +284,9 @@ export default function VulnerabilitiesPage() {
       });
 
       if (response.results[0]?.status !== "success") {
-        throw new Error(response.results[0]?.error || "Не удалось отвязать от Jira");
+        throw new Error(
+          response.results[0]?.error || "Не удалось отвязать от Jira",
+        );
       }
 
       setVulns((prev) =>
@@ -336,84 +301,6 @@ export default function VulnerabilitiesPage() {
     } catch {
       toast.error("Не удалось отвязать от Jira");
     }
-  };
-
-  const handleChangeSeverity = (vuln: Vulnerability) => {
-    setActiveVuln(vuln);
-    setIsBulkSeverityChange(false);
-    setSeverity(vuln.severity);
-    setOpenSeverityChange(true);
-  };
-
-  const handleSaveSeverity = async () => {
-    if (isBulkSeverityChange) {
-      await handleSaveBulkSeverity();
-      return;
-    }
-
-    if (!activeVuln || !severity) return;
-
-    setSeverityLoading(true);
-    try {
-      const response = await VulnerabilitySyncService.executeCommand({
-        action: "severity",
-        findingIds: [activeVuln.id],
-        severity,
-      });
-      const result = response.results[0];
-
-      if (result?.status !== "success") {
-        throw new Error(result?.error || "Не удалось изменить критичность");
-      }
-
-      setVulns((prev) =>
-        prev.map((v) =>
-          v.id === activeVuln.id
-            ? { ...v, severity: result.severity ?? v.severity }
-            : v,
-        ),
-      );
-      toast.success("Критичность изменена, finding отмечен как Verified");
-      setOpenSeverityChange(false);
-    } catch {
-      toast.error("Не удалось изменить критичность");
-    } finally {
-      setSeverityLoading(false);
-    }
-  };
-
-  const handleBulkLinkWithJira = () => {
-    setActiveVuln(null);
-    setIsBulkJiraLink(true);
-    setOpenJiraLink(true);
-  };
-
-  const handleSaveBulkJiraLink = async () => {
-    if (selectedVulns.length === 0 || !jiraKey.trim()) return;
-
-    setLinkLoading(true);
-    const response = await VulnerabilitySyncService.executeCommand({
-      action: "link",
-      findingIds: selectedVulns.map((vuln) => vuln.id),
-      jiraIssueKey: jiraKey.trim(),
-    });
-    const successfulIds = new Set(
-      response.results
-        .filter((result) => result.status === "success")
-        .map((result) => result.findingId),
-    );
-
-    setVulns((prev) =>
-      prev.map((v) =>
-        successfulIds.has(v.id)
-          ? { ...v, status: "Назначена", jiraIssueKey: jiraKey.trim() }
-          : v,
-      ),
-    );
-    toast.success(`Связано с Jira: ${response.succeeded} из ${response.total}`);
-    setOpenJiraLink(false);
-    setJiraKey("");
-    setLinkLoading(false);
   };
 
   const handleBulkSyncWithJira = async () => {
@@ -458,58 +345,84 @@ export default function VulnerabilitiesPage() {
           : v,
       ),
     );
-    toast.success(`Отвязано от Jira: ${response.succeeded} из ${response.total}`);
+    toast.success(
+      `Отвязано от Jira: ${response.succeeded} из ${response.total}`,
+    );
+  };
+
+  // --- Критичность ---
+
+  const handleChangeSeverity = (vuln: Vulnerability) => {
+    setActiveVuln(vuln);
+    setIsBulkSeverityChange(false);
+    setOpenSeverityChange(true);
   };
 
   const handleBulkChangeSeverity = () => {
     setActiveVuln(null);
     setIsBulkSeverityChange(true);
-    setSeverity("");
     setOpenSeverityChange(true);
   };
 
-  const handleSaveBulkSeverity = async () => {
-    if (selectedVulns.length === 0 || !severity) return;
+  const handleSaveSeverity = async (severity: string) => {
+    if (isBulkSeverityChange) {
+      if (selectedVulns.length === 0 || !severity) return;
 
-    setSeverityLoading(true);
-    const response = await VulnerabilitySyncService.executeCommand({
-      action: "severity",
-      findingIds: selectedVulns.map((vuln) => vuln.id),
-      severity,
-    });
-    const successfulIds = new Set(
-      response.results
-        .filter((result) => result.status === "success")
-        .map((result) => result.findingId),
-    );
-    setVulns((prev) =>
-      prev.map((v) =>
-        successfulIds.has(v.id) ? { ...v, severity } : v,
-      ),
-    );
-    toast.success(`Критичность изменена: ${response.succeeded} из ${response.total}`);
-    setOpenSeverityChange(false);
-    setSeverity("");
-    setSeverityLoading(false);
-  };
+      setSeveritySaving(true);
+      try {
+        const response = await VulnerabilitySyncService.executeCommand({
+          action: "severity",
+          findingIds: selectedVulns.map((vuln) => vuln.id),
+          severity,
+        });
+        const successfulIds = new Set(
+          response.results
+            .filter((result) => result.status === "success")
+            .map((result) => result.findingId),
+        );
+        setVulns((prev) =>
+          prev.map((v) =>
+            successfulIds.has(v.id) ? { ...v, severity } : v,
+          ),
+        );
+        toast.success(
+          `Критичность изменена: ${response.succeeded} из ${response.total}`,
+        );
+        setOpenSeverityChange(false);
+      } finally {
+        setSeveritySaving(false);
+      }
+      return;
+    }
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(description);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
+    if (!activeVuln || !severity) return;
 
-  const loadRawFinding = async () => {
-    if (!activeVuln || rawFinding || rawLoading) return;
-
-    setRawLoading(true);
+    setSeveritySaving(true);
     try {
-      const raw = await ProductsService.getDefectDojoFinding(activeVuln.id);
-      setRawFinding(raw);
+      const response = await VulnerabilitySyncService.executeCommand({
+        action: "severity",
+        findingIds: [activeVuln.id],
+        severity,
+      });
+      const result = response.results[0];
+
+      if (result?.status !== "success") {
+        throw new Error(result?.error || "Не удалось изменить критичность");
+      }
+
+      setVulns((prev) =>
+        prev.map((v) =>
+          v.id === activeVuln.id
+            ? { ...v, severity: result.severity ?? v.severity }
+            : v,
+        ),
+      );
+      toast.success("Критичность изменена, finding отмечен как Verified");
+      setOpenSeverityChange(false);
     } catch {
-      toast.error("Не удалось загрузить исходные данные");
+      toast.error("Не удалось изменить критичность");
     } finally {
-      setRawLoading(false);
+      setSeveritySaving(false);
     }
   };
 
@@ -534,28 +447,6 @@ export default function VulnerabilitiesPage() {
       handleAskAi,
     ],
   );
-
-  useEffect(() => {
-    ProductsService.getDefectDojoProductTypes()
-      .then(setProductTypes)
-      .catch(() =>
-        setError("Не удалось получить типы продуктов из DefectDojo"),
-      );
-  }, []);
-
-  const loadVulnerabilities = (product: DefectDojoProductType) => {
-    setSelectedProductTypeId(product.id);
-    setLoadingVulns(true);
-
-    VulnerabilitiesService.getVulnerabilities(product.id, 1, 10000)
-      .then((resp) => {
-        setVulns(resp.data.map((v) => ({ ...v, productId: product.id })));
-      })
-      .catch(() => {
-        setError("Не удалось получить уязвимости");
-      })
-      .finally(() => setLoadingVulns(false));
-  };
 
   return (
     <>
@@ -634,240 +525,64 @@ export default function VulnerabilitiesPage() {
         </div>
       </div>
 
-      <Dialog
+      <AiChatDialog
         open={openAiChat}
         onOpenChange={(open) => {
           setOpenAiChat(open);
           if (!open) {
-            setAiMessages([]);
-            setAiPrompt("");
             setAiFindingIds([]);
             setActiveVuln(null);
           }
         }}
-      >
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Спросить у AI</DialogTitle>
-            <DialogDescription>
-              Анализ уязвимости и продолжение диалога с Application Security Engineer.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 max-h-[55vh] space-y-4 overflow-y-auto rounded-md border p-4">
-            {aiMessages.length === 0 && !aiLoading && (
-              <div className="text-sm text-muted-foreground">Подготавливаем анализ...</div>
-            )}
-            {aiMessages.map((message, index) => (
-              <div
-                key={`${message.role}-${index}`}
-                className={message.role === "user" ? "ml-8 rounded-md bg-muted p-3" : "mr-8 rounded-md bg-blue-50 p-3"}
-              >
-                <div className="mb-1 text-xs font-medium text-muted-foreground">
-                  {message.role === "user" ? "Вы" : "AI"}
-                </div>
-                <div className="whitespace-pre-wrap text-sm">{message.content}</div>
-              </div>
-            ))}
-            {aiLoading && <div className="text-sm text-muted-foreground">AI печатает...</div>}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={aiPrompt}
-              onChange={(event) => setAiPrompt(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  void handleSendAiPrompt();
-                }
-              }}
-              placeholder="Задайте уточняющий вопрос..."
-              disabled={aiLoading}
-            />
-            <Button onClick={() => void handleSendAiPrompt()} disabled={!aiPrompt.trim() || aiLoading}>
-              Отправить
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        findingIds={aiFindingIds}
+      />
 
-      <Dialog
+      <DescriptionDialog
         open={openDescription}
         onOpenChange={(open) => {
           setOpenDescription(open);
           if (!open) {
-            setActiveVuln(null);
-            setRawFinding(null);
-            setIsBulk(false);
+            setDescriptionFindingIds([]);
+            setIsBulkDescription(false);
           }
         }}
-      >
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Описание уязвимости</DialogTitle>
-          </DialogHeader>
+        findingIds={descriptionFindingIds}
+        isBulk={isBulkDescription}
+      />
 
-          {(activeVuln || isBulk) && (
-            <>
-              <div className="space-y-4 text-sm">
-                {loadingDescription ? (
-                  <div>Загрузка...</div>
-                ) : (
-                  description
-                    .split("\n")
-                    .map((line, i) => <div key={i}>{line || "\u00A0"}</div>)
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopy}
-                  className="flex gap-2"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4 text-green-600" />
-                      Скопировано
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Скопировать
-                    </>
-                  )}
-                </Button>
-                {!isBulk && (
-                  <Accordion
-                    type="single"
-                    collapsible
-                    onValueChange={(value) => {
-                      if (value === "raw") {
-                        loadRawFinding();
-                      }
-                    }}
-                  >
-                    <AccordionItem value="raw">
-                      <AccordionTrigger>
-                        Исходные данные (JSON)
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        {rawLoading ? (
-                          <div className="text-sm text-muted-foreground">
-                            Загрузка…
-                          </div>
-                        ) : (
-                          <pre className="bg-muted p-3 rounded-md h-[60vh] overflow-auto break-words whitespace-pre-wrap">
-                            {rawFinding
-                              ? JSON.stringify(rawFinding, null, 2)
-                              : "—"}
-                          </pre>
-                        )}
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
+      <JiraLinkDialog
         open={openJiraLink}
         onOpenChange={(open) => {
           setOpenJiraLink(open);
           if (!open) {
             setActiveVuln(null);
-            setJiraKey("");
             setIsBulkJiraLink(false);
           }
         }}
-      >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Связать с Jira</DialogTitle>
-            <DialogDescription>
-              {isBulkJiraLink
-                ? `Укажите ключ задачи для ${selectedVulns.length} уязвимостей`
-                : "Укажите ключ задачи"}
-            </DialogDescription>
-          </DialogHeader>
+        isBulk={isBulkJiraLink}
+        selectedCount={selectedVulns.length}
+        saving={linkSaving}
+        canSave={Boolean(activeVuln) || isBulkJiraLink}
+        onSave={handleSaveJiraLink}
+      />
 
-          <div className="grid gap-3">
-            <Label>Key</Label>
-            <Input
-              placeholder="PROJECT-..."
-              value={jiraKey}
-              onChange={(e) => setJiraKey(e.target.value)}
-            />
-          </div>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Отмена</Button>
-            </DialogClose>
-            <Button
-              onClick={handleSaveJiraLink}
-              disabled={(!activeVuln && !isBulkJiraLink) || linkLoading}
-            >
-              {linkLoading ? "Сохранение..." : "Сохранить"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
+      <SeverityDialog
+        key={`${openSeverityChange}-${activeVuln?.id ?? "bulk"}`}
         open={openSeverityChange}
         onOpenChange={(open) => {
           setOpenSeverityChange(open);
           if (!open) {
             setActiveVuln(null);
-            setSeverity("");
             setIsBulkSeverityChange(false);
           }
         }}
-      >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Изменить критичность</DialogTitle>
-            <DialogDescription>
-              {isBulkSeverityChange
-                ? `Новая критичность будет применена к ${selectedVulns.length} уязвимостям.`
-                : "Новая критичность будет сохранена в DefectDojo, а finding отмечен как Verified."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-3">
-            <Label htmlFor="severity">Критичность</Label>
-            <Select value={severity} onValueChange={setSeverity}>
-              <SelectTrigger id="severity">
-                <SelectValue placeholder="Выберите критичность" />
-              </SelectTrigger>
-              <SelectContent>
-                {SEVERITY_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Отмена</Button>
-            </DialogClose>
-            <Button
-              onClick={handleSaveSeverity}
-              disabled={
-                (!activeVuln && !isBulkSeverityChange) ||
-                !severity ||
-                severityLoading
-              }
-            >
-              {severityLoading ? "Сохранение..." : "Сохранить"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        isBulk={isBulkSeverityChange}
+        selectedCount={selectedVulns.length}
+        currentSeverity={activeVuln?.severity ?? ""}
+        saving={severitySaving}
+        canSave={Boolean(activeVuln) || isBulkSeverityChange}
+        onSave={handleSaveSeverity}
+      />
     </>
   );
 }
