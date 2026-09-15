@@ -219,9 +219,6 @@ export class YesterdayFindingsService {
 
     const product = await this.getEngagementProduct(engagement);
     // Название продукта - в заголовок и тему письма (если резолвится)
-    const productTitle = product?.name
-      ? ` (проект ${escapeHtml(product.name)})`
-      : '';
     const productSubject = product?.name ? `проект ${product.name}, ` : '';
     // Контекст сборки из engagement: версия, ID сборки, ветка/тег
     const buildInfo = [
@@ -233,8 +230,8 @@ export class YesterdayFindingsService {
       .join(' · ');
 
     const summary = await this.sendFindingsReportEmail({
-      title: `Отчёт об уязвимостях по сборке ${escapeHtml(engagementName)}${productTitle}`,
-      intro: `Добрый день! Общее количество обнаруженных уязвимостей по сборке ${escapeHtml(engagementName)} - <b>${findings.length}</b>.`,
+      title: `Отчёт об уязвимостях (${productSubject}сборка ${engagementName})`,
+      intro: `Добрый день! Общее количество новых обнаруженных уязвимостей в сборке ${escapeHtml(engagementName)} - <b>${findings.length}</b>.`,
       subject: `Отчет об уязвимостях (${productSubject}сборка ${engagementName}, всего уязвимостей - ${findings.length})`,
       findings,
       productTypeId: product?.typeId,
