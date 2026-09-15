@@ -54,6 +54,16 @@ export type EngagementFindingItem = {
   description: string; // уже приведено к plain text
   location: string;
   lineNumber: string;
+  component: string; // "name version" - для SCA-findings
+  vulnerabilityIds: string; // CVE/GHSA через запятую
+  cvssv3: string; // вектор CVSSv3
+  epssScore: string;
+  epssPercentile: string;
+  fixAvailable: string; // "Yes"/"No", если поле заполнено
+  fixVersion: string;
+  // Показываются только когда true (false для всех finding'ов - шум)
+  knownExploited: string;
+  ransomwareUsed: string;
   mitigation: string;
   impact: string;
   stepsToReproduce: string;
@@ -68,6 +78,12 @@ const ENGAGEMENT_ITEM_DETAILS: Array<{
 }> = [
   { key: 'location', label: 'Location' },
   { key: 'lineNumber', label: 'Line Number' },
+  { key: 'component', label: 'Component' },
+  { key: 'cvssv3', label: 'CVSS v3 Vector' },
+  { key: 'epssScore', label: 'EPSS Score' },
+  { key: 'epssPercentile', label: 'EPSS Percentile' },
+  { key: 'fixAvailable', label: 'Fix Available' },
+  { key: 'fixVersion', label: 'Fix Version' },
   { key: 'mitigation', label: 'Mitigation' },
   { key: 'impact', label: 'Impact' },
   { key: 'stepsToReproduce', label: 'Steps To Reproduce' },
@@ -203,9 +219,17 @@ export function renderEngagementFindingsReport(
       const severityHtml = item.severity
         ? `<span style="${chipStyle} padding: 2px 10px; border-radius: 12px; font-size: 12px; white-space: nowrap;">${escapeHtml(item.severity)}</span>`
         : '';
+      // Сигналы для быстрого триажа: только заполненные значения
       const metaParts = [
         item.testType && `Тест: ${escapeHtml(item.testType)}`,
         item.cvssScore && `CVSS: ${escapeHtml(item.cvssScore)}`,
+        item.vulnerabilityIds &&
+          `CVE/GHSA: ${escapeHtml(item.vulnerabilityIds)}`,
+        // Known Exploited / Ransomware - выделяем жирным красным
+        item.knownExploited &&
+          `<span style="color: #a30000; font-weight: bold;">Known Exploited</span>`,
+        item.ransomwareUsed &&
+          `<span style="color: #a30000; font-weight: bold;">Ransomware Used</span>`,
         item.created && `Создано: ${escapeHtml(item.created)}`,
       ].filter(Boolean);
 

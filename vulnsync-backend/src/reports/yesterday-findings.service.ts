@@ -62,8 +62,67 @@ function getNested(finding: Finding, path: string): string {
   return asString(current);
 }
 
+function asNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function asBool(value: unknown): boolean | null {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (value === 'true' || value === 'false') {
+    return value === 'true';
+  }
+
+  return null;
+}
+
 function severityRank(finding?: Finding): number {
   return SEVERITY_ORDER[asString(finding?.severity)] ?? 0;
+}
+
+// Component для SCA-findings: pkg:maven/org.apache.tomcat.embed/...
+// fallback на легаси-поля component_name/component_version
+function extractComponent(finding: Finding): string {
+  const name = asString(finding.component_name);
+  const version = asString(finding.component_version);
+
+  if (name && version) {
+    return `${name} ${version}`;
+  }
+
+  return name || '';
+}
+
+// ["CVE-...","GHSA-..."] -> строка через запятую
+function extractVulnerabilityIds(finding: Finding): string {
+  const ids = finding.vulnerability_ids;
+
+  if (!Array.isArray(ids)) {
+    return '';
+  }
+
+  return ids
+    .map((item) =>
+      item && typeof item === 'object'
+        ? asString((item as Record<string, unknown>).vulnerability_id)
+        : '',
+    )
+    .filter(Boolean)
+    .join(', ');
 }
 
 // Location в DefectDojo может быть строкой, объектом {path, line, ...}
@@ -342,6 +401,21 @@ export class YesterdayFindingsService {
       location: extractLocation(f),
       // в DefectDojo v3 поле называется "line" ("line_number" - в старых версиях)
       lineNumber: asString(f.line) || asString(f.line_number),
+      component: extractComponent(f),
+      vulnerabilityIds: extractVulnerabilityIds(f),
+      cvssv3: asString(f.cvssv3),
+      epssScore: asNumber(f.epss_score)?.toString() ?? '',
+      // перцентиль EPSS удобнее читать в процентах (0.48 -> 48%)
+      epssPercentile: this.formatPercent(f.epss_percentile),
+      fixAvailable:
+        asBool(f.fix_available) === null
+          ? ''
+          : asBool(f.fix_available)
+            ? 'Yes'
+            : 'No',
+      fixVersion: asString(f.fix_version),
+      knownExploited: asBool(f.known_exploited) ? 'Yes' : '',
+      ransomwareUsed: asBool(f.ransomware_used) ? 'Yes' : '',
       mitigation: htmlToPlainText(asString(f.mitigation)),
       impact: htmlToPlainText(asString(f.impact)),
       stepsToReproduce: htmlToPlainText(asString(f.steps_to_reproduce)),
@@ -350,6 +424,13 @@ export class YesterdayFindingsService {
       ),
       references: htmlToPlainText(asString(f.references)),
     }));
+  }
+
+  // 0.48228 -> "48.23%"
+  private formatPercent(value: unknown): string {
+    const num = asNumber(value);
+
+    return num === null ? '' : `${(num * 100).toFixed(2)}%`;
   }
 
   private buildReportRows(
