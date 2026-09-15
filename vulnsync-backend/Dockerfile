@@ -35,6 +35,10 @@ ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 RUN npx prisma generate
 RUN npm run build
 
+# Отрезаем dev-зависимости, чтобы runtime-слой не копировал
+# typescript/webpack/eslint/jest и прочее (node_modules сильно меньше и COPY быстрее)
+RUN npm prune --omit=dev
+
 # -------- runtime --------
 FROM node:24-alpine AS runtime
 
