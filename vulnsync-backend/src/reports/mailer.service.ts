@@ -24,6 +24,8 @@ export class MailerService {
       port,
       secure: port === 465,
       auth: user ? { user, pass } : undefined,
+      // Сертификат SMTP-сервера не совпадает с адресом - проверку отключаем
+      tls: { rejectUnauthorized: false },
     });
   }
 
