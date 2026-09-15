@@ -50,7 +50,6 @@ export type EngagementFindingItem = {
   severity: string;
   cvssScore: string;
   created: string;
-  productName: string;
   testType: string;
   description: string; // уже приведено к plain text
   location: string;
@@ -81,6 +80,8 @@ export type EngagementFindingsReportParams = {
   intro: string;
   timestamp: string;
   count: number;
+  productName?: string; // Проект - в шапке письма, один раз
+  engagementName?: string; // Сборка - в шапке письма, один раз
   severity: { Critical: number; High: number; Medium: number; Low: number };
   items: EngagementFindingItem[];
 };
@@ -203,7 +204,6 @@ export function renderEngagementFindingsReport(
         ? `<span style="${chipStyle} padding: 2px 10px; border-radius: 12px; font-size: 12px; white-space: nowrap;">${escapeHtml(item.severity)}</span>`
         : '';
       const metaParts = [
-        item.productName && `Продукт: ${escapeHtml(item.productName)}`,
         item.testType && `Тест: ${escapeHtml(item.testType)}`,
         item.cvssScore && `CVSS: ${escapeHtml(item.cvssScore)}`,
         item.created && `Создано: ${escapeHtml(item.created)}`,
@@ -233,7 +233,9 @@ export function renderEngagementFindingsReport(
   <body style="font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 20px; color: #333;">
     <div style="background: #fff; padding: 20px 25px; border-radius: 8px; max-width: 800px; width: 100%; margin: auto; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-left: 6px solid #525252;">
       <h2 style="color: #525252; margin-top: 0; margin-bottom: 10px;">${escapeHtml(params.title)}</h2>
-      <div style="font-size: 13px; color: #777; margin-bottom: 20px;">Время формирования: ${escapeHtml(params.timestamp)}</div>
+      <div style="font-size: 13px; color: #777; margin-bottom: 20px;">
+        Время формирования: ${escapeHtml(params.timestamp)}${params.productName ? ` &nbsp;·&nbsp; Проект: ${escapeHtml(params.productName)}` : ''}${params.engagementName ? ` &nbsp;·&nbsp; Сборка: ${escapeHtml(params.engagementName)}` : ''} &nbsp;·&nbsp; Всего уязвимостей - <b>${params.count}</b>
+      </div>
       <p style="font-size: 15px; line-height: 1.5; margin-bottom: 20px;">
         ${params.intro}<br />
         Сводка по критичности: Critical: <b>${params.severity.Critical}</b>, High:

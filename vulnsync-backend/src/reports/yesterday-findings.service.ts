@@ -158,12 +158,16 @@ export class YesterdayFindingsService {
       asString(engagement?.name) ||
       this.getEngagementName(findings, engagementId);
 
+    const product = await this.getEngagementProduct(engagement);
+
     const summary = await this.sendFindingsReportEmail({
       title: `Отчёт об уязвимостях по сборке ${escapeHtml(engagementName)}`,
       intro: `Добрый день! Общее количество обнаруженных уязвимостей по сборке ${escapeHtml(engagementName)} - <b>${findings.length}</b>.`,
       subject: `Отчет об уязвимостях (сборка ${engagementName}, всего уязвимостей - ${findings.length})`,
       findings,
-      productTypeId: await this.getEngagementProductTypeId(engagement),
+      productTypeId: product?.typeId,
+      productName: product?.name,
+      engagementName,
       // Отчёт по engagement отправляем списком с описанием уязвимостей
       listView: true,
     });
@@ -240,6 +244,9 @@ export class YesterdayFindingsService {
     // Тип продукта DefectDojo: к общему DD_REPORT_MAIL_TO добавляются
     // адреса из настроек уведомлений этого типа продукта
     productTypeId?: number;
+    // Проект и сборка для шапки письма (только в списковом виде)
+    productName?: string;
+    engagementName?: string;
     // Список уязвимостей с описанием (engagement) вместо таблицы
     listView?: boolean;
   }) {
@@ -252,6 +259,8 @@ export class YesterdayFindingsService {
           intro: params.intro,
           timestamp: this.formatTimestamp(new Date()),
           count: params.findings.length,
+          productName: params.productName,
+          engagementName: params.engagementName,
           severity: counts,
           items: this.buildReportItems(params.findings, baseUrl),
         })
@@ -274,21 +283,29 @@ export class YesterdayFindingsService {
     };
   }
 
-  // Тип продукта, к которому относится engagement
-  private async getEngagementProductTypeId(
+  // Тип продукта и его название по engagement (название - для шапки письма)
+  private async getEngagementProduct(
     engagement: { product?: number } | null,
-  ): Promise<number | undefined> {
+  ): Promise<{ name?: string; typeId?: number } | null> {
     const productId = Number(engagement?.product);
 
     if (!productId) {
-      return undefined;
+      return null;
     }
 
     const product = (await this.defectDojoClient.getProduct(productId)) as {
+      name?: string;
       prod_type?: number;
     } | null;
 
-    return Number(product?.prod_type) || undefined;
+    if (!product) {
+      return null;
+    }
+
+    return {
+      name: asString(product.name),
+      typeId: Number(product.prod_type) || undefined,
+    };
   }
 
   // DD_REPORT_MAIL_TO + адреса, настроенные для конкретного типа продукта
@@ -320,7 +337,6 @@ export class YesterdayFindingsService {
       severity: asString(f.severity),
       cvssScore: asString(f.cvssv3_score),
       created: asString(f.created),
-      productName: getNested(f, 'related_fields.test.engagement.product.name'),
       testType: getNested(f, 'related_fields.test.test_type.name'),
       description: htmlToPlainText(asString(f.description)),
       location: extractLocation(f),
