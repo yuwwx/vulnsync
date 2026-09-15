@@ -187,18 +187,17 @@ Frontend / Backend / Оба.
       ...messages,
     ];
 
-    const url = `${apiUrl.replace(/\/$/, '')}/api/v1/chat/completions`;
     this.logger.log(
-      `[AI:${requestId}] sending request: model=${model}, url=${url}`,
+      `[AI:${requestId}] sending request: model=${model}, url=${apiUrl}`,
     );
     let response;
     try {
       response = await axios.post<AiCompletionResponse>(
-        url,
+        apiUrl,
         { model, messages: requestMessages },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `${token}`,
             'Content-Type': 'application/json',
           },
           httpsAgent: new https.Agent({ rejectUnauthorized: false }),
