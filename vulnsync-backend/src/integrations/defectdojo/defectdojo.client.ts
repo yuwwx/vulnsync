@@ -184,7 +184,7 @@ export class DefectDojoClient {
 
     try {
       const { data } = await client.get<DefectDojoEngagement | null>(
-        `/api/v2/enagements/${engagementId}`,
+        `/api/v2/engagements/${engagementId}`,
       );
 
       if (!data) {

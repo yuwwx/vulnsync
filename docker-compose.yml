@@ -34,6 +34,7 @@ services:
         USE_NEXUS: ${USE_NEXUS}
         NEXUS_NPM_REGISTRY: ${NEXUS_NPM_REGISTRY}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_AUTH_MODE: ${NEXT_PUBLIC_AUTH_MODE:-ldap}
         NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED}
     container_name: vulnsync-frontend
     env_file:

@@ -22,10 +22,16 @@ export class AuthError extends Error {
   }
 }
 
+// Режим аутентификации: "local" - локальные аккаунты (POST /auth/login),
+// иначе LDAP (POST /auth/ldap/login). Настраивается через NEXT_PUBLIC_AUTH_MODE.
+const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "ldap";
+const LOGIN_ENDPOINT =
+  AUTH_MODE === "local" ? "/auth/login" : "/auth/ldap/login";
+
 export const AuthService = {
   async login(dto: LoginDto) {
     try {
-      const { data } = await authApi.post<AuthUser>("/auth/ldap/login", dto);
+      const { data } = await authApi.post<AuthUser>(LOGIN_ENDPOINT, dto);
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("username", data.username);
       localStorage.setItem("displayName", data.displayName);

@@ -8,19 +8,29 @@ const config = new ConfigService({
 
 const prisma = new PrismaService(config);
 
+// Параметры тестового пользователя можно переопределить:
+// SEED_USERNAME, SEED_PASSWORD, SEED_ROLE (USER | ADMIN | VIEWER)
+const username = process.env.SEED_USERNAME ?? 'testuser';
+const password = process.env.SEED_PASSWORD ?? 'changeme';
+const role = process.env.SEED_ROLE ?? 'USER';
+
 async function main() {
-  const password = await bcrypt.hash('changeme', 10);
+  const hashed = await bcrypt.hash(password, 10);
 
   const user = await prisma.user.upsert({
-    where: { username: 'testuser' },
-    update: {},
+    where: { username },
+    update: { password: hashed, role },
     create: {
-      username: 'testuser',
-      password,
+      username,
+      password: hashed,
+      role,
     },
   });
 
-  console.log('Test user created:', user);
+  console.log('Test user upserted:', {
+    username: user.username,
+    role: user.role,
+  });
 }
 
 main()

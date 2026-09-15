@@ -9,8 +9,11 @@ import { parseEmailList } from '@/notifications/product-type-notifications.servi
 import { ProductTypeNotificationsService } from '@/notifications/product-type-notifications.service';
 import { MailerService } from './mailer.service';
 import {
+  EngagementFindingItem,
   FindingsReportRow,
   escapeHtml,
+  htmlToPlainText,
+  renderEngagementFindingsReport,
   renderErrorReport,
   renderFindingsReport,
 } from './report-templates';
@@ -61,6 +64,32 @@ function getNested(finding: Finding, path: string): string {
 
 function severityRank(finding?: Finding): number {
   return SEVERITY_ORDER[asString(finding?.severity)] ?? 0;
+}
+
+// Location в DefectDojo может быть строкой, объектом {path, line, ...}
+// или отсутствовать - тогда откатываемся на легаси-поле file_path
+function extractLocation(finding: Finding): string {
+  const location = finding.location;
+
+  if (typeof location === 'string' && location.trim()) {
+    return location;
+  }
+
+  if (location && typeof location === 'object') {
+    const record = location as Record<string, unknown>;
+    const path = asString(record.path);
+    const line = asString(record.line);
+
+    if (path && line) {
+      return `${path}:${line}`;
+    }
+
+    if (path) {
+      return path;
+    }
+  }
+
+  return asString(finding.file_path);
 }
 
 function sortBySeverity(findings: Finding[]): Finding[] {
@@ -135,6 +164,8 @@ export class YesterdayFindingsService {
       subject: `Отчет об уязвимостях (сборка ${engagementName}, всего уязвимостей - ${findings.length})`,
       findings,
       productTypeId: await this.getEngagementProductTypeId(engagement),
+      // Отчёт по engagement отправляем списком с описанием уязвимостей
+      listView: true,
     });
 
     this.logger.log(
@@ -209,18 +240,29 @@ export class YesterdayFindingsService {
     // Тип продукта DefectDojo: к общему DD_REPORT_MAIL_TO добавляются
     // адреса из настроек уведомлений этого типа продукта
     productTypeId?: number;
+    // Список уязвимостей с описанием (engagement) вместо таблицы
+    listView?: boolean;
   }) {
     const baseUrl = await this.defectDojoClient.getBaseUrl();
     const counts = this.countBySeverity(params.findings);
 
-    const html = renderFindingsReport({
-      title: params.title,
-      intro: params.intro,
-      timestamp: this.formatTimestamp(new Date()),
-      count: params.findings.length,
-      severity: counts,
-      rows: this.buildReportRows(params.findings, baseUrl),
-    });
+    const html = params.listView
+      ? renderEngagementFindingsReport({
+          title: params.title,
+          intro: params.intro,
+          timestamp: this.formatTimestamp(new Date()),
+          count: params.findings.length,
+          severity: counts,
+          items: this.buildReportItems(params.findings, baseUrl),
+        })
+      : renderFindingsReport({
+          title: params.title,
+          intro: params.intro,
+          timestamp: this.formatTimestamp(new Date()),
+          count: params.findings.length,
+          severity: counts,
+          rows: this.buildReportRows(params.findings, baseUrl),
+        });
 
     const to = await this.resolveRecipients(params.productTypeId);
 
@@ -264,6 +306,34 @@ export class YesterdayFindingsService {
     }
 
     return recipients.join(', ');
+  }
+
+  // Элементы списка для отчёта по engagement: с описанием уязвимости
+  private buildReportItems(
+    findings: Finding[],
+    baseUrl: string,
+  ): EngagementFindingItem[] {
+    return findings.map((f) => ({
+      id: asString(f.id),
+      findingUrl: `${baseUrl}/finding/${asString(f.id)}`,
+      title: asString(f.title),
+      severity: asString(f.severity),
+      cvssScore: asString(f.cvssv3_score),
+      created: asString(f.created),
+      productName: getNested(f, 'related_fields.test.engagement.product.name'),
+      testType: getNested(f, 'related_fields.test.test_type.name'),
+      description: htmlToPlainText(asString(f.description)),
+      location: extractLocation(f),
+      // в DefectDojo v3 поле называется "line" ("line_number" - в старых версиях)
+      lineNumber: asString(f.line) || asString(f.line_number),
+      mitigation: htmlToPlainText(asString(f.mitigation)),
+      impact: htmlToPlainText(asString(f.impact)),
+      stepsToReproduce: htmlToPlainText(asString(f.steps_to_reproduce)),
+      severityJustification: htmlToPlainText(
+        asString(f.severity_justification),
+      ),
+      references: htmlToPlainText(asString(f.references)),
+    }));
   }
 
   private buildReportRows(
