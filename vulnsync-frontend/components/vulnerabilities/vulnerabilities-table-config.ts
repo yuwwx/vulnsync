@@ -4,6 +4,7 @@ import {
   createFilteredRowModel,
   createPaginatedRowModel,
   createSortedRowModel,
+  filterFn_includesString,
   rowPaginationFeature,
   rowSelectionFeature,
   rowSortingFeature,
@@ -19,4 +20,7 @@ export const vulnerabilityTableFeatures = tableFeatures({
   filteredRowModel: createFilteredRowModel(),
   sortedRowModel: createSortedRowModel(),
   paginatedRowModel: createPaginatedRowModel(),
+  filterFns: {
+    includesString: filterFn_includesString,
+  },
 });
