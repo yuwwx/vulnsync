@@ -98,6 +98,7 @@ export type EngagementFindingsReportParams = {
   count: number;
   productName?: string; // Проект - в шапке письма, один раз
   engagementName?: string; // Сборка - в шапке письма, один раз
+  buildInfo?: string; // Контекст сборки: версия, build id, ветка/тег
   severity: { Critical: number; High: number; Medium: number; Low: number };
   items: EngagementFindingItem[];
 };
@@ -258,7 +259,7 @@ export function renderEngagementFindingsReport(
     <div style="background: #fff; padding: 20px 25px; border-radius: 8px; max-width: 800px; width: 100%; margin: auto; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-left: 6px solid #525252;">
       <h2 style="color: #525252; margin-top: 0; margin-bottom: 10px;">${escapeHtml(params.title)}</h2>
       <div style="font-size: 13px; color: #777; margin-bottom: 20px;">
-        Время формирования: ${escapeHtml(params.timestamp)}${params.productName ? ` &nbsp;·&nbsp; Проект: ${escapeHtml(params.productName)}` : ''}${params.engagementName ? ` &nbsp;·&nbsp; Сборка: ${escapeHtml(params.engagementName)}` : ''} &nbsp;·&nbsp; Всего уязвимостей - <b>${params.count}</b>
+        Время формирования: ${escapeHtml(params.timestamp)}${params.productName ? ` &nbsp;·&nbsp; Проект: ${escapeHtml(params.productName)}` : ''}${params.engagementName ? ` &nbsp;·&nbsp; Сборка: ${escapeHtml(params.engagementName)}` : ''}${params.buildInfo ? ` &nbsp;·&nbsp; ${escapeHtml(params.buildInfo)}` : ''} &nbsp;·&nbsp; Всего уязвимостей - <b>${params.count}</b>
       </div>
       <p style="font-size: 15px; line-height: 1.5; margin-bottom: 20px;">
         ${params.intro}<br />

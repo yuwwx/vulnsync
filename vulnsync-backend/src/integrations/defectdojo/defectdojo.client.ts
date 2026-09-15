@@ -43,6 +43,10 @@ type DefectDojoEngagement = {
   id: number;
   name?: string;
   product?: number;
+  // контекст сборки (заполняется для CI/CD-engagement)
+  version?: string;
+  build_id?: string;
+  branch_tag?: string;
 };
 
 @Injectable()

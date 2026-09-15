@@ -218,15 +218,29 @@ export class YesterdayFindingsService {
       this.getEngagementName(findings, engagementId);
 
     const product = await this.getEngagementProduct(engagement);
+    // Название продукта - в заголовок и тему письма (если резолвится)
+    const productTitle = product?.name
+      ? ` (проект ${escapeHtml(product.name)})`
+      : '';
+    const productSubject = product?.name ? `проект ${product.name}, ` : '';
+    // Контекст сборки из engagement: версия, ID сборки, ветка/тег
+    const buildInfo = [
+      engagement?.version && `v${engagement.version}`,
+      engagement?.build_id && `build ${engagement.build_id}`,
+      engagement?.branch_tag,
+    ]
+      .filter(Boolean)
+      .join(' · ');
 
     const summary = await this.sendFindingsReportEmail({
-      title: `Отчёт об уязвимостях по сборке ${escapeHtml(engagementName)}`,
+      title: `Отчёт об уязвимостях по сборке ${escapeHtml(engagementName)}${productTitle}`,
       intro: `Добрый день! Общее количество обнаруженных уязвимостей по сборке ${escapeHtml(engagementName)} - <b>${findings.length}</b>.`,
-      subject: `Отчет об уязвимостях (сборка ${engagementName}, всего уязвимостей - ${findings.length})`,
+      subject: `Отчет об уязвимостях (${productSubject}сборка ${engagementName}, всего уязвимостей - ${findings.length})`,
       findings,
       productTypeId: product?.typeId,
       productName: product?.name,
       engagementName,
+      buildInfo,
       // Отчёт по engagement отправляем списком с описанием уязвимостей
       listView: true,
     });
@@ -306,6 +320,8 @@ export class YesterdayFindingsService {
     // Проект и сборка для шапки письма (только в списковом виде)
     productName?: string;
     engagementName?: string;
+    // Контекст сборки: версия, build id, ветка/тег (только в списковом виде)
+    buildInfo?: string;
     // Список уязвимостей с описанием (engagement) вместо таблицы
     listView?: boolean;
   }) {
@@ -320,6 +336,7 @@ export class YesterdayFindingsService {
           count: params.findings.length,
           productName: params.productName,
           engagementName: params.engagementName,
+          buildInfo: params.buildInfo,
           severity: counts,
           items: this.buildReportItems(params.findings, baseUrl),
         })
