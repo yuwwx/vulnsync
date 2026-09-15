@@ -1,11 +1,6 @@
 // services/vulnerabilities.service.ts
 import { api } from "./api";
 
-export interface ProductType {
-  id: number;
-  name: string;
-}
-
 export interface Vulnerability {
   id: number;
   title: string;
@@ -58,10 +53,6 @@ export const VulnerabilitiesService = {
     return data;
   },
 
-  async sendToJira(vulnId: string) {
-    return api.post(`/vulnerabilities/${vulnId}/jira`);
-  },
-
   async previewJiraDescription(
     findingIds: number[],
   ): Promise<JiraDescriptionResponse> {
@@ -70,15 +61,6 @@ export const VulnerabilitiesService = {
       {
       findingIds,
       },
-    );
-
-    return data;
-  },
-
-  async changeSeverity(findingId: number, severity: string) {
-    const { data } = await api.patch<Vulnerability>(
-      `/integrations/defectdojo/finding/${findingId}/severity`,
-      { severity },
     );
 
     return data;

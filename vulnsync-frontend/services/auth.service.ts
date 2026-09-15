@@ -1,5 +1,4 @@
 // auth.service.ts
-import { api } from "./api";
 import { authApi } from "./authApi";
 import axios from "axios";
 
@@ -43,11 +42,6 @@ export const AuthService = {
       }
       throw e;
     }
-  },
-
-  async me() {
-    const { data } = await api.get("/auth/me");
-    return data;
   },
 
   logout() {

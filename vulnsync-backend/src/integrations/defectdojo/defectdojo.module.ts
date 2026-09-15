@@ -5,7 +5,6 @@ import { DefectDojoController } from './defectdojo.controller';
 import { DefectDojoService } from './defectdojo.service';
 
 @Module({
-  imports: [DefectDojoModule],
   providers: [DefectDojoClient, DefectDojoService],
   exports: [DefectDojoClient, DefectDojoService],
   controllers: [DefectDojoController],

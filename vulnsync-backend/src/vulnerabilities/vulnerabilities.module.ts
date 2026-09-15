@@ -1,6 +1,5 @@
 // vulnerabilities.module.ts
 import { DefectDojoModule } from '@/integrations/defectdojo/defectdojo.module';
-import { JiraDescriptionModule } from '@/integrations/jira/jira-description.module';
 import { JiraModule } from '@/integrations/jira/jira.module';
 import { Module } from '@nestjs/common';
 import { SettingsModule } from '@/settings/settings.module';
@@ -11,7 +10,6 @@ import { VulnerabilitiesService } from './vulnerabilities.service';
   imports: [
     DefectDojoModule,
     JiraModule,
-    JiraDescriptionModule,
     SettingsModule,
   ],
   providers: [VulnerabilitiesService],

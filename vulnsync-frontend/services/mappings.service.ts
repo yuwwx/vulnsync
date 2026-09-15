@@ -49,15 +49,6 @@ export const MappingsService = {
     return data;
   },
 
-  async deleteJiraMapping(id: string): Promise<void> {
-    await api.delete(`/mappings/jira/${id}`);
-  },
-
-  async getAllJiraMappings(): Promise<JiraMapping[]> {
-    const { data } = await api.get<JiraMapping[]>("/mappings/jira");
-    return data;
-  },
-
   async getDependencyTrackMapping(
     ddProductId: number,
   ): Promise<DependencyTrackMapping | null> {

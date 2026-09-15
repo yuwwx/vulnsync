@@ -1,14 +1,10 @@
 // jira.service.ts
 import { Injectable } from '@nestjs/common';
-import { JiraClient, JiraIssuePayload } from './jira.client';
+import { JiraClient } from './jira.client';
 
 @Injectable()
 export class JiraService {
   constructor(private jiraClient: JiraClient) {}
-
-  async createIssue(payload: JiraIssuePayload) {
-    return this.jiraClient.createIssue(payload);
-  }
 
   async getProjects() {
     const data = await this.jiraClient.getProjects();
