@@ -83,10 +83,6 @@ function asBool(value: unknown): boolean | null {
   return null;
 }
 
-function severityRank(finding?: Finding): number {
-  return severityWeight(asString(finding?.severity));
-}
-
 // Component для SCA-findings: pkg:maven/org.apache.tomcat.embed/...
 // fallback на легаси-поля component_name/component_version
 function extractComponent(finding: Finding): string {
@@ -146,7 +142,11 @@ function extractLocation(finding: Finding): string {
 
 function sortBySeverity(findings: Finding[]): Finding[] {
   // Сортировка по убыванию критичности - как в Python-скрипте
-  return [...findings].sort((a, b) => severityRank(b) - severityRank(a));
+  return [...findings].sort(
+    (a, b) =>
+      severityWeight(asString(b.severity)) -
+      severityWeight(asString(a.severity)),
+  );
 }
 
 @Injectable()
@@ -172,7 +172,10 @@ export class YesterdayFindingsService {
     this.logger.log('=== Yesterday findings report: started ===');
 
     try {
-      const findings = await this.getYesterdayFindings(yesterday);
+      const findings = await this.fetchFindings(
+        { active: true, discovered_on: yesterday },
+        `discovered_on=${yesterday}`,
+      );
 
       await this.sendFindingsReportEmail({
         title: `Отчёт об уязвимостях за ${yesterday}`,
@@ -205,7 +208,10 @@ export class YesterdayFindingsService {
 
     const engagement = await this.defectDojoClient.getEngagement(engagementId);
 
-    const findings = await this.getFindingsByEngagement(engagementId);
+    const findings = await this.fetchFindings(
+      { test__engagement: engagementId },
+      `engagement=${engagementId}`,
+    );
     const engagementName =
       asString(engagement?.name) ||
       this.getEngagementName(findings, engagementId);
@@ -242,53 +248,30 @@ export class YesterdayFindingsService {
     return { engagementId, engagementName, ...summary };
   }
 
-  private async getYesterdayFindings(yesterday: string): Promise<Finding[]> {
-    const client = await this.defectDojoClient.getClient();
-
-    this.logger.log(`Requesting DefectDojo findings for ${yesterday}`);
-
-    const { data } = await client.get<{ results?: Finding[] }>(
-      '/api/v2/findings/',
-      {
-        params: {
-          active: true,
-          discovered_on: yesterday,
-          related_fields: true,
-          o: 'severity',
-          limit: FINDINGS_LIMIT,
-        },
-      },
-    );
-
-    const results: Finding[] = Array.isArray(data?.results) ? data.results : [];
-
-    return sortBySeverity(results);
-  }
-
-  private async getFindingsByEngagement(
-    engagementId: number,
+  // GET /api/v2/findings/ с сортировкой по критичности.
+  // Дополнительно всегда запрашиваем related_fields: из них берутся
+  // продукт/engagement/тип теста для шапки письма.
+  private async fetchFindings(
+    params: Record<string, unknown>,
+    logContext: string,
   ): Promise<Finding[]> {
     const client = await this.defectDojoClient.getClient();
 
-    this.logger.log(
-      `Requesting DefectDojo findings for engagement ${engagementId}`,
-    );
+    this.logger.log(`Requesting DefectDojo findings: ${logContext}`);
 
     const { data } = await client.get<{ results?: Finding[] }>(
       '/api/v2/findings/',
       {
         params: {
-          test__engagement: engagementId,
           related_fields: true,
           o: 'severity',
           limit: FINDINGS_LIMIT,
+          ...params,
         },
       },
     );
 
-    const results: Finding[] = Array.isArray(data?.results) ? data.results : [];
-
-    return sortBySeverity(results);
+    return sortBySeverity(Array.isArray(data?.results) ? data.results : []);
   }
 
   private getEngagementName(findings: Finding[], engagementId: number): string {
@@ -317,12 +300,13 @@ export class YesterdayFindingsService {
   }) {
     const baseUrl = await this.defectDojoClient.getBaseUrl();
     const counts = this.countBySeverity(params.findings);
+    const timestamp = this.formatTimestamp(new Date());
 
     const html = params.listView
       ? renderEngagementFindingsReport({
           title: params.title,
           intro: params.intro,
-          timestamp: this.formatTimestamp(new Date()),
+          timestamp,
           count: params.findings.length,
           productName: params.productName,
           engagementName: params.engagementName,
@@ -333,7 +317,7 @@ export class YesterdayFindingsService {
       : renderFindingsReport({
           title: params.title,
           intro: params.intro,
-          timestamp: this.formatTimestamp(new Date()),
+          timestamp,
           count: params.findings.length,
           severity: counts,
           rows: this.buildReportRows(params.findings, baseUrl),
@@ -396,41 +380,40 @@ export class YesterdayFindingsService {
     findings: Finding[],
     baseUrl: string,
   ): EngagementFindingItem[] {
-    return findings.map((f) => ({
-      id: asString(f.id),
-      findingUrl: `${baseUrl}/finding/${asString(f.id)}`,
-      title: asString(f.title),
-      severity: asString(f.severity),
-      cvssScore: asString(f.cvssv3_score),
-      created: asString(f.created),
-      testType: getNested(f, 'related_fields.test.test_type.name'),
-      description: htmlToPlainText(asString(f.description)),
-      location: extractLocation(f),
-      // в DefectDojo v3 поле называется "line" ("line_number" - в старых версиях)
-      lineNumber: asString(f.line) || asString(f.line_number),
-      component: extractComponent(f),
-      vulnerabilityIds: extractVulnerabilityIds(f),
-      cvssv3: asString(f.cvssv3),
-      epssScore: asNumber(f.epss_score)?.toString() ?? '',
-      // перцентиль EPSS удобнее читать в процентах (0.48 -> 48%)
-      epssPercentile: this.formatPercent(f.epss_percentile),
-      fixAvailable:
-        asBool(f.fix_available) === null
-          ? ''
-          : asBool(f.fix_available)
-            ? 'Yes'
-            : 'No',
-      fixVersion: asString(f.fix_version),
-      knownExploited: asBool(f.known_exploited) ? 'Yes' : '',
-      ransomwareUsed: asBool(f.ransomware_used) ? 'Yes' : '',
-      mitigation: htmlToPlainText(asString(f.mitigation)),
-      impact: htmlToPlainText(asString(f.impact)),
-      stepsToReproduce: htmlToPlainText(asString(f.steps_to_reproduce)),
-      severityJustification: htmlToPlainText(
-        asString(f.severity_justification),
-      ),
-      references: htmlToPlainText(asString(f.references)),
-    }));
+    return findings.map((f) => {
+      const fixAvailable = asBool(f.fix_available);
+
+      return {
+        id: asString(f.id),
+        findingUrl: `${baseUrl}/finding/${asString(f.id)}`,
+        title: asString(f.title),
+        severity: asString(f.severity),
+        cvssScore: asString(f.cvssv3_score),
+        created: asString(f.created),
+        testType: getNested(f, 'related_fields.test.test_type.name'),
+        description: htmlToPlainText(asString(f.description)),
+        location: extractLocation(f),
+        // в DefectDojo v3 поле называется "line" ("line_number" - в старых версиях)
+        lineNumber: asString(f.line) || asString(f.line_number),
+        component: extractComponent(f),
+        vulnerabilityIds: extractVulnerabilityIds(f),
+        cvssv3: asString(f.cvssv3),
+        epssScore: asNumber(f.epss_score)?.toString() ?? '',
+        // перцентиль EPSS удобнее читать в процентах (0.48 -> 48%)
+        epssPercentile: this.formatPercent(f.epss_percentile),
+        fixAvailable: fixAvailable === null ? '' : fixAvailable ? 'Yes' : 'No',
+        fixVersion: asString(f.fix_version),
+        knownExploited: asBool(f.known_exploited) ? 'Yes' : '',
+        ransomwareUsed: asBool(f.ransomware_used) ? 'Yes' : '',
+        mitigation: htmlToPlainText(asString(f.mitigation)),
+        impact: htmlToPlainText(asString(f.impact)),
+        stepsToReproduce: htmlToPlainText(asString(f.steps_to_reproduce)),
+        severityJustification: htmlToPlainText(
+          asString(f.severity_justification),
+        ),
+        references: htmlToPlainText(asString(f.references)),
+      };
+    });
   }
 
   // 0.48228 -> "48.23%"
