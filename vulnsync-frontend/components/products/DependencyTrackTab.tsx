@@ -9,7 +9,7 @@ import {
   DefectDojoProductType,
   DefectDojoReferenceService,
 } from "@/services/reference/defectdojo.service";
-import { ProductsService } from "@/services/products.service";
+import { IntegrationActions } from "@/services/integration-actions.service";
 import {
   DependencyTrackMapping,
   MappingsService,
@@ -144,7 +144,7 @@ export default function DependencyTrackTab({ productType }: Props) {
     setError(null);
 
     try {
-      await ProductsService.exportDependencyTrackToDefectDojo(
+      await IntegrationActions.exportDependencyTrackToDefectDojo(
         Number(selectedDdProductId),
       );
       toast.success("Экспорт в DefectDojo успешен");

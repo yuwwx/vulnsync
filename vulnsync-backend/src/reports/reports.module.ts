@@ -4,12 +4,12 @@ import { DefectDojoModule } from '@/integrations/defectdojo/defectdojo.module';
 import { NotificationsModule } from '@/notifications/notifications.module';
 import { MailerService } from './mailer.service';
 import { ReportsController } from './reports.controller';
-import { YesterdayFindingsService } from './yesterday-findings.service';
+import { FindingsReportService } from './findings-report.service';
 
 @Module({
   imports: [DefectDojoModule, NotificationsModule],
   controllers: [ReportsController],
-  providers: [MailerService, YesterdayFindingsService],
-  exports: [YesterdayFindingsService],
+  providers: [MailerService, FindingsReportService],
+  exports: [FindingsReportService],
 })
 export class ReportsModule {}

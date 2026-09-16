@@ -1,12 +1,12 @@
-// src/reports/yesterday-findings.service.ts
+// src/reports/findings-report.service.ts
 // Порт dd-pipeline-scripts/dd-yesterday-findings.py: крон-джоба раз в день
 // отправляет отчёт об уязвимостях, обнаруженных в DefectDojo за прошлые сутки.
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { severityWeight } from '@/common/severity';
+import { parseEmailList } from '@/common/email';
 import { DefectDojoClient } from '@/integrations/defectdojo/defectdojo.client';
-import { parseEmailList } from '@/notifications/product-type-notifications.service';
 import { ProductTypeNotificationsService } from '@/notifications/product-type-notifications.service';
 import { MailerService } from './mailer.service';
 import {
@@ -150,8 +150,8 @@ function sortBySeverity(findings: Finding[]): Finding[] {
 }
 
 @Injectable()
-export class YesterdayFindingsService {
-  private readonly logger = new Logger(YesterdayFindingsService.name);
+export class FindingsReportService {
+  private readonly logger = new Logger(FindingsReportService.name);
 
   constructor(
     private readonly defectDojoClient: DefectDojoClient,

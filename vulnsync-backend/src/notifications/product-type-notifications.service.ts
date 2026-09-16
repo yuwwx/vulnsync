@@ -1,36 +1,13 @@
 // src/notifications/product-type-notifications.service.ts
 // Настройка списка получателей уведомлений по engagement
 // в дополнение к DD_REPORT_MAIL_TO - отдельно для каждого типа продукта DefectDojo.
+import { parseEmailList } from '@/common/email';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Разбирает список адресов (запятая / точка с запятой / перевод строки / пробел)
-// в уникальный массив валидных адресов. Бросает ошибку при невалидном адресе.
-export function parseEmailList(raw: string): string[] {
-  const result: string[] = [];
-
-  for (const token of raw.split(/[,;\s]+/)) {
-    if (!token) {
-      continue;
-    }
-
-    if (!EMAIL_RE.test(token)) {
-      throw new BadRequestException(`Некорректный email: ${token}`);
-    }
-
-    if (!result.some((e) => e.toLowerCase() === token.toLowerCase())) {
-      result.push(token);
-    }
-  }
-
-  return result;
-}
 
 @Injectable()
 export class ProductTypeNotificationsService {

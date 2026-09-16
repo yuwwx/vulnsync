@@ -4,7 +4,7 @@ import { api } from "./api";
 // (справочники — в services/reference/).
 export type DefectDojoFinding = Record<string, unknown>;
 
-export const ProductsService = {
+export const IntegrationActions = {
   async getDefectDojoFinding(id: number): Promise<DefectDojoFinding> {
     const { data } = await api.get<DefectDojoFinding>(
       `/integrations/defectdojo/finding/${id}`,
@@ -16,11 +16,6 @@ export const ProductsService = {
     const { data } = await api.post("/integrations/dependency-track/export", {
       ddProductId: ddProductId,
     });
-    return data;
-  },
-
-  async syncKev() {
-    const { data } = await api.post("/integrations/dependency-track/sync-kev");
     return data;
   },
 };

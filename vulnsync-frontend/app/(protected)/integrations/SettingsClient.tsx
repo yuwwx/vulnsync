@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { useMounted } from "@/lib/useMounted";
 import { cn } from "@/lib/utils";
 import { normalizeIntegrations } from "@/mappers/integrations.mapper";
-import { ProductsService } from "@/services/products.service";
 import { toast } from "sonner";
 
 interface IntegrationUI extends IntegrationSetting {
@@ -106,7 +105,6 @@ export default function SettingsPage() {
   const [activeIntegration, setActiveIntegration] =
     useState<IntegrationType>("DEFECTDOJO");
   const [error, setError] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     SettingsService.getAll()
@@ -213,18 +211,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSyncWithKev = async () => {
-    try {
-      setSyncing(true);
-      await ProductsService.syncKev();
-      toast.success("Синхронизация KEV запущена");
-    } catch (err) {
-      toast.error("Не удалось запустить синхронизацию KEV");
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   if (!mounted || loading) return <div>Loading…</div>;
 
   return (
@@ -317,26 +303,6 @@ export default function SettingsPage() {
                         : "Сохранить"}
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-            {activeIntegration === "DEPENDENCY_TRACK" && (
-              <Card className="max-w-sm">
-                <CardHeader>
-                  <CardTitle>Синхронизация с KEV</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  <div className="mb-5">
-                    Создается новая политика с текущей датой в названии и
-                    указанием всем CVE из базы KEV
-                  </div>
-                  <Button
-                    className="w-full"
-                    disabled={syncing}
-                    onClick={handleSyncWithKev}
-                  >
-                    {syncing ? "Запуск..." : "Синхронизировать"}
-                  </Button>
                 </CardContent>
               </Card>
             )}

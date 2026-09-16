@@ -9,9 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  DefectDojoFinding,
-  ProductsService,
-} from "@/services/products.service";
+  IntegrationActions,
+  type DefectDojoFinding,
+} from "@/services/integration-actions.service";
 import { VulnerabilitiesService } from "@/services/vulnerabilities.service";
 import { Check, Copy } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -63,7 +63,7 @@ export function DescriptionDialog({
     if (rawFinding || rawLoading || findingIds.length === 0) return;
 
     setRawLoading(true);
-    ProductsService.getDefectDojoFinding(findingIds[0])
+    IntegrationActions.getDefectDojoFinding(findingIds[0])
       .then(setRawFinding)
       .catch(() => toast.error("Не удалось загрузить исходные данные"))
       .finally(() => setRawLoading(false));

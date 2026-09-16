@@ -12,7 +12,7 @@ NestJS API для сервиса VulnSync: синхронизация уязви
 | `vulnerability-sync/` | Отправка уязвимостей в Jira и статусы синхронизации (commands, create-issue) |
 | `mappings/` | Маппинги: DefectDojo → Jira и Dependency-Track → DefectDojo |
 | `notifications/` | Почтовые уведомления по типам продуктов |
-| `reports/` | Ежедневный отчёт об уязвимостях за вчера (Cron + SMTP) |
+| `reports/` | Отчёты по findings: ежедневный за вчера (Cron + SMTP) и по engagement |
 | `settings/` | Настройки интеграций (адреса и API-токены) |
 | `logs/` | Журнал действий пользователей |
 | `prisma/` | Модуль доступа к PostgreSQL (Prisma) |

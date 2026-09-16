@@ -10,7 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { DependencyTrackMappingsService } from './dependency-track-mapping.service';
+import { DependencyTrackMappingsService } from './dependency-track-mappings.service';
 import { CreateDependencyTrackMappingDto } from './dto/create-dependency-track-mapping.dto';
 import { UpdateDependencyTrackMappingDto } from './dto/update-dependency-track-mapping.dto';
 
