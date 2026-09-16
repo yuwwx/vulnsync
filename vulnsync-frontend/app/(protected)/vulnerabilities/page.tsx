@@ -121,7 +121,7 @@ export default function VulnerabilitiesPage() {
         );
 
         toast.success("Jira issue создан");
-      } catch (error) {
+      } catch {
         toast.error(`Не удалось создать Jira issue`);
       }
     },
@@ -154,7 +154,7 @@ export default function VulnerabilitiesPage() {
       );
 
       toast.success("Jira issue создан");
-    } catch (error) {
+    } catch {
       toast.error("Не удалось создать Jira issue");
     }
   }, [selectedProductTypeId, selectedVulns]);

@@ -45,12 +45,10 @@ interface Props {
   bulkActions?: BulkAction[];
 }
 
-type VulnerabilityMeta = {
-  label?: string;
-};
-
 declare module "@tanstack/table-core" {
-  interface ColumnMeta<TFeatures, TData, TValue> extends VulnerabilityMeta {}
+  interface ColumnMeta<TFeatures, TData, TValue> {
+    label?: string;
+  }
 }
 
 export function VulnerabilitiesTable({

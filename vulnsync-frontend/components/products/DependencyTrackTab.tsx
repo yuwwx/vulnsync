@@ -42,12 +42,13 @@ export default function DependencyTrackTab({ productType }: Props) {
 
   // 1) Загружаем продукты
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    setMapping(null);
+    if (!productType?.id) return;
+
+    let cancelled = false;
 
     DefectDojoReferenceService.getProducts(productType.id)
       .then((prods) => {
+        if (cancelled) return;
         setProducts(prods);
 
         if (prods.length === 0) {
@@ -63,32 +64,46 @@ export default function DependencyTrackTab({ productType }: Props) {
         // если продукты есть - выбираем первый
         setSelectedDdProductId(String(prods[0].id));
       })
-      .catch((err) =>
-        setError(`Не удалось получить продукты из DefectDojo: ${err}`),
-      )
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (cancelled) return;
+        setError(`Не удалось получить продукты из DefectDojo: ${err}`);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [productType?.id]);
 
   // 2) Когда выбираем продукт - грузим маппинг
   useEffect(() => {
     if (!selectedDdProductId) return;
 
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
 
     MappingsService.getDependencyTrackMapping(Number(selectedDdProductId))
       .then((m) => {
-        if (m) {
-          setMapping(m);
-        } else {
-          setMapping({
+        if (cancelled) return;
+        setMapping(
+          m ?? {
             dtProjectName: "",
             ddProductId: Number(selectedDdProductId),
-          });
-        }
+          },
+        );
       })
-      .catch((err) => setError(`Не удалось получить маппинг: ${err}`))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (cancelled) return;
+        setError(`Не удалось получить маппинг: ${err}`);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedDdProductId]);
 
   const updateField = (field: keyof DependencyTrackMapping, value: string) => {

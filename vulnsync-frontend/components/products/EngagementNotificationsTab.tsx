@@ -25,23 +25,26 @@ export default function EngagementNotificationsTab({
   const { isAdmin } = useAuth();
 
   useEffect(() => {
-    if (!productType?.id) {
-      setEmails("");
-      setLoading(false);
-      return;
-    }
+    if (!productType?.id) return;
 
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
 
     NotificationsService.getProductTypeNotification(Number(productType.id))
       .then((setting) => {
+        if (cancelled) return;
         setEmails(setting?.emails ?? "");
       })
-      .catch((err) =>
-        setError(`Не удалось получить настройку уведомлений: ${err}`),
-      )
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (cancelled) return;
+        setError(`Не удалось получить настройку уведомлений: ${err}`);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [productType?.id]);
 
   const handleSave = async () => {

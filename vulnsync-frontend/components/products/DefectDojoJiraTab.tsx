@@ -29,25 +29,33 @@ export default function DefectDojoJiraTab({ productType }: Props) {
   const { isAdmin } = useAuth();
 
   useEffect(() => {
-    if (!productType?.id) {
-      setMapping(null);
-      setJsonText("");
-      setLoading(false);
-      return;
-    }
+    if (!productType?.id) return;
 
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
 
-    MappingsService.getJiraMapping(Number(productType.id))
+    MappingsService.getJiraMapping(productType.id)
       .then((map) => {
+        if (cancelled) return;
         setMapping(map);
-        setJsonText(map ? JSON.stringify(stripFields(map, SYSTEM_FIELDS), null, 2) : "");
+        setJsonText(
+          map ? JSON.stringify(stripFields(map, SYSTEM_FIELDS), null, 2) : "",
+        );
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Не удалось загрузить маппинг");
+        if (cancelled) return;
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Не удалось загрузить маппинг",
+        );
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [productType?.id]);
 
   const save = async () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_AI_SYSTEM_PROMPT } from "@/constants/ai-prompt";
 import { INTEGRATIONS, IntegrationType } from "@/constants/integrations";
 import {
   IntegrationSetting,
@@ -10,6 +11,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useMounted } from "@/lib/useMounted";
 import { cn } from "@/lib/utils";
 import { normalizeIntegrations } from "@/mappers/integrations.mapper";
 import { ProductsService } from "@/services/products.service";
@@ -99,7 +101,7 @@ export default function SettingsPage() {
     Partial<Record<IntegrationType, IntegrationSetting>>
   >({});
   const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const [saving, setSaving] = useState<IntegrationType | null>(null);
   const [activeIntegration, setActiveIntegration] =
     useState<IntegrationType>("DEFECTDOJO");
@@ -107,8 +109,6 @@ export default function SettingsPage() {
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-
     SettingsService.getAll()
       .then((list) => {
         const normalized = normalizeIntegrations(list);
@@ -121,11 +121,7 @@ export default function SettingsPage() {
               apiToken: "",
               username: "",
               password: "",
-              systemPrompt:
-                setting.systemPrompt ??
-                (type === "ML"
-                  ? "Ты — опытный Application Security Engineer.\n\nПроанализируй уязвимость и оцени, насколько она применима к моему проекту.\n\nОтветь в следующем формате:\n\n1. Кратко:\nЧто это за уязвимость и какой компонент затрагивает.\n\n2. Затрагиваемый тип проекта:\nFrontend / Backend / Оба.\nОбъясни почему.\n\n3. Условия эксплуатации:\n- какие версии зависимости уязвимы;\n- требуется ли использование конкретного функционала;\n- может ли быть использована в production;\n- влияет ли только на dev-зависимости;\n- распространяется ли риск через транзитивные зависимости.\n\n4. Что проверить в проекте:\nУкажи конкретно файлы, настройки и использование уязвимого функционала в коде.\n\n5. Оценка применимости:\nВыбери: ✅ Не применима, ⚠️ Требует проверки или 🔴 Применима. Объясни причину.\n\n6. Дополнительная информация:\nЕсли недостаточно данных — укажи, что именно нужно предоставить.\n\nНе пересказывай полное описание уязвимости. Основная цель — определить реальный риск для проекта и необходимые проверки."
-                  : ""),
+              systemPrompt: setting.systemPrompt ?? (type === "ML" ? DEFAULT_AI_SYSTEM_PROMPT : ""),
               ...(type === "ML" && {
                 model: setting.model ?? "giga_GigaChat-2-Max",
               }),

@@ -51,6 +51,62 @@ function SortButton({
   );
 }
 
+// Действия над уязвимостью из меню строки
+type VulnActions = {
+  onSendToJira: (vuln: Vulnerability) => void;
+  onLinkWithJira: (vuln: Vulnerability) => void;
+  onSyncWithJira: (vuln: Vulnerability) => void;
+  onUnsyncWithJira: (vuln: Vulnerability) => void;
+  onChangeSeverity: (vuln: Vulnerability) => void;
+  onGenerateDescription: (vuln: Vulnerability) => void;
+  onAskAi: (vuln: Vulnerability) => void;
+};
+
+function RowActions({ vuln, actions }: { vuln: Vulnerability; actions: VulnActions }) {
+  const { isAdmin } = useAuth();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">Открыть меню</span>
+          <MoreHorizontal />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[230px]">
+        {isAdmin && (
+          <>
+            <DropdownMenuItem
+              disabled={vuln.status !== "Не отправлена"}
+              onClick={() => actions.onSendToJira(vuln)}
+            >
+              Отправить в Jira
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => actions.onLinkWithJira(vuln)}>
+              Связать с Jira
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => actions.onSyncWithJira(vuln)}>
+              Синхронизировать с Jira
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => actions.onUnsyncWithJira(vuln)}>
+              Отвязать от Jira
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => actions.onChangeSeverity(vuln)}>
+              Изменить критичность
+            </DropdownMenuItem>
+          </>
+        )}
+        <DropdownMenuItem onClick={() => actions.onGenerateDescription(vuln)}>
+          Сгенерировать описание
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => actions.onAskAi(vuln)}>
+          Спросить у AI
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export const vulnerabilityColumns = (
   onSendToJira: (vuln: Vulnerability) => void,
   onLinkWithJira: (vuln: Vulnerability) => void,
@@ -59,7 +115,18 @@ export const vulnerabilityColumns = (
   onChangeSeverity: (vuln: Vulnerability) => void,
   onGenerateDescription: (vuln: Vulnerability) => void,
   onAskAi: (vuln: Vulnerability) => void,
-): ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[] => [
+): ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[] => {
+  const actions: VulnActions = {
+    onSendToJira,
+    onLinkWithJira,
+    onSyncWithJira,
+    onUnsyncWithJira,
+    onChangeSeverity,
+    onGenerateDescription,
+    onAskAi,
+  };
+
+  return [
   {
     id: "select",
     meta: { label: "Выбрать" },
@@ -162,55 +229,10 @@ export const vulnerabilityColumns = (
     meta: { label: "Действия" },
     header: "Действия",
     enableSorting: false,
-    cell: ({ row }) => {
-      const vuln = row.original;
-      const { isAdmin } = useAuth();
-
-      return (
-        <>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Открыть меню</span>
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[230px]">
-              {isAdmin && (
-                <>
-                  <DropdownMenuItem
-                    disabled={vuln.status !== "Не отправлена"}
-                    onClick={() => onSendToJira(vuln)}
-                  >
-                    Отправить в Jira
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onLinkWithJira(vuln)}>
-                    Связать с Jira
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onSyncWithJira(vuln)}>
-                    Синхронизировать с Jira
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onUnsyncWithJira(vuln)}>
-                    Отвязать от Jira
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onChangeSeverity(vuln)}>
-                    Изменить критичность
-                  </DropdownMenuItem>
-                </>
-              )}
-              <DropdownMenuItem onClick={() => onGenerateDescription(vuln)}>
-                Сгенерировать описание
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onAskAi(vuln)}>
-                Спросить у AI
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </>
-      );
-    },
+    cell: ({ row }) => <RowActions vuln={row.original} actions={actions} />,
   },
-];
+  ];
+}
 
 function SeverityBadge({ severity }: { severity: string }) {
   const colors: Record<string, string> = {

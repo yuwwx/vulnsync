@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  reactStrictMode: false,
+  // Показывает побочные эффекты (двойной вызов рендеров) в dev-режиме
+  reactStrictMode: true,
   output: "standalone",
 };
 

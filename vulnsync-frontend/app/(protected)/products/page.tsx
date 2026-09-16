@@ -91,6 +91,7 @@ export default function ProductsPage() {
             <TabsContent value="defectDojoJira">
               {selectedProduct && (
                 <DefectDojoJiraTab
+                  key={selectedProduct}
                   productType={products.find((p) => p.id === selectedProduct)!}
                 />
               )}
@@ -99,6 +100,7 @@ export default function ProductsPage() {
             <TabsContent value="dependencyTrack">
               {selectedProduct && (
                 <DependencyTrackTab
+                  key={selectedProduct}
                   productType={products.find((p) => p.id === selectedProduct)!}
                 />
               )}
@@ -107,6 +109,7 @@ export default function ProductsPage() {
             <TabsContent value="engagementNotifications">
               {selectedProduct && (
                 <EngagementNotificationsTab
+                  key={selectedProduct}
                   productType={products.find((p) => p.id === selectedProduct)!}
                 />
               )}

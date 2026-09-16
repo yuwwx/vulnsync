@@ -57,11 +57,6 @@ export default function Home() {
                   Перейти к уязвимостям <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
-              <Link href="/docs">
-                <Button variant="outline" size="lg">
-                  Документация
-                </Button>
-              </Link>
             </div>
           </div>
 
@@ -165,7 +160,7 @@ export default function Home() {
               уязвимостями.
             </p>
           </div>
-          <Link href="/settings">
+          <Link href="/integrations">
             <Button size="lg">
               Начать настройку <ArrowRight className="ml-2 w-4 h-4" />
             </Button>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/useAuth";
+import { useMounted } from "@/lib/useMounted";
 import { cn } from "@/lib/utils";
 import { AuthService } from "@/services/auth.service";
 import Link from "next/link";
@@ -19,12 +19,7 @@ const navItems = [
 export function Header() {
   const pathname = usePathname();
   const { isAdmin, isAuthenticated, username, displayName } = useAuth();
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useMounted();
 
   function logout() {
     AuthService.logout();
