@@ -13,13 +13,13 @@ export class JiraMappingsService {
   }
 
   async getByProductType(productType: number) {
-    const mapping = await this.prisma.jiraMapping.findFirst({
+    const mapping = await this.prisma.jiraMapping.findUnique({
       where: { ddProductTypeId: productType },
     });
 
     if (!mapping) {
       throw new NotFoundException(
-        `Mapping not found for ddProductTypeId=${productType}`,
+        `Jira mapping for ddProductTypeId=${productType} not found`,
       );
     }
 
@@ -35,9 +35,14 @@ export class JiraMappingsService {
   }
 
   async create(dto: CreateJiraMappingDto) {
-    return this.prisma.jiraMapping.create({
-      data: {
+    // ddProductTypeId уникален: повторный POST обновляет существующий маппинг
+    return this.prisma.jiraMapping.upsert({
+      where: { ddProductTypeId: dto.ddProductTypeId },
+      create: {
         ddProductTypeId: dto.ddProductTypeId,
+        fields: dto.fields || {},
+      },
+      update: {
         fields: dto.fields || {},
       },
     });

@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '../../prisma/generated/client';
+import { IntegrationType } from '@/common/enums/integration-type.enum';
 import { CreateIntegrationSettingDto } from './dto/create-integration-setting.dto';
 import { UpdateIntegrationSettingDto } from './dto/update-integration-setting.dto';
 
@@ -99,8 +101,8 @@ export class SettingsService {
     return settings.map((setting) => this.toResponse(setting));
   }
 
-  async getByType(type: string) {
-    const setting = await this.prisma.integrationSetting.findFirst({
+  async getByType(type: IntegrationType) {
+    const setting = await this.prisma.integrationSetting.findUnique({
       where: { type },
       select: {
         id: true,
@@ -125,8 +127,8 @@ export class SettingsService {
     return this.toResponse(setting);
   }
 
-  async getSecretByType(type: string) {
-    const setting = await this.prisma.integrationSetting.findFirst({
+  async getSecretByType(type: IntegrationType) {
+    const setting = await this.prisma.integrationSetting.findUnique({
       where: { type },
       select: { apiToken: true },
     });
@@ -134,19 +136,23 @@ export class SettingsService {
   }
 
   async create(dto: CreateIntegrationSettingDto) {
-    const exists = await this.prisma.integrationSetting.findFirst({
-      where: { type: dto.type },
-    });
+    try {
+      const setting = await this.prisma.integrationSetting.create({
+        data: dto,
+      });
 
-    if (exists) {
-      throw new ConflictException(`Integration ${dto.type} already exists`);
+      return this.toResponse(setting);
+    } catch (error) {
+      // Уникальность type на уровне БД: гонка двух одновременных POST
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(`Integration ${dto.type} already exists`);
+      }
+
+      throw error;
     }
-
-    const setting = await this.prisma.integrationSetting.create({
-      data: dto,
-    });
-
-    return this.toResponse(setting);
   }
 
   async update(id: string, dto: UpdateIntegrationSettingDto) {

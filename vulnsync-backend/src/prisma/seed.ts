@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { Role } from '../../prisma/generated/enums';
 import { PrismaService } from './prisma.service';
 
 const config = new ConfigService({
@@ -12,7 +13,7 @@ const prisma = new PrismaService(config);
 // SEED_USERNAME, SEED_PASSWORD, SEED_ROLE (USER | ADMIN | VIEWER)
 const username = process.env.SEED_USERNAME ?? 'testuser';
 const password = process.env.SEED_PASSWORD ?? 'changeme';
-const role = process.env.SEED_ROLE ?? 'USER';
+const role = (process.env.SEED_ROLE ?? 'USER') as Role;
 
 async function main() {
   const hashed = await bcrypt.hash(password, 10);

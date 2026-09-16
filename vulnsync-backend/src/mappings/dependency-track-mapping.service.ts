@@ -12,7 +12,7 @@ export class DependencyTrackMappingsService {
   }
 
   async getByProduct(productId: number) {
-    const mapping = await this.prisma.dependencyTrackMapping.findFirst({
+    const mapping = await this.prisma.dependencyTrackMapping.findUnique({
       where: { ddProductId: productId },
     });
 
@@ -38,9 +38,14 @@ export class DependencyTrackMappingsService {
   }
 
   async create(dto: CreateDependencyTrackMappingDto) {
-    return this.prisma.dependencyTrackMapping.create({
-      data: {
+    // ddProductId уникален: повторный POST обновляет существующий маппинг
+    return this.prisma.dependencyTrackMapping.upsert({
+      where: { ddProductId: dto.ddProductId },
+      create: {
         ddProductId: dto.ddProductId,
+        dtProjectName: dto.dtProjectName,
+      },
+      update: {
         dtProjectName: dto.dtProjectName,
       },
     });

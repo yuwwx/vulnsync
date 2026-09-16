@@ -1,3 +1,4 @@
+import { IntegrationType } from '@/common/enums/integration-type.enum';
 import { LogAction } from '@/common/decorators/logAction.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
 import {
@@ -28,7 +29,8 @@ export class SettingsController {
   @Roles('ADMIN')
   @Get(':type')
   getByType(@Param('type') type: string) {
-    return this.service.getByType(type);
+    // Некорректный тип вернёт 404 из сервиса
+    return this.service.getByType(type as IntegrationType);
   }
 
   @LogAction('SETTINGS_CREATE_INTEGRATION')

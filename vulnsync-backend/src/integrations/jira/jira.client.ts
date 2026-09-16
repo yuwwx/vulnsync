@@ -50,7 +50,7 @@ export class JiraClient {
   }
 
   private async getClient(): Promise<AxiosInstance> {
-    const config = await this.prisma.integrationSetting.findFirst({
+    const config = await this.prisma.integrationSetting.findUnique({
       where: { type: IntegrationType.JIRA },
     });
 

@@ -1,5 +1,6 @@
 // auth.service.ts
 import { PrismaService } from '@/prisma/prisma.service';
+import { Role } from '../../prisma/generated/enums';
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -52,7 +53,7 @@ export class AuthService {
     email: string,
     displayName: string,
     jobTitle: string,
-    role: string = 'USER',
+    role: Role = 'USER',
   ) {
     const user = await this.prisma.user.upsert({
       where: { username },

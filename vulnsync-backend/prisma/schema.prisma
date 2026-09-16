@@ -8,6 +8,22 @@ datasource db {
   provider = "postgresql"
 }
 
+// Роль пользователя: USER — обычный пользователь, VIEWER — техучётки из LDAP
+// (пайплайны), ADMIN — администратор.
+enum Role {
+  USER
+  VIEWER
+  ADMIN
+}
+
+// Внешние системы, настройки которых хранятся в IntegrationSetting.
+enum IntegrationType {
+  ML
+  DEFECTDOJO
+  DEPENDENCY_TRACK
+  JIRA
+}
+
 model User {
   id          String   @id @default(uuid())
   username    String   @unique
@@ -16,41 +32,41 @@ model User {
   email       String?
   displayName String?
   jobTitle    String?
-  role        String   @default("USER")
+  role        Role     @default(USER)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model IntegrationSetting {
-  id                     String @id @default(uuid())
-  type                   String
-  baseUrl                String
-  apiToken               String?
-  username               String?
-  password               String?
-  severityCustomField    String?
-  cvssCustomField        String?
+  id                         String          @id @default(uuid())
+  type                       IntegrationType @unique
+  baseUrl                    String
+  apiToken                   String?
+  username                   String?
+  password                   String?
+  severityCustomField        String?
+  cvssCustomField            String?
   vulnerabilityIdCustomField String?
-  systemPrompt             String?
-  model                    String?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  systemPrompt               String?
+  model                      String?
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
 }
 
 model JiraMapping {
-  id              String @id @default(uuid())
-  ddProductTypeId Int?
+  id              String   @id @default(uuid())
+  ddProductTypeId Int      @unique
   fields          Json
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
 
 model DependencyTrackMapping {
-  id              String @id @default(uuid())
-  ddProductId Int?
-  dtProjectName   String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String   @id @default(uuid())
+  ddProductId   Int      @unique
+  dtProjectName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model ProductTypeNotification {
@@ -74,11 +90,12 @@ model VulnerabilitySync {
 }
 
 model Log {
-  id         String   @id @default(uuid())
-  action     String
-  ip         String?
-  userId     String?
-  meta       Json?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(uuid())
+  action    String
+  ip        String?
+  userId    String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

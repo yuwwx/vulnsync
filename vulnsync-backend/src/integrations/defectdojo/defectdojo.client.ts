@@ -81,7 +81,7 @@ export class DefectDojoClient {
   }
 
   async getConfig() {
-    const config = await this.prisma.integrationSetting.findFirst({
+    const config = await this.prisma.integrationSetting.findUnique({
       where: { type: IntegrationType.DEFECTDOJO },
     });
 
