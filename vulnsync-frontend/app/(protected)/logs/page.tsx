@@ -28,8 +28,6 @@ export default function LogsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">События</h1>
-
       <div className="rounded-md border">
         <LogsTable logs={logs} />
       </div>

@@ -468,8 +468,6 @@ export default function VulnerabilitiesPage() {
         </ul>
 
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold mb-4">Уязвимости</h1>
-
           {loadingVulns ? (
             <div>Загрузка…</div>
           ) : error ? (

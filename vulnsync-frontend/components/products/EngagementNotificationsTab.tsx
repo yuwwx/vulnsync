@@ -79,7 +79,7 @@ export default function EngagementNotificationsTab({
 
       <div className="space-y-2">
         <div className="text-sm text-muted-foreground">
-          Адреса получателей уведомлений по engagement для выбранного типа
+          Адреса получателей уведомлений об уязвимостях для выбранного типа
           продукта. Они добавляются к общему списку из DD_REPORT_MAIL_TO.
         </div>
         <Textarea

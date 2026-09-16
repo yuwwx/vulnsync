@@ -55,7 +55,6 @@ export default function ProductsPage() {
       </ul>
 
       <div className="flex-1">
-        <h1 className="text-2xl font-bold mb-4">Продукты</h1>
         {loading ? (
           <div>Загружаем продукты…</div>
         ) : error ? (
@@ -85,7 +84,7 @@ export default function ProductsPage() {
                 Маппинг DependencyTrack → DefectDojo
               </TabsTrigger>
               <TabsTrigger value="engagementNotifications">
-                Уведомления по engagement
+                Уведомления об уязвимостях
               </TabsTrigger>
             </TabsList>
 
