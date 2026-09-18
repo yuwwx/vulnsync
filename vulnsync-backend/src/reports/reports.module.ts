@@ -3,13 +3,14 @@ import { Module } from '@nestjs/common';
 import { DefectDojoModule } from '@/integrations/defectdojo/defectdojo.module';
 import { NotificationsModule } from '@/notifications/notifications.module';
 import { MailerService } from './mailer.service';
+import { ReportQueueService } from './report-queue.service';
 import { ReportsController } from './reports.controller';
 import { FindingsReportService } from './findings-report.service';
 
 @Module({
   imports: [DefectDojoModule, NotificationsModule],
   controllers: [ReportsController],
-  providers: [MailerService, FindingsReportService],
+  providers: [MailerService, FindingsReportService, ReportQueueService],
   exports: [FindingsReportService],
 })
 export class ReportsModule {}

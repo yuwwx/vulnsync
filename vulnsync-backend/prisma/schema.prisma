@@ -99,3 +99,18 @@ model Log {
 
   @@index([createdAt])
 }
+
+// Очередь отправки отчётов: разгружает DefectDojo и SMTP при массовых
+// запусках (например, еженедельные отчёты по всем продуктам).
+// Пункт удаляется при выполнении; уникальность не даёт поставить дубль,
+// пока отчёт ещё не отправлен.
+model ReportQueueItem {
+  id         String   @id @default(uuid())
+  type       String
+  externalId String
+  runAt      DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([type, externalId])
+  @@index([runAt])
+}

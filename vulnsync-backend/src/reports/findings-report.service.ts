@@ -23,7 +23,7 @@ type Finding = Record<string, unknown>;
 
 const REPORT_SEVERITIES = ['Critical', 'High', 'Medium', 'Low'] as const;
 
-const FINDINGS_LIMIT = 1000;
+const FINDINGS_LIMIT = 10000;
 
 function asString(value: unknown): string {
   if (value == null || typeof value === 'object') {

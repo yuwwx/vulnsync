@@ -2,11 +2,15 @@
 import { LogAction } from '@/common/decorators/logAction.decorator';
 import { Controller, Param, Post } from '@nestjs/common';
 import { FindingsReportService } from './findings-report.service';
+import { ReportQueueService } from './report-queue.service';
 import { Public } from '@/common/decorators/public.decorator';
 
 @Controller('reports')
 export class ReportsController {
-  constructor(private service: FindingsReportService) {}
+  constructor(
+    private service: FindingsReportService,
+    private queue: ReportQueueService,
+  ) {}
 
   // Ручной запуск отчёта - аналог `python3 dd-yesterday-findings.py`
   @LogAction('REPORTS_RUN_YESTERDAY_FINDINGS')
@@ -17,11 +21,17 @@ export class ReportsController {
   }
 
   // Отчёт по конкретному engagement DefectDojo.
+  // Не отправляется сразу: ставится в очередь (см. ReportQueueService),
+  // чтобы массовые запуски от пайплайнов не заваливали DefectDojo и SMTP.
   // VIEWER - для технических учеток из LDAP (пайплайны), ADMIN - для людей.
   @LogAction('REPORTS_RUN_ENGAGEMENT_FINDINGS')
   @Public() // TODO: temporary, remove after testing
   @Post('engagements/:engagementId/run')
-  runForEngagement(@Param('engagementId') engagementId: number) {
-    return this.service.sendEngagementFindingsReport(engagementId);
+  async runForEngagement(@Param('engagementId') engagementId: number) {
+    const runAt = await this.queue.enqueueEngagementFindings(
+      Number(engagementId),
+    );
+
+    return { status: 'queued', runAt: runAt.toISOString() };
   }
 }
