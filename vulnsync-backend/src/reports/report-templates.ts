@@ -46,6 +46,8 @@ export type FindingsReportParams = {
 export type EngagementFindingItem = {
   id: string;
   findingUrl: string;
+  product: string; // имя продукта - в метастроке карточки (полный отчёт по типу)
+  engagement: string; // имя engagement - в метастроке карточки
   title: string;
   severity: string;
   cvssScore: string;
@@ -220,8 +222,16 @@ export function renderEngagementFindingsReport(
       const severityHtml = item.severity
         ? `<span style="${chipStyle} padding: 2px 10px; border-radius: 12px; font-size: 12px; white-space: nowrap;">${escapeHtml(item.severity)}</span>`
         : '';
+      // В engagement-отчёте Проект/Сборка уже в шапке — в карточках дублировать не нужно
+      const showItemContext = !params.engagementName;
       // Сигналы для быстрого триажа: только заполненные значения
       const metaParts = [
+        showItemContext &&
+          item.product &&
+          `Продукт: ${escapeHtml(item.product)}`,
+        showItemContext &&
+          item.engagement &&
+          `Engagement: ${escapeHtml(item.engagement)}`,
         item.testType && `Тест: ${escapeHtml(item.testType)}`,
         item.cvssScore && `CVSS: ${escapeHtml(item.cvssScore)}`,
         item.vulnerabilityIds &&

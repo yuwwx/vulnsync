@@ -449,6 +449,8 @@ export class FindingsReportService {
       return {
         id: asString(f.id),
         findingUrl: `${baseUrl}/finding/${asString(f.id)}`,
+        product: getNested(f, 'related_fields.test.engagement.product.name'),
+        engagement: getNested(f, 'related_fields.test.engagement.name'),
         title: asString(f.title),
         severity: asString(f.severity),
         cvssScore: asString(f.cvssv3_score),
