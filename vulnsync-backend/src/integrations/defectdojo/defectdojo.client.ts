@@ -2,6 +2,10 @@
 import { IntegrationType } from '@/common/enums/integration-type.enum';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
+  DefectDojoProduct,
+  DefectDojoProductType,
+} from './types/defectdojo.types';
+import {
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -101,13 +105,15 @@ export class DefectDojoClient {
     return config.baseUrl.replace(/\/+$/, '');
   }
 
-  async getProductTypes() {
+  async getProductTypes(): Promise<DefectDojoProductType[]> {
     const client = await this.getClient();
 
     this.logger.log('Fetching DefectDojo product types');
 
     try {
-      const { data } = await client.get('/api/v2/product_types/', {
+      const { data } = await client.get<{
+        results?: DefectDojoProductType[];
+      }>('/api/v2/product_types/', {
         params: { limit: 10000 },
       });
 
@@ -127,7 +133,7 @@ export class DefectDojoClient {
     }
   }
 
-  async getProducts(productTypeId?: number) {
+  async getProducts(productTypeId?: number): Promise<DefectDojoProduct[]> {
     const client = await this.getClient();
 
     this.logger.log(
@@ -135,9 +141,12 @@ export class DefectDojoClient {
     );
 
     try {
-      const { data } = await client.get('/api/v2/products/', {
-        params: { prod_type: productTypeId, limit: 10000 },
-      });
+      const { data } = await client.get<{ results?: DefectDojoProduct[] }>(
+        '/api/v2/products/',
+        {
+          params: { prod_type: productTypeId, limit: 10000 },
+        },
+      );
 
       if (!Array.isArray(data?.results)) {
         this.logger.error('Invalid products response structure');
@@ -155,13 +164,15 @@ export class DefectDojoClient {
     }
   }
 
-  async getProduct(productId: number) {
+  async getProduct(productId: number): Promise<DefectDojoProduct> {
     const client = await this.getClient();
 
     this.logger.log(`Fetching DefectDojo product: productId=${productId}`);
 
     try {
-      const { data } = await client.get(`/api/v2/products/${productId}`);
+      const { data } = await client.get<DefectDojoProduct>(
+        `/api/v2/products/${productId}`,
+      );
 
       if (!data) {
         this.logger.error(`Empty product response: productId=${productId}`);
@@ -207,8 +218,11 @@ export class DefectDojoClient {
     }
   }
 
-  async getFindingsByProduct(
-    productId: number,
+  // Универсальный запрос findings: фильтры уходят в DD API как есть,
+  // например { test__engagement__product__prod_type: id } (тип продуктов)
+  // или { product: id } (конкретный продукт)
+  async getFindings(
+    filters: Record<string, unknown>,
     limit = 10000,
     offset = 0,
     title?: string,
@@ -216,7 +230,7 @@ export class DefectDojoClient {
     const client = await this.getClient();
 
     this.logger.log(
-      `Fetching findings for DefectDojo product: productId=${productId}, limit=${limit}, offset=${offset}, title=${title}`,
+      `Fetching DefectDojo findings: filters=${JSON.stringify(filters)}, limit=${limit}, offset=${offset}, title=${title}`,
     );
 
     try {
@@ -224,7 +238,7 @@ export class DefectDojoClient {
         '/api/v2/findings/',
         {
           params: {
-            test__engagement__product__prod_type: productId,
+            ...filters,
             limit,
             offset,
             related_fields: true,
@@ -237,7 +251,7 @@ export class DefectDojoClient {
 
       if (!Array.isArray(data?.results)) {
         this.logger.error(
-          `Invalid findings response structure: productId=${productId}`,
+          `Invalid findings response structure: filters=${JSON.stringify(filters)}`,
         );
 
         throw new InternalServerErrorException(
@@ -248,7 +262,7 @@ export class DefectDojoClient {
       return data;
     } catch (error) {
       throw this.logAxiosError(
-        `Failed to fetch findings for productId=${productId}`,
+        `Failed to fetch findings: filters=${JSON.stringify(filters)}`,
         error,
       );
     }

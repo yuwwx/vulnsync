@@ -14,6 +14,11 @@ const REPORT_RUN_DELAY_MS = 5 * 60 * 1000;
 const QUEUE_BATCH = 5;
 
 const TYPE_ENGAGEMENT_FINDINGS = 'ENGAGEMENT_FINDINGS';
+const TYPE_PRODUCT_FINDINGS = 'PRODUCT_FINDINGS';
+const TYPE_PRODUCT_TYPE_FINDINGS = 'PRODUCT_TYPE_FINDINGS';
+
+// Полный отчёт: либо по конкретному продукту, либо по типу продуктов
+type FullFindingsScope = { productTypeId?: number; productId?: number };
 
 @Injectable()
 export class ReportQueueService {
@@ -58,6 +63,34 @@ export class ReportQueueService {
     return runAt;
   }
 
+  // Полный отчёт по продукту или типу продуктов.
+  // Throttle тот же: пока отчёт в очереди, повторная постановка не меняет срок.
+  async enqueueFullFindings(scope: FullFindingsScope): Promise<Date> {
+    const [type, externalId] = scope.productId
+      ? [TYPE_PRODUCT_FINDINGS, String(scope.productId)]
+      : [TYPE_PRODUCT_TYPE_FINDINGS, String(scope.productTypeId)];
+
+    const runAt = new Date(Date.now() + REPORT_RUN_DELAY_MS);
+
+    const existing = await this.prisma.reportQueueItem.findUnique({
+      where: { type_externalId: { type, externalId } },
+    });
+
+    if (existing) {
+      return existing.runAt;
+    }
+
+    await this.prisma.reportQueueItem.create({
+      data: { type, externalId, runAt },
+    });
+
+    this.logger.log(
+      `Report queued: type=${type}, externalId=${externalId}, runAt=${runAt.toISOString()}`,
+    );
+
+    return runAt;
+  }
+
   @Interval(60_000)
   async dispatchDue() {
     const due = await this.prisma.reportQueueItem.findMany({
@@ -94,6 +127,20 @@ export class ReportQueueService {
       await this.findingsReport.sendEngagementFindingsReport(
         Number(externalId),
       );
+      return;
+    }
+
+    if (type === TYPE_PRODUCT_FINDINGS) {
+      await this.findingsReport.sendFullFindingsReport({
+        productId: Number(externalId),
+      });
+      return;
+    }
+
+    if (type === TYPE_PRODUCT_TYPE_FINDINGS) {
+      await this.findingsReport.sendFullFindingsReport({
+        productTypeId: Number(externalId),
+      });
       return;
     }
 

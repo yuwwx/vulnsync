@@ -1,6 +1,12 @@
 // src/reports/reports.controller.ts
 import { LogAction } from '@/common/decorators/logAction.decorator';
-import { Controller, Param, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { FindingsReportService } from './findings-report.service';
 import { ReportQueueService } from './report-queue.service';
 import { Public } from '@/common/decorators/public.decorator';
@@ -31,6 +37,30 @@ export class ReportsController {
     const runAt = await this.queue.enqueueEngagementFindings(
       Number(engagementId),
     );
+
+    return { status: 'queued', runAt: runAt.toISOString() };
+  }
+
+  // Полный отчёт по активным findings продукта или типа продуктов.
+  // Ставится в очередь, письмо придёт через ~5 минут.
+  @LogAction('REPORTS_RUN_FULL_FINDINGS')
+  @Public() // TODO: temporary, remove after testing
+  @Post('findings/run')
+  async runForFindings(
+    @Body() body: { productTypeId?: number; productId?: number },
+  ) {
+    const scope = {
+      productTypeId: body.productTypeId,
+      productId: body.productId,
+    };
+
+    if (Boolean(scope.productTypeId) === Boolean(scope.productId)) {
+      throw new BadRequestException(
+        'Укажите ровно одно: productTypeId или productId',
+      );
+    }
+
+    const runAt = await this.queue.enqueueFullFindings(scope);
 
     return { status: 'queued', runAt: runAt.toISOString() };
   }

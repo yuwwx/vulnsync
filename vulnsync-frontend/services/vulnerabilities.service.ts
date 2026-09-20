@@ -33,22 +33,21 @@ export interface AiMessage {
 }
 
 export const VulnerabilitiesService = {
+  // scope: либо тип продуктов, либо конкретный продукт (ровно одно)
   async getVulnerabilities(
-    productId: number,
+    scope: { productTypeId?: number; productId?: number },
     page: number,
     limit: number,
     search?: string,
   ): Promise<VulnerabilityResponse> {
-    const { data } = await api.get<VulnerabilityResponse>(
-      `/vulnerabilities/${productId}`,
-      {
-        params: {
-          page,
-          limit,
-          title: search || undefined,
-        },
+    const { data } = await api.get<VulnerabilityResponse>("/vulnerabilities", {
+      params: {
+        ...scope,
+        page,
+        limit,
+        title: search || undefined,
       },
-    );
+    });
 
     return data;
   },

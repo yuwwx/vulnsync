@@ -30,16 +30,27 @@ export class VulnerabilitiesService {
     return this.defectDojo.getProductTypes();
   }
 
+  // Список уязвимостей: либо по типу продуктов, либо по конкретному продукту
   async getVulnerabilities(
-    productId: number,
+    scope: { productTypeId?: number; productId?: number },
     page = 1,
     limit = 10000,
     title?: string,
   ): Promise<VulnerabilityListResponseDto> {
+    if (Boolean(scope.productTypeId) === Boolean(scope.productId)) {
+      throw new BadRequestException(
+        'Укажите ровно одно: productTypeId или productId',
+      );
+    }
+
     const offset = (page - 1) * limit;
 
-    const findingsResponse = await this.defectDojo.getFindingsByProduct(
-      productId,
+    const filters = scope.productId
+      ? { product: scope.productId }
+      : { test__engagement__product__prod_type: scope.productTypeId };
+
+    const findingsResponse = await this.defectDojo.getFindings(
+      filters,
       limit,
       offset,
       title,

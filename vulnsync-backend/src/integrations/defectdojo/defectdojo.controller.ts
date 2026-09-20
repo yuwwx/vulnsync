@@ -25,10 +25,12 @@ export class DefectDojoController {
     return this.service.getProduct(productId);
   }
 
-  @LogAction('DEFECTDOJO_GET_FINDINGS_BY_PRODUCT')
-  @Get('findings/:productId')
-  getFindingsByProduct(@Param('productId') productId: number) {
-    return this.service.getFindingsByProduct(productId);
+  @LogAction('DEFECTDOJO_GET_FINDINGS_BY_PRODUCT_TYPE')
+  @Get('product-type/:productTypeId/findings')
+  getFindingsByProductType(@Param('productTypeId') productTypeId: number) {
+    return this.service.getFindings({
+      test__engagement__product__prod_type: Number(productTypeId),
+    });
   }
 
   @LogAction('DEFECTDOJO_GET_FINDING')

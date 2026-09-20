@@ -1,6 +1,6 @@
 // vulnerabilities.controller.ts
 import { LogAction } from '@/common/decorators/logAction.decorator';
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { AiMessage, VulnerabilitiesService } from './vulnerabilities.service';
 
 @Controller('vulnerabilities')
@@ -8,17 +8,21 @@ export class VulnerabilitiesController {
   constructor(private vulnerabilitiesService: VulnerabilitiesService) {}
 
   @LogAction('GET_VULNERABILITIES')
-  @Get(':productId')
+  @Get()
   getVulnerabilities(
-    @Param('productId') productId: number,
-    @Query('page') page = 1,
-    @Query('limit') limit = 10000,
+    @Query('productTypeId') productTypeId?: string,
+    @Query('productId') productId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
     @Query('title') title?: string,
   ) {
     return this.vulnerabilitiesService.getVulnerabilities(
-      Number(productId),
-      Number(page),
-      Number(limit),
+      {
+        productTypeId: productTypeId ? Number(productTypeId) : undefined,
+        productId: productId ? Number(productId) : undefined,
+      },
+      Number(page) || 1,
+      Number(limit) || 10000,
       title,
     );
   }

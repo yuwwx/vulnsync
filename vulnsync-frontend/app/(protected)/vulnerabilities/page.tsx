@@ -7,11 +7,14 @@ import { SeverityDialog } from "@/components/vulnerabilities/SeverityDialog";
 import { vulnerabilityColumns } from "@/components/vulnerabilities/vulnerabilities-columns";
 import { VulnerabilitiesTable } from "@/components/vulnerabilities/vulnerabilities-table";
 import {
+  DefectDojoProduct,
   DefectDojoProductType,
   DefectDojoReferenceService,
 } from "@/services/reference/defectdojo.service";
+import { ReportsService } from "@/services/reports.service";
 import { Vulnerability, VulnerabilitiesService } from "@/services/vulnerabilities.service";
 import { VulnerabilitySyncService } from "@/services/vulnerability-sync.service";
+import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -20,6 +23,20 @@ export default function VulnerabilitiesPage() {
   const [selectedProductTypeId, setSelectedProductTypeId] = useState<
     number | null
   >(null);
+  // Продукты выбранного типа и выбранный продукт (null = «Все»)
+  const [products, setProducts] = useState<DefectDojoProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(
+    null,
+  );
+  // Выбран ли пункт «Все» (весь тип) — отдельно от «ничего не выбрано»
+  const [isAllProductsSelected, setIsAllProductsSelected] = useState(false);
+  // Загруженный скоуп уязвимостей; null = тип выбран, но «Все»/продукт ещё
+  // не выбраны — тяжёлый запрос не выполняется
+  const [selectedScope, setSelectedScope] = useState<{
+    productTypeId?: number;
+    productId?: number;
+  } | null>(null);
 
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
   const [selectedVulns, setSelectedVulns] = useState<Vulnerability[]>([]);
@@ -54,20 +71,78 @@ export default function VulnerabilitiesPage() {
       );
   }, []);
 
-  const loadVulnerabilities = (product: DefectDojoProductType) => {
-    setSelectedProductTypeId(product.id);
-    setLoadingVulns(true);
+  const loadVulnerabilities = useCallback(
+    (scope: { productTypeId?: number; productId?: number }) => {
+      setLoadingVulns(true);
 
-    // Загружаем все уязвимости продукта разом: клиентские фильтры и пагинация
-    // работают по этому списку.
-    VulnerabilitiesService.getVulnerabilities(product.id, 1, 10000)
-      .then((resp) => {
-        setVulns(resp.data.map((v) => ({ ...v, productId: product.id })));
-      })
-      .catch(() => {
-        setError("Не удалось получить уязвимости");
-      })
-      .finally(() => setLoadingVulns(false));
+      // Загружаем все уязвимости разом: клиентские фильтры и пагинация
+      // работают по этому списку.
+      VulnerabilitiesService.getVulnerabilities(scope, 1, 10000)
+        .then((resp) => setVulns(resp.data))
+        .catch(() => {
+          setError("Не удалось получить уязвимости");
+        })
+        .finally(() => setLoadingVulns(false));
+    },
+    [],
+  );
+
+  const loadProducts = (productTypeId: number) => {
+    setProductsLoading(true);
+
+    DefectDojoReferenceService.getProducts(productTypeId)
+      .then(setProducts)
+      .catch(() => toast.error("Не удалось получить продукты"))
+      .finally(() => setProductsLoading(false));
+  };
+
+  // Выбор типа продуктов: список уязвимостей НЕ грузим автоматически —
+  // запрос по всему типу тяжёлый, ждём выбора «Все» или конкретного продукта
+  const handleSelectType = (type: DefectDojoProductType) => {
+    setSelectedProductTypeId(type.id);
+    setSelectedProductId(null);
+    setIsAllProductsSelected(false);
+    setSelectedVulns([]);
+    setSelectedScope(null);
+    loadProducts(type.id);
+  };
+
+  const handleSelectAllProducts = (type: DefectDojoProductType) => {
+    setSelectedProductId(null);
+    setIsAllProductsSelected(true);
+    setSelectedVulns([]);
+    const scope = { productTypeId: type.id };
+    setSelectedScope(scope);
+    loadVulnerabilities(scope);
+  };
+
+  const handleSelectProduct = (product: DefectDojoProduct) => {
+    setSelectedProductId(product.id);
+    setIsAllProductsSelected(false);
+    setSelectedVulns([]);
+    const scope = { productId: product.id };
+    setSelectedScope(scope);
+    loadVulnerabilities(scope);
+  };
+
+  // Полный отчёт по активным уязвимостям: продукт или весь тип.
+  // Уходит в очередь, письмо придёт примерно через 5 минут.
+  const handleRunFullReport = async () => {
+    if (!selectedProductTypeId) return;
+
+    const scope =
+      !isAllProductsSelected && selectedProductId
+        ? { productId: selectedProductId }
+        : { productTypeId: selectedProductTypeId };
+
+    try {
+      const { runAt } = await ReportsService.runFullFindingsReport(scope);
+      toast.success(
+        `Отчёт поставлен в очередь, придёт письмом до ${dayjs(runAt).format("HH:mm")}`,
+      );
+    } catch {
+      toast.error("Не удалось поставить отчёт в очередь");
+    }
   };
 
   // --- Спросить у AI ---
@@ -452,17 +527,51 @@ export default function VulnerabilitiesPage() {
     <>
       <div className="flex gap-6">
         <ul className="min-w-48 border rounded-md p-2 space-y-2 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
-          {productTypes.map((p) => (
-            <li
-              key={p.id}
-              onClick={() => loadVulnerabilities(p)}
-              className={`p-2 rounded cursor-pointer text-sm font-medium ${
-                selectedProductTypeId === p.id
-                  ? "bg-neutral-600 text-white"
-                  : "hover:bg-muted"
-              }`}
-            >
-              {p.name}
+          {productTypes.map((type) => (
+            <li key={type.id}>
+              <div
+                onClick={() => handleSelectType(type)}
+                className={`p-2 rounded cursor-pointer text-sm font-medium ${
+                  selectedProductTypeId === type.id
+                    ? "bg-neutral-600 text-white"
+                    : "hover:bg-muted"
+                }`}
+              >
+                {type.name}
+              </div>
+              {selectedProductTypeId === type.id && (
+                <ul className="ml-3 mt-1 space-y-1 text-sm">
+                  <li
+                    onClick={() => handleSelectAllProducts(type)}
+                    className={`p-2 rounded cursor-pointer ${
+                      isAllProductsSelected
+                        ? "bg-neutral-200 font-medium"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    Все
+                  </li>
+                  {productsLoading ? (
+                    <li className="p-2 text-muted-foreground">
+                      Загрузка продуктов…
+                    </li>
+                  ) : (
+                    products.map((product) => (
+                      <li
+                        key={product.id}
+                        onClick={() => handleSelectProduct(product)}
+                        className={`p-2 rounded cursor-pointer ${
+                          selectedProductId === product.id
+                            ? "bg-neutral-200 font-medium"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        {product.name}
+                      </li>
+                    ))
+                  )}
+                </ul>
+              )}
             </li>
           ))}
         </ul>
@@ -475,12 +584,21 @@ export default function VulnerabilitiesPage() {
               {error}
             </div>
           ) : !selectedProductTypeId ? (
-            <div className="text-neutral-500">Выберите продукт</div>
+            <div className="text-neutral-500">Выберите тип продуктов</div>
+          ) : !selectedScope ? (
+            <div className="text-neutral-500">
+              Выберите продукт или «Все», чтобы загрузить уязвимости
+            </div>
           ) : (
               <VulnerabilitiesTable
                 data={vulns}
                 columns={columns}
                 onSelectionChange={setSelectedVulns}
+                fullReportAction={{
+                  label: "Отчёт об уязвимостях",
+                  disabled: !selectedProductTypeId,
+                  onClick: () => void handleRunFullReport(),
+                }}
                 bulkActions={[
                   {
                     label: `Сгенерировать описание (${selectedVulns.length})`,

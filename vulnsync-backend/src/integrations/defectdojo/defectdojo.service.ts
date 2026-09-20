@@ -48,14 +48,14 @@ export class DefectDojoService {
     return product;
   }
 
-  async getFindingsByProduct(
-    productId: number,
+  async getFindings(
+    filters: Record<string, unknown>,
     limit = 10000,
     offset = 0,
     title?: string,
   ) {
-    const findingsResponse = await this.client.getFindingsByProduct(
-      productId,
+    const findingsResponse = await this.client.getFindings(
+      filters,
       limit,
       offset,
       title,

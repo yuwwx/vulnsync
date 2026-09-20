@@ -1,7 +1,7 @@
 // src/reports/findings-report.service.ts
 // Порт dd-pipeline-scripts/dd-yesterday-findings.py: крон-джоба раз в день
 // отправляет отчёт об уязвимостях, обнаруженных в DefectDojo за прошлые сутки.
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { severityWeight } from '@/common/severity';
@@ -231,7 +231,7 @@ export class FindingsReportService {
     const summary = await this.sendFindingsReportEmail({
       title: `Отчёт об уязвимостях (${productSubject}сборка ${engagementName})`,
       intro: `Добрый день! Общее количество новых обнаруженных уязвимостей в сборке ${escapeHtml(engagementName)} - <b>${findings.length}</b>.`,
-      subject: `Отчет об уязвимостях (${productSubject}сборка ${engagementName}, всего уязвимостей - ${findings.length})`,
+      subject: `Отчет об уязвимостях (${productSubject}сборка ${engagementName}, новых уязвимостей - ${findings.length})`,
       findings,
       productTypeId: product?.typeId,
       productName: product?.name,
@@ -280,6 +280,69 @@ export class FindingsReportService {
       : '';
 
     return name || `#${engagementId}`;
+  }
+
+  // Полный отчёт по активным findings продукта или типа продуктов.
+  // В очередь ставится через ReportQueueService (см. reports.controller).
+  async sendFullFindingsReport(scope: {
+    productTypeId?: number;
+    productId?: number;
+  }) {
+    const productTypeId =
+      scope.productTypeId ??
+      (await this.resolveProductTypeId(scope.productId!));
+
+    let scopeLabel = `тип продуктов #${productTypeId}`;
+    let productName: string | undefined;
+
+    if (scope.productId) {
+      const product = await this.defectDojoClient.getProduct(scope.productId);
+      productName = asString(product?.name);
+      scopeLabel = `продукт ${productName || `#${scope.productId}`}`;
+    } else {
+      const productTypes = await this.defectDojoClient.getProductTypes();
+      const typeName = asString(
+        productTypes.find((t) => t.id === productTypeId)?.name,
+      );
+
+      if (typeName) {
+        scopeLabel = `тип продуктов ${typeName}`;
+      }
+    }
+
+    const findings = await this.fetchFindings(
+      scope.productId
+        ? { active: true, product: scope.productId }
+        : {
+            active: true,
+            test__engagement__product__prod_type: productTypeId,
+          },
+      `full report, ${scopeLabel}`,
+    );
+
+    return this.sendFindingsReportEmail({
+      title: `Полный отчёт по уязвимостям: ${scopeLabel}`,
+      intro: `Полный список активных уязвимостей: <b>${findings.length}</b>.`,
+      subject: `Полный отчёт по уязвимостям (${scopeLabel}, всего - ${findings.length})`,
+      findings,
+      productTypeId,
+      productName,
+      listView: true,
+    });
+  }
+
+  // Тип продукта по идентификатору продукта (для получателей письма)
+  private async resolveProductTypeId(productId: number): Promise<number> {
+    const product = await this.defectDojoClient.getProduct(productId);
+    const productTypeId = Number(product?.prod_type);
+
+    if (!productTypeId) {
+      throw new BadRequestException(
+        `Product ${productId} has no prod_type in DefectDojo`,
+      );
+    }
+
+    return productTypeId;
   }
 
   private async sendFindingsReportEmail(params: {

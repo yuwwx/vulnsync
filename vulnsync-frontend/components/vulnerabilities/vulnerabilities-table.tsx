@@ -43,6 +43,8 @@ interface Props {
   columns: ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[];
   onSelectionChange?: (rows: Vulnerability[]) => void;
   bulkActions?: BulkAction[];
+  // Отдельная кнопка рядом с «Групповые действия» (не зависит от выделения строк)
+  fullReportAction?: BulkAction;
 }
 
 declare module "@tanstack/table-core" {
@@ -56,6 +58,7 @@ export function VulnerabilitiesTable({
   columns,
   onSelectionChange,
   bulkActions,
+  fullReportAction,
 }: Props) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -116,7 +119,7 @@ export function VulnerabilitiesTable({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="ml-2">
-                Действия ({selectedRows}) <ListFilter />
+                Групповые действия ({selectedRows}) <ListFilter />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-[250px]">
@@ -131,6 +134,17 @@ export function VulnerabilitiesTable({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+        )}
+        {fullReportAction && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-2"
+            disabled={fullReportAction.disabled}
+            onClick={fullReportAction.onClick}
+          >
+            {fullReportAction.label}
+          </Button>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
