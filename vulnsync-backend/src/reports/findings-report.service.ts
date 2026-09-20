@@ -312,7 +312,7 @@ export class FindingsReportService {
 
     const findings = await this.fetchFindings(
       scope.productId
-        ? { active: true, product: scope.productId }
+        ? { active: true, test__engagement__product: scope.productId }
         : {
             active: true,
             test__engagement__product__prod_type: productTypeId,

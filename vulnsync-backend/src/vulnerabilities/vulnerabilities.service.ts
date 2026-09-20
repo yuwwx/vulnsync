@@ -46,7 +46,7 @@ export class VulnerabilitiesService {
     const offset = (page - 1) * limit;
 
     const filters = scope.productId
-      ? { product: scope.productId }
+      ? { test__engagement__product: scope.productId }
       : { test__engagement__product__prod_type: scope.productTypeId };
 
     const findingsResponse = await this.defectDojo.getFindings(
