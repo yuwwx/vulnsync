@@ -11,6 +11,7 @@ import { ChevronDown, ListFilter } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -18,7 +19,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -40,21 +40,18 @@ export type BulkAction = {
 interface Props {
   data: Vulnerability[];
   columns: ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[];
-  onSelectionChange?: (rows: Vulnerability[]) => void;
   // Сколько строк выбрано всего (включая другие страницы/поиски)
   selectedCount?: number;
+  onSelectionChange?: (rows: Vulnerability[]) => void;
   bulkActions?: BulkAction[];
   // Отдельная кнопка рядом с «Групповые действия» (не зависит от выделения строк)
   fullReportAction?: BulkAction;
-  // Серверная пагинация: таблица не режет данные сама
-  serverPagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    onPageChange: (page: number) => void;
-  };
-  // Серверный поиск по названию (иконтейнс на бэке)
-  onSearch?: (search: string) => void;
+  // Пагинация и поиск — серверные: таблица не режет данные сама
+  page: number;
+  limit: number;
+  total: number;
+  onPageChange: (page: number) => void;
+  onSearch: (search: string) => void;
 }
 
 declare module "@tanstack/table-core" {
@@ -66,11 +63,14 @@ declare module "@tanstack/table-core" {
 export function VulnerabilitiesTable({
   data,
   columns,
-  onSelectionChange,
   selectedCount,
+  onSelectionChange,
   bulkActions,
   fullReportAction,
-  serverPagination,
+  page,
+  limit,
+  total,
+  onPageChange,
   onSearch,
 }: Props) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -92,43 +92,24 @@ export function VulnerabilitiesTable({
     state: {
       sorting,
       columnVisibility,
-      ...(serverPagination
-        ? {
-            pagination: {
-              pageIndex: serverPagination.page - 1,
-              pageSize: serverPagination.limit,
-            },
-          }
-        : {}),
+      pagination: {
+        pageIndex: page - 1,
+        pageSize: limit,
+      },
     },
-    ...(serverPagination
-      ? {
-          manualPagination: true,
-          pageCount: Math.max(
-            1,
-            Math.ceil(serverPagination.total / serverPagination.limit),
-          ),
-        }
-      : {}),
+    manualPagination: true,
+    pageCount: Math.max(1, Math.ceil(total / limit)),
   });
 
-  const totalRows = serverPagination ? serverPagination.total : data.length;
   const rowsOnPage = table.getRowModel().rows.length;
-
-  const from = serverPagination
-    ? (serverPagination.page - 1) * serverPagination.limit + 1
-    : 1;
-  const to = serverPagination
-    ? (serverPagination.page - 1) * serverPagination.limit + rowsOnPage
-    : rowsOnPage;
-
-  // Счётчик выбранных по всему набору (родитель считает по своей карте)
+  const from = (page - 1) * limit + 1;
+  const to = (page - 1) * limit + rowsOnPage;
   const selectedRows = selectedCount ?? 0;
 
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
-        <DebouncedSearchInput onSearch={onSearch ?? (() => {})} />
+        <DebouncedSearchInput onSearch={onSearch} />
         {bulkActions && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -239,7 +220,7 @@ export function VulnerabilitiesTable({
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="flex gap-2">
           <span className="text-sm text-neutral-600">
-            {totalRows > 0 ? `${from}–${to} из ${totalRows}` : "0 из 0"}
+            {total > 0 ? `${from}–${to} из ${total}` : "0 из 0"}
           </span>
           <div className="text-muted-foreground flex-1 text-sm">
             {"("}
@@ -250,31 +231,16 @@ export function VulnerabilitiesTable({
           <Button
             variant="outline"
             size="sm"
-            onClick={() =>
-              serverPagination
-                ? serverPagination.onPageChange(serverPagination.page - 1)
-                : table.previousPage()
-            }
-            disabled={
-              serverPagination ? serverPagination.page <= 1 : !table.getCanPreviousPage()
-            }
+            onClick={() => onPageChange(page - 1)}
+            disabled={!table.getCanPreviousPage()}
           >
             Назад
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() =>
-              serverPagination
-                ? serverPagination.onPageChange(serverPagination.page + 1)
-                : table.nextPage()
-            }
-            disabled={
-              serverPagination
-                ? serverPagination.page >=
-                  Math.ceil(serverPagination.total / serverPagination.limit)
-                : !table.getCanNextPage()
-            }
+            onClick={() => onPageChange(page + 1)}
+            disabled={!table.getCanNextPage()}
           >
             Далее
           </Button>

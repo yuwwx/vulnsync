@@ -107,27 +107,16 @@ function RowActions({ vuln, actions }: { vuln: Vulnerability; actions: VulnActio
   );
 }
 
-export const vulnerabilityColumns = (
-  onSendToJira: (vuln: Vulnerability) => void,
-  onLinkWithJira: (vuln: Vulnerability) => void,
-  onSyncWithJira: (vuln: Vulnerability) => void,
-  onUnsyncWithJira: (vuln: Vulnerability) => void,
-  onChangeSeverity: (vuln: Vulnerability) => void,
-  onGenerateDescription: (vuln: Vulnerability) => void,
-  onAskAi: (vuln: Vulnerability) => void,
-  onSelectToggle?: (vulns: Vulnerability[]) => void,
-  selectedIds?: Set<number>,
-): ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[] => {
-  const actions: VulnActions = {
-    onSendToJira,
-    onLinkWithJira,
-    onSyncWithJira,
-    onUnsyncWithJira,
-    onChangeSeverity,
-    onGenerateDescription,
-    onAskAi,
-  };
-
+export const vulnerabilityColumns = ({
+  actions,
+  onSelectToggle,
+  selectedIds,
+}: {
+  actions: VulnActions;
+  // Toggle выделения строк (см. колонку "select")
+  onSelectToggle?: (vulns: Vulnerability[]) => void;
+  selectedIds?: Set<number>;
+}): ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[] => {
   return [
   {
     id: "select",
@@ -186,7 +175,7 @@ export const vulnerabilityColumns = (
       return (
         <span
           className="cursor-pointer hover:underline"
-          onClick={() => onGenerateDescription(vuln)}
+          onClick={() => actions.onGenerateDescription(vuln)}
         >
           {row.getValue("title")}
         </span>

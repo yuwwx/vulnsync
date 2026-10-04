@@ -589,17 +589,19 @@ export default function VulnerabilitiesPage() {
 
   const columns = useMemo(
     () =>
-      vulnerabilityColumns(
-        handleSendToJira,
-        handleLinkWithJira,
-        handleSyncWithJira,
-        handleUnsyncWithJira,
-        handleChangeSeverity,
-        handleGenerateDescription,
-        handleAskAi,
-        handleSelectionChange,
+      vulnerabilityColumns({
+        actions: {
+          onSendToJira: handleSendToJira,
+          onLinkWithJira: handleLinkWithJira,
+          onSyncWithJira: handleSyncWithJira,
+          onUnsyncWithJira: handleUnsyncWithJira,
+          onChangeSeverity: handleChangeSeverity,
+          onGenerateDescription: handleGenerateDescription,
+          onAskAi: handleAskAi,
+        },
+        onSelectToggle: handleSelectionChange,
         selectedIds,
-      ),
+      }),
     [
       handleSendToJira,
       handleLinkWithJira,
@@ -690,12 +692,10 @@ export default function VulnerabilitiesPage() {
                 columns={columns}
                 onSelectionChange={handleSelectionChange}
                 selectedCount={selectedById.size}
-                serverPagination={{
-                  page: pagination.page,
-                  limit: pagination.limit,
-                  total: pagination.total,
-                  onPageChange: handlePageChange,
-                }}
+                page={pagination.page}
+                limit={pagination.limit}
+                total={pagination.total}
+                onPageChange={handlePageChange}
                 onSearch={handleSearch}
                 fullReportAction={{
                   label: "Отчёт об уязвимостях",
