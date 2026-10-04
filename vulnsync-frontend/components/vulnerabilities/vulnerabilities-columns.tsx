@@ -115,6 +115,8 @@ export const vulnerabilityColumns = (
   onChangeSeverity: (vuln: Vulnerability) => void,
   onGenerateDescription: (vuln: Vulnerability) => void,
   onAskAi: (vuln: Vulnerability) => void,
+  onSelectToggle?: (vulns: Vulnerability[]) => void,
+  selectedIds?: Set<number>,
 ): ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[] => {
   const actions: VulnActions = {
     onSendToJira,
@@ -130,20 +132,38 @@ export const vulnerabilityColumns = (
   {
     id: "select",
     meta: { label: "Выбрать" },
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
+    // Выделение управляется родителем (selectedIds): переживает пагинацию
+    // и поиск, состояние rowSelection таблицы не используется
+    header: ({ table }) => {
+      const pageRows = table.getRowModel().rows;
+      const selectedCount = pageRows.filter((row) =>
+        selectedIds?.has(row.original.id),
+      ).length;
+
+      return (
+        <Checkbox
+          checked={
+            selectedCount === pageRows.length && pageRows.length > 0
+              ? true
+              : selectedCount > 0
+                ? "indeterminate"
+                : false
+          }
+          onCheckedChange={(value) => {
+            // Toggle только строк текущей страницы
+            const changed = pageRows.filter(
+              (row) => Boolean(selectedIds?.has(row.original.id)) !== !!value,
+            );
+            onSelectToggle?.(changed.map((row) => row.original));
+          }}
+          aria-label="Select all"
+        />
+      );
+    },
     cell: ({ row }) => (
       <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        checked={selectedIds?.has(row.original.id) ?? false}
+          onCheckedChange={() => onSelectToggle?.([row.original])}
         aria-label="Select row"
       />
     ),

@@ -1,26 +1,19 @@
 import {
-  columnFilteringFeature,
   columnVisibilityFeature,
-  createFilteredRowModel,
   createPaginatedRowModel,
   createSortedRowModel,
-  filterFn_includesString,
   rowPaginationFeature,
-  rowSelectionFeature,
   rowSortingFeature,
   tableFeatures,
 } from "@tanstack/react-table";
 
+// Выделение строк управляется страницей через selectedIds (родительская
+// карта) — rowSelectionFeature не подключён, чтобы чекбоксы не жили
+// в стейте таблицы.
 export const vulnerabilityTableFeatures = tableFeatures({
-  columnFilteringFeature,
   rowSortingFeature,
   rowPaginationFeature,
-  rowSelectionFeature,
   columnVisibilityFeature,
-  filteredRowModel: createFilteredRowModel(),
   sortedRowModel: createSortedRowModel(),
   paginatedRowModel: createPaginatedRowModel(),
-  filterFns: {
-    includesString: filterFn_includesString,
-  },
 });

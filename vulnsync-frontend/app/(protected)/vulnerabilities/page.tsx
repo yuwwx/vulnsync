@@ -39,8 +39,19 @@ export default function VulnerabilitiesPage() {
   } | null>(null);
 
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
-  const [selectedVulns, setSelectedVulns] = useState<Vulnerability[]>([]);
+  // Выделение по finding id, вне таблицы: переживает смену страницы,
+  // поиск и подгрузку данных (серверная пагинация)
+  const [selectedById, setSelectedById] = useState<Map<number, Vulnerability>>(
+    new Map(),
+  );
   const [loadingVulns, setLoadingVulns] = useState(false);
+  const [vulnsSearch, setVulnsSearch] = useState("");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0,
+  });
 
   const [error, setError] = useState<string | null>(null);
 
@@ -71,20 +82,33 @@ export default function VulnerabilitiesPage() {
       );
   }, []);
 
+  // Серверная пагинация и поиск: грузим одну страницу за раз.
+  // Выделения живут в selectedById и от запросов не зависят.
   const loadVulnerabilities = useCallback(
-    (scope: { productTypeId?: number; productId?: number }) => {
+    (
+      scope: { productTypeId?: number; productId?: number },
+      page = 1,
+      search = "",
+    ) => {
       setLoadingVulns(true);
+      setError(null);
 
-      // Загружаем все уязвимости разом: клиентские фильтры и пагинация
-      // работают по этому списку.
-      VulnerabilitiesService.getVulnerabilities(scope, 1, 10000)
-        .then((resp) => setVulns(resp.data))
+      VulnerabilitiesService.getVulnerabilities(scope, page, pagination.limit, search)
+        .then((resp) => {
+          setVulns(resp.data);
+          setPagination({
+            page: resp.pagination.page,
+            limit: resp.pagination.limit,
+            total: resp.pagination.total,
+            pages: resp.pagination.pages,
+          });
+        })
         .catch(() => {
           setError("Не удалось получить уязвимости");
         })
         .finally(() => setLoadingVulns(false));
     },
-    [],
+    [pagination.limit],
   );
 
   const loadProducts = (productTypeId: number) => {
@@ -102,15 +126,18 @@ export default function VulnerabilitiesPage() {
     setSelectedProductTypeId(type.id);
     setSelectedProductId(null);
     setIsAllProductsSelected(false);
-    setSelectedVulns([]);
+    setSelectedById(new Map());
     setSelectedScope(null);
+    setVulnsSearch("");
+    setPagination((prev) => ({ ...prev, page: 1 }));
     loadProducts(type.id);
   };
 
   const handleSelectAllProducts = (type: DefectDojoProductType) => {
     setSelectedProductId(null);
     setIsAllProductsSelected(true);
-    setSelectedVulns([]);
+    setSelectedById(new Map());
+    setVulnsSearch("");
     const scope = { productTypeId: type.id };
     setSelectedScope(scope);
     loadVulnerabilities(scope);
@@ -119,7 +146,8 @@ export default function VulnerabilitiesPage() {
   const handleSelectProduct = (product: DefectDojoProduct) => {
     setSelectedProductId(product.id);
     setIsAllProductsSelected(false);
-    setSelectedVulns([]);
+    setSelectedById(new Map());
+    setVulnsSearch("");
     const scope = { productId: product.id };
     setSelectedScope(scope);
     loadVulnerabilities(scope);
@@ -144,6 +172,64 @@ export default function VulnerabilitiesPage() {
       toast.error("Не удалось поставить отчёт в очередь");
     }
   };
+
+  // --- Выделение (вне таблицы, переживает пагинацию и поиск) ---
+
+  // Массив выбранных из карты id → уязвимость
+  const selectedVulns = useMemo(
+    () => Array.from(selectedById.values()),
+    [selectedById],
+  );
+
+  const selectedIds = useMemo(
+    () => new Set(selectedById.keys()),
+    [selectedById],
+  );
+
+  const handleSelectionChange = useCallback(
+    (changed: Vulnerability[]) => {
+      // Приходят только реально переключенные строки (см. vulnerabilities-table):
+      // toggle их состояния в общей карте, остальное не трогаем
+      setSelectedById((prev) => {
+        const next = new Map(prev);
+
+        for (const vuln of changed) {
+          if (next.has(vuln.id)) {
+            next.delete(vuln.id);
+          } else {
+            next.set(vuln.id, vuln);
+          }
+        }
+
+        return next;
+      });
+    },
+    [],
+  );
+
+  // Смена страницы: перезагрузка с сервера, выделения остаются
+  const handlePageChange = useCallback(
+    (page: number) => {
+      if (!selectedScope) return;
+
+      setPagination((prev) => ({ ...prev, page }));
+      loadVulnerabilities(selectedScope, page, vulnsSearch);
+    },
+    [selectedScope, loadVulnerabilities, vulnsSearch],
+  );
+
+  // Поиск по названию: серверный icontains; сбрасываем на первую страницу.
+  // Выделения не трогаем — выбранное ранее остаётся.
+  const handleSearch = useCallback(
+    (search: string) => {
+      if (!selectedScope) return;
+
+      setVulnsSearch(search);
+      setPagination((prev) => ({ ...prev, page: 1 }));
+      loadVulnerabilities(selectedScope, 1, search);
+    },
+    [selectedScope, loadVulnerabilities],
+  );
 
   // --- Спросить у AI ---
 
@@ -511,6 +597,8 @@ export default function VulnerabilitiesPage() {
         handleChangeSeverity,
         handleGenerateDescription,
         handleAskAi,
+        handleSelectionChange,
+        selectedIds,
       ),
     [
       handleSendToJira,
@@ -520,6 +608,8 @@ export default function VulnerabilitiesPage() {
       handleChangeSeverity,
       handleGenerateDescription,
       handleAskAi,
+      handleSelectionChange,
+      selectedIds,
     ],
   );
 
@@ -577,9 +667,7 @@ export default function VulnerabilitiesPage() {
         </ul>
 
         <div className="flex-1 min-w-0">
-          {loadingVulns ? (
-            <div>Загрузка…</div>
-          ) : error ? (
+          {error ? (
             <div className="p-4 text-red-700 bg-red-100 rounded-md">
               {error}
             </div>
@@ -590,10 +678,25 @@ export default function VulnerabilitiesPage() {
               Выберите продукт или «Все», чтобы загрузить уязвимости
             </div>
           ) : (
+            // Таблица не размонтируется на время загрузки (иначе ремонтинг
+            // поискового инпута зацикливал запросы), только затемняется
+            <div
+              className={
+                loadingVulns ? "opacity-50 pointer-events-none" : ""
+              }
+            >
               <VulnerabilitiesTable
                 data={vulns}
                 columns={columns}
-                onSelectionChange={setSelectedVulns}
+                onSelectionChange={handleSelectionChange}
+                selectedCount={selectedById.size}
+                serverPagination={{
+                  page: pagination.page,
+                  limit: pagination.limit,
+                  total: pagination.total,
+                  onPageChange: handlePageChange,
+                }}
+                onSearch={handleSearch}
                 fullReportAction={{
                   label: "Отчёт об уязвимостях",
                   disabled: !selectedProductTypeId,
@@ -635,8 +738,9 @@ export default function VulnerabilitiesPage() {
                     disabled: selectedVulns.length === 0,
                     onClick: handleBulkChangeSeverity,
                   },
-                ]}
+                 ]}
               />
+            </div>
           )}
         </div>
       </div>

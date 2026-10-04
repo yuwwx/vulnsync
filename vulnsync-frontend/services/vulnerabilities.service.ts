@@ -33,7 +33,8 @@ export interface AiMessage {
 }
 
 export const VulnerabilitiesService = {
-  // scope: либо тип продуктов, либо конкретный продукт (ровно одно)
+  // scope: либо тип продуктов, либо конкретный продукт (ровно одно).
+  // Пагинация и поиск по title — серверные (DD фильтрует icontains).
   async getVulnerabilities(
     scope: { productTypeId?: number; productId?: number },
     page: number,

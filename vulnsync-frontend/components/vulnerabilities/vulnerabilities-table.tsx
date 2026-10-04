@@ -4,7 +4,6 @@ import {
   ColumnDef,
   useTable,
   flexRender,
-  type ColumnFiltersState,
   type SortingState,
   type ColumnVisibilityState,
 } from "@tanstack/react-table";
@@ -42,9 +41,20 @@ interface Props {
   data: Vulnerability[];
   columns: ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[];
   onSelectionChange?: (rows: Vulnerability[]) => void;
+  // Сколько строк выбрано всего (включая другие страницы/поиски)
+  selectedCount?: number;
   bulkActions?: BulkAction[];
   // Отдельная кнопка рядом с «Групповые действия» (не зависит от выделения строк)
   fullReportAction?: BulkAction;
+  // Серверная пагинация: таблица не режет данные сама
+  serverPagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    onPageChange: (page: number) => void;
+  };
+  // Серверный поиск по названию (иконтейнс на бэке)
+  onSearch?: (search: string) => void;
 }
 
 declare module "@tanstack/table-core" {
@@ -57,64 +67,68 @@ export function VulnerabilitiesTable({
   data,
   columns,
   onSelectionChange,
+  selectedCount,
   bulkActions,
   fullReportAction,
+  serverPagination,
+  onSearch,
 }: Props) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    [],
-  );
   const [columnVisibility, setColumnVisibility] =
     React.useState<ColumnVisibilityState>({
       jiraIssueKey: false,
     });
-  const [rowSelection, setRowSelection] = React.useState({});
-
+  // Выделение — управляемое извне через selectedIds (переживает пагинацию
+  // и поиск). rowSelection-стейт таблицы НЕ используем: controlled-state
+  // в этом адаптере перепубликовывается на каждый рендер и зацикливает
+  // обновления. Чекбоксы читают selectedIds напрямую (см. cell колонок),
+  // клик — toggle в родительскую карту.
   const table = useTable({
     features: vulnerabilityTableFeatures,
     data,
     columns,
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
-      columnFilters,
-      rowSelection,
       columnVisibility,
+      ...(serverPagination
+        ? {
+            pagination: {
+              pageIndex: serverPagination.page - 1,
+              pageSize: serverPagination.limit,
+            },
+          }
+        : {}),
     },
+    ...(serverPagination
+      ? {
+          manualPagination: true,
+          pageCount: Math.max(
+            1,
+            Math.ceil(serverPagination.total / serverPagination.limit),
+          ),
+        }
+      : {}),
   });
 
-  const { pageIndex, pageSize } = table.state.pagination;
-
-  const totalRows = table.getFilteredRowModel().rows.length;
+  const totalRows = serverPagination ? serverPagination.total : data.length;
   const rowsOnPage = table.getRowModel().rows.length;
 
-  const from = pageIndex * pageSize + 1;
-  const to = pageIndex * pageSize + rowsOnPage;
+  const from = serverPagination
+    ? (serverPagination.page - 1) * serverPagination.limit + 1
+    : 1;
+  const to = serverPagination
+    ? (serverPagination.page - 1) * serverPagination.limit + rowsOnPage
+    : rowsOnPage;
 
-  const selectedRows = table.getFilteredSelectedRowModel().rows.length;
-
-  React.useEffect(() => {
-    if (!onSelectionChange) return;
-
-    const selected = table.getSelectedRowModel().rows.map((r) => r.original);
-
-    onSelectionChange(selected);
-  }, [onSelectionChange, rowSelection]);
+  // Счётчик выбранных по всему набору (родитель считает по своей карте)
+  const selectedRows = selectedCount ?? 0;
 
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
-        <Input
-          placeholder="Поиск по названию..."
-          value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("title")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
+        <DebouncedSearchInput onSearch={onSearch ?? (() => {})} />
         {bulkActions && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -198,10 +212,7 @@ export function VulnerabilitiesTable({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
+                <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="whitespace-normal">
                       {flexRender(
@@ -228,32 +239,80 @@ export function VulnerabilitiesTable({
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="flex gap-2">
           <span className="text-sm text-neutral-600">
-            {from}–{to} из {totalRows}
+            {totalRows > 0 ? `${from}–${to} из ${totalRows}` : "0 из 0"}
           </span>
           <div className="text-muted-foreground flex-1 text-sm">
             {"("}
-            {selectedRows} из {totalRows} строк выбрано)
+            {selectedRows} выбрано)
           </div>
         </div>
         <div className="space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() =>
+              serverPagination
+                ? serverPagination.onPageChange(serverPagination.page - 1)
+                : table.previousPage()
+            }
+            disabled={
+              serverPagination ? serverPagination.page <= 1 : !table.getCanPreviousPage()
+            }
           >
             Назад
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() =>
+              serverPagination
+                ? serverPagination.onPageChange(serverPagination.page + 1)
+                : table.nextPage()
+            }
+            disabled={
+              serverPagination
+                ? serverPagination.page >=
+                  Math.ceil(serverPagination.total / serverPagination.limit)
+                : !table.getCanNextPage()
+            }
           >
             Далее
           </Button>
         </div>
       </div>
     </div>
+  );
+}
+
+// Поиск с задержкой: не дёргаем тяжёлый запрос на каждый символ.
+// Отправляем только изменившееся значение: запуск эффекта на монтировании
+// (или после ремонтинга) пустой строкой запрос не инициирует.
+function DebouncedSearchInput({ onSearch }: { onSearch: (search: string) => void }) {
+  const [value, setValue] = React.useState("");
+  const onSearchRef = React.useRef(onSearch);
+  const lastFiredRef = React.useRef(value);
+
+  React.useEffect(() => {
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (value !== lastFiredRef.current) {
+        lastFiredRef.current = value;
+        onSearchRef.current(value);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [value]);
+
+  return (
+    <Input
+      placeholder="Поиск по названию..."
+      value={value}
+      onChange={(event) => setValue(event.target.value)}
+      className="max-w-sm"
+    />
   );
 }
