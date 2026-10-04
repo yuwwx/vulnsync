@@ -16,6 +16,18 @@ import { DEFAULT_AI_SYSTEM_PROMPT } from './ai-prompt';
 import { plainToInstance } from 'class-transformer';
 import { SettingsService } from '@/settings/settings.service';
 
+  // Сортировка: FE column id -> поле сортировки DD API.
+  // Только из разрешённых в ApiFindingFilter (иначе DD молча игнорирует
+  // параметр и оставляет свой дефолт order_by(id)).
+  // severity мапится на numerical_severity - веса критичности S0..S4,
+  // а не алфавитный порядок. Сортировка по дате в DD API недоступна.
+const SORT_FIELDS: Record<string, string> = {
+  id: 'id',
+  title: 'title',
+  severity: 'numerical_severity',
+  product: 'test__engagement__product__name',
+};
+
 @Injectable()
 export class VulnerabilitiesService {
   private readonly logger = new Logger(VulnerabilitiesService.name);
@@ -36,6 +48,7 @@ export class VulnerabilitiesService {
     page = 1,
     limit = 10000,
     title?: string,
+    sort?: string,
   ): Promise<VulnerabilityListResponseDto> {
     if (Boolean(scope.productTypeId) === Boolean(scope.productId)) {
       throw new BadRequestException(
@@ -49,11 +62,20 @@ export class VulnerabilitiesService {
       ? { test__engagement__product: scope.productId }
       : { test__engagement__product__prod_type: scope.productTypeId };
 
+    // Формат FE: 'severity' | '-severity' ... (минус = по убыванию)
+    const ddField = sort ? SORT_FIELDS[sort.replace(/^-/, '')] : undefined;
+    const o = ddField
+      ? sort!.startsWith('-')
+        ? `-${ddField}`
+        : ddField
+      : undefined;
+
     const findingsResponse = await this.defectDojo.getFindings(
       filters,
       limit,
       offset,
       title,
+      o,
     );
 
     const findings = findingsResponse.results;

@@ -4,7 +4,6 @@ import {
   ColumnDef,
   useTable,
   flexRender,
-  type SortingState,
   type ColumnVisibilityState,
 } from "@tanstack/react-table";
 import { ChevronDown, ListFilter } from "lucide-react";
@@ -52,6 +51,9 @@ interface Props {
   total: number;
   onPageChange: (page: number) => void;
   onSearch: (search: string) => void;
+  // Серверная сортировка: "severity" | "-id" ... (null = дефолт DD API: по id)
+  sort?: string | null;
+  onSortToggle?: (columnId: string) => void;
 }
 
 declare module "@tanstack/table-core" {
@@ -72,8 +74,9 @@ export function VulnerabilitiesTable({
   total,
   onPageChange,
   onSearch,
+  sort,
+  onSortToggle,
 }: Props) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] =
     React.useState<ColumnVisibilityState>({
       jiraIssueKey: false,
@@ -87,10 +90,8 @@ export function VulnerabilitiesTable({
     features: vulnerabilityTableFeatures,
     data,
     columns,
-    onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     state: {
-      sorting,
       columnVisibility,
       pagination: {
         pageIndex: page - 1,

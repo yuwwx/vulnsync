@@ -220,17 +220,20 @@ export class DefectDojoClient {
 
   // Универсальный запрос findings: фильтры уходят в DD API как есть,
   // например { test__engagement__product__prod_type: id } (тип продуктов)
-  // или { product: id } (конкретный продукт)
+  // или { test__engagement__product: id } (конкретный продукт).
+  // o — поле сортировки DD (только из разрешённого списка ApiFindingFilter,
+  // иначе DD молча игнорирует его и оставляет дефолт API: order_by(id))
   async getFindings(
     filters: Record<string, unknown>,
     limit = 10000,
     offset = 0,
     title?: string,
+    o?: string,
   ) {
     const client = await this.getClient();
 
     this.logger.log(
-      `Fetching DefectDojo findings: filters=${JSON.stringify(filters)}, limit=${limit}, offset=${offset}, title=${title}`,
+      `Fetching DefectDojo findings: filters=${JSON.stringify(filters)}, limit=${limit}, offset=${offset}, title=${title}, o=${o}`,
     );
 
     try {
@@ -244,7 +247,7 @@ export class DefectDojoClient {
             related_fields: true,
             active: true,
             title: title,
-            o: '-date',
+            ...(o ? { o } : {}),
           },
         },
       );

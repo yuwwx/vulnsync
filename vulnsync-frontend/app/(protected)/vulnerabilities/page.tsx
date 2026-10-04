@@ -46,6 +46,8 @@ export default function VulnerabilitiesPage() {
   );
   const [loadingVulns, setLoadingVulns] = useState(false);
   const [vulnsSearch, setVulnsSearch] = useState("");
+  // Серверная сортировка: "severity" | "-id" ... (null = дефолт DD API: по id)
+  const [sort, setSort] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -82,18 +84,19 @@ export default function VulnerabilitiesPage() {
       );
   }, []);
 
-  // Серверная пагинация и поиск: грузим одну страницу за раз.
+  // Серверная пагинация, поиск и сортировка: грузим одну страницу за раз.
   // Выделения живут в selectedById и от запросов не зависят.
   const loadVulnerabilities = useCallback(
     (
       scope: { productTypeId?: number; productId?: number },
       page = 1,
       search = "",
+      sort: string | null = null,
     ) => {
       setLoadingVulns(true);
       setError(null);
 
-      VulnerabilitiesService.getVulnerabilities(scope, page, pagination.limit, search)
+      VulnerabilitiesService.getVulnerabilities(scope, page, pagination.limit, search, sort)
         .then((resp) => {
           setVulns(resp.data);
           setPagination({
@@ -213,9 +216,9 @@ export default function VulnerabilitiesPage() {
       if (!selectedScope) return;
 
       setPagination((prev) => ({ ...prev, page }));
-      loadVulnerabilities(selectedScope, page, vulnsSearch);
+      loadVulnerabilities(selectedScope, page, vulnsSearch, sort);
     },
-    [selectedScope, loadVulnerabilities, vulnsSearch],
+    [selectedScope, loadVulnerabilities, vulnsSearch, sort],
   );
 
   // Поиск по названию: серверный icontains; сбрасываем на первую страницу.
@@ -226,9 +229,30 @@ export default function VulnerabilitiesPage() {
 
       setVulnsSearch(search);
       setPagination((prev) => ({ ...prev, page: 1 }));
-      loadVulnerabilities(selectedScope, 1, search);
+      loadVulnerabilities(selectedScope, 1, search, sort);
     },
-    [selectedScope, loadVulnerabilities],
+    [selectedScope, loadVulnerabilities, sort],
+  );
+
+  // Серверная сортировка: клик по заголовку — null → asc → desc → null.
+  // Выделения не трогаем.
+  const handleSortToggle = useCallback(
+    (columnId: string) => {
+      const next =
+        sort?.replace('-', '') !== columnId
+          ? columnId
+          : sort!.startsWith('-')
+            ? null
+            : `-${columnId}`;
+
+      setSort(next);
+
+      if (selectedScope) {
+        setPagination((prev) => ({ ...prev, page: 1 }));
+        loadVulnerabilities(selectedScope, 1, vulnsSearch, next);
+      }
+    },
+    [sort, selectedScope, loadVulnerabilities, vulnsSearch],
   );
 
   // --- Спросить у AI ---
@@ -601,6 +625,8 @@ export default function VulnerabilitiesPage() {
         },
         onSelectToggle: handleSelectionChange,
         selectedIds,
+        sort,
+        onSortToggle: handleSortToggle,
       }),
     [
       handleSendToJira,
@@ -612,6 +638,8 @@ export default function VulnerabilitiesPage() {
       handleAskAi,
       handleSelectionChange,
       selectedIds,
+      sort,
+      handleSortToggle,
     ],
   );
 
@@ -697,6 +725,8 @@ export default function VulnerabilitiesPage() {
                 total={pagination.total}
                 onPageChange={handlePageChange}
                 onSearch={handleSearch}
+                sort={sort}
+                onSortToggle={handleSortToggle}
                 fullReportAction={{
                   label: "Отчёт об уязвимостях",
                   disabled: !selectedProductTypeId,

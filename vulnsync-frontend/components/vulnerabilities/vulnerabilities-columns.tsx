@@ -4,8 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/useAuth";
 import { Vulnerability } from "@/services/vulnerabilities.service";
-import { ColumnDef, Row } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ColumnDef } from "@tanstack/react-table";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  MoreHorizontal,
+} from "lucide-react";
 import { Checkbox } from "../ui/checkbox";
 import {
   DropdownMenu,
@@ -14,39 +19,27 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { vulnerabilityTableFeatures } from "./vulnerabilities-table-config";
-import { SEVERITY_ORDER } from "@/constants/severity";
 
-const severitySortFn = (
-  rowA: Row<typeof vulnerabilityTableFeatures, Vulnerability>,
-  rowB: Row<typeof vulnerabilityTableFeatures, Vulnerability>,
-  columnId: string,
-) => {
-  const a = String(rowA.getValue(columnId) ?? "Info");
-  const b = String(rowB.getValue(columnId) ?? "Info");
-
-  return SEVERITY_ORDER.indexOf(a) - SEVERITY_ORDER.indexOf(b);
-};
-
-// Минимальный набор для кнопки сортировки в шапке колонки
-interface SortableColumn {
-  toggleSorting: (desc?: boolean) => void;
-  getIsSorted: () => false | "asc" | "desc";
-}
-
+// Кнопка сортировки в шапке колонки: direction null = не сортирована
 function SortButton({
   label,
-  column,
+  direction,
+  onToggle,
 }: {
   label: string;
-  column: SortableColumn;
+  direction: "asc" | "desc" | null;
+  onToggle: () => void;
 }) {
   return (
-    <Button
-      variant="ghost"
-      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-    >
+    <Button variant="ghost" onClick={onToggle}>
       {label}
-      <ArrowUpDown />
+      {direction === "asc" ? (
+        <ArrowUp />
+      ) : direction === "desc" ? (
+        <ArrowDown />
+      ) : (
+        <ArrowUpDown />
+      )}
     </Button>
   );
 }
@@ -111,12 +104,33 @@ export const vulnerabilityColumns = ({
   actions,
   onSelectToggle,
   selectedIds,
+  sort,
+  onSortToggle,
 }: {
   actions: VulnActions;
   // Toggle выделения строк (см. колонку "select")
   onSelectToggle?: (vulns: Vulnerability[]) => void;
   selectedIds?: Set<number>;
+  // Серверная сортировка: "severity" | "-id" ... (null = дефолт DD API: по id)
+  sort?: string | null;
+  onSortToggle?: (columnId: string) => void;
 }): ColumnDef<typeof vulnerabilityTableFeatures, Vulnerability>[] => {
+  // Направление сортировки для колонки (null = не сортирована)
+  const direction = (columnId: string): "asc" | "desc" | null => {
+    if (!sort || sort.replace('-', '') !== columnId) return null;
+
+    return sort.startsWith('-') ? "desc" : "asc";
+  };
+
+  // Заголовок сортируемой колонки (только колонки из SORT_FIELDS бэкенда)
+  const sortHeader = (columnId: string, label: string) => (
+    <SortButton
+      label={label}
+      direction={direction(columnId)}
+      onToggle={() => onSortToggle?.(columnId)}
+    />
+  );
+
   return [
   {
     id: "select",
@@ -156,19 +170,18 @@ export const vulnerabilityColumns = ({
         aria-label="Select row"
       />
     ),
-    enableSorting: false,
     enableHiding: false,
   },
   {
     accessorKey: "id",
     meta: { label: "ID" },
-    header: ({ column }) => <SortButton label="ID" column={column} />,
+    header: () => sortHeader("id", "ID"),
     cell: ({ row }) => <span>{row.getValue("id")}</span>,
   },
   {
     accessorKey: "title",
     meta: { label: "Название" },
-    header: ({ column }) => <SortButton label="Название" column={column} />,
+    header: () => sortHeader("title", "Название"),
     cell: ({ row }) => {
       const vuln = row.original;
 
@@ -185,59 +198,51 @@ export const vulnerabilityColumns = ({
   {
     accessorKey: "severity",
     meta: { label: "Критичность" },
-    header: ({ column }) => <SortButton label="Критичность" column={column} />,
+    header: () => sortHeader("severity", "Критичность"),
     cell: ({ row }) => <SeverityBadge severity={row.getValue("severity")} />,
-    sortFn: severitySortFn,
   },
   {
     accessorKey: "product",
     meta: { label: "Продукт" },
-    header: ({ column }) => <SortButton label="Продукт" column={column} />,
+    header: () => sortHeader("product", "Продукт"),
     cell: ({ row }) => <span>{row.getValue("product")}</span>,
   },
   {
+    // Сортировка по CVSS через DD API недоступна (нет в разрешённых o)
     accessorKey: "cvssv3_score",
     meta: { label: "CVSSv3 Score" },
-    header: ({ column }) => (
-      <SortButton label="CVSSv3 Score" column={column} />
-    ),
+    header: () => <span>CVSSv3 Score</span>,
     cell: ({ row }) => <span>{row.getValue("cvssv3_score")}</span>,
   },
   {
     accessorKey: "cvssv4_score",
     meta: { label: "CVSSv4 Score" },
-    header: ({ column }) => (
-      <SortButton label="CVSSv4 Score" column={column} />
-    ),
+    header: () => <span>CVSSv4 Score</span>,
     cell: ({ row }) => <span>{row.getValue("cvssv4_score")}</span>,
   },
   {
+    // Сортировка по дате через DD API недоступна (нет в разрешённых o)
     accessorKey: "creation_date",
     meta: { label: "Дата создания" },
-    header: ({ column }) => (
-      <SortButton label="Дата создания" column={column} />
-    ),
+    header: () => <span>Дата создания</span>,
     cell: ({ row }) => <span>{row.getValue("creation_date")}</span>,
   },
   {
     accessorKey: "status",
     meta: { label: "Статус" },
-    header: ({ column }) => <SortButton label="Статус" column={column} />,
+    header: () => <span>Статус</span>,
     cell: ({ row }) => <StatusBadge status={row.getValue("status")} />,
   },
   {
     accessorKey: "jiraIssueKey",
     meta: { label: "Идентификатор в Jira" },
-    header: ({ column }) => (
-      <SortButton label="Идентификатор в Jira" column={column} />
-    ),
+    header: () => <span>Идентификатор в Jira</span>,
     cell: ({ row }) => <span>{row.getValue("jiraIssueKey")}</span>,
   },
   {
     id: "actions",
     meta: { label: "Действия" },
     header: "Действия",
-    enableSorting: false,
     cell: ({ row }) => <RowActions vuln={row.original} actions={actions} />,
   },
   ];

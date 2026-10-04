@@ -34,12 +34,14 @@ export interface AiMessage {
 
 export const VulnerabilitiesService = {
   // scope: либо тип продуктов, либо конкретный продукт (ровно одно).
-  // Пагинация и поиск по title — серверные (DD фильтрует icontains).
+  // Пагинация, поиск по title и сортировка — серверные.
+  // sort: колонка с опциональным минусом ("severity" | "-id"), ровно как DD o.
   async getVulnerabilities(
     scope: { productTypeId?: number; productId?: number },
     page: number,
     limit: number,
     search?: string,
+    sort?: string | null,
   ): Promise<VulnerabilityResponse> {
     const { data } = await api.get<VulnerabilityResponse>("/vulnerabilities", {
       params: {
@@ -47,6 +49,7 @@ export const VulnerabilitiesService = {
         page,
         limit,
         title: search || undefined,
+        sort: sort || undefined,
       },
     });
 

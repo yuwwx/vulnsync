@@ -53,12 +53,14 @@ export class DefectDojoService {
     limit = 10000,
     offset = 0,
     title?: string,
+    o?: string,
   ) {
     const findingsResponse = await this.client.getFindings(
       filters,
       limit,
       offset,
       title,
+      o,
     );
 
     return {

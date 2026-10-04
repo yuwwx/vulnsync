@@ -15,6 +15,7 @@ export class VulnerabilitiesController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('title') title?: string,
+    @Query('sort') sort?: string,
   ) {
     return this.vulnerabilitiesService.getVulnerabilities(
       {
@@ -24,6 +25,7 @@ export class VulnerabilitiesController {
       Number(page) || 1,
       Number(limit) || 10000,
       title,
+      sort,
     );
   }
 
