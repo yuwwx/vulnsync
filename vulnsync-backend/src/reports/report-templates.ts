@@ -93,16 +93,23 @@ const ENGAGEMENT_ITEM_DETAILS: Array<{
   { key: 'references', label: 'References' },
 ];
 
+// Секция спискового отчёта по сборке: created/closed/reactivated.
+// items - карточки уязвимостей; без label рендерится просто список (полный отчёт)
+export type EngagementFindingSection = {
+  label?: string;
+  items: EngagementFindingItem[];
+};
+
 export type EngagementFindingsReportParams = {
   title: string;
   intro: string;
   timestamp: string;
   count: number;
   productName?: string; // Проект - в шапке письма, один раз
-  engagementName?: string; // Сборка - в шапке письма, один раз
-  buildInfo?: string; // Контекст сборки: версия, build id, ветка/тег
+  buildId?: string; // Сборка (build_id импорта) - в шапке письма, один раз
+  buildInfo?: string; // Контекст сборки: версия, ветка/тег
   severity: { Critical: number; High: number; Medium: number; Low: number };
-  items: EngagementFindingItem[];
+  sections: EngagementFindingSection[];
 };
 
 export type ErrorReportParams = {
@@ -210,41 +217,34 @@ function renderDetailSection(label: string, value: string): string {
             </div>`;
 }
 
-// Отчёт по engagement списком: одна уязвимость за другой, с описанием.
-// Табличный renderFindingsReport оставлен без изменений для остальных отчётов.
-export function renderEngagementFindingsReport(
-  params: EngagementFindingsReportParams,
+// Карточка уязвимости спискового отчёта
+function renderEngagementItemCard(
+  item: EngagementFindingItem,
+  showItemContext: boolean,
 ): string {
-  const itemsHtml = params.items
-    .map((item) => {
-      const accent = SEVERITY_ACCENT_COLORS[item.severity] ?? '#ccc';
-      const chipStyle = SEVERITY_STYLES[item.severity] ?? '';
-      const severityHtml = item.severity
-        ? `<span style="${chipStyle} padding: 2px 10px; border-radius: 12px; font-size: 12px; white-space: nowrap;">${escapeHtml(item.severity)}</span>`
-        : '';
-      // В engagement-отчёте Проект/Сборка уже в шапке — в карточках дублировать не нужно
-      const showItemContext = !params.engagementName;
-      // Сигналы для быстрого триажа: только заполненные значения
-      const metaParts = [
-        showItemContext &&
-          item.product &&
-          `Продукт: ${escapeHtml(item.product)}`,
-        showItemContext &&
-          item.engagement &&
-          `Engagement: ${escapeHtml(item.engagement)}`,
-        item.testType && `Тест: ${escapeHtml(item.testType)}`,
-        item.cvssScore && `CVSS: ${escapeHtml(item.cvssScore)}`,
-        item.vulnerabilityIds &&
-          `CVE/GHSA: ${escapeHtml(item.vulnerabilityIds)}`,
-        // Known Exploited / Ransomware - выделяем жирным красным
-        item.knownExploited &&
-          `<span style="color: #a30000; font-weight: bold;">Known Exploited</span>`,
-        item.ransomwareUsed &&
-          `<span style="color: #a30000; font-weight: bold;">Ransomware Used</span>`,
-        item.created && `Создано: ${escapeHtml(item.created)}`,
-      ].filter(Boolean);
+  const accent = SEVERITY_ACCENT_COLORS[item.severity] ?? '#ccc';
+  const chipStyle = SEVERITY_STYLES[item.severity] ?? '';
+  const severityHtml = item.severity
+    ? `<span style="${chipStyle} padding: 2px 10px; border-radius: 12px; font-size: 12px; white-space: nowrap;">${escapeHtml(item.severity)}</span>`
+    : '';
+  // Когда сборка уже в шапке - в карточках дублировать Проект/Engagement не нужно
+  const metaParts = [
+    showItemContext && item.product && `Продукт: ${escapeHtml(item.product)}`,
+    showItemContext &&
+      item.engagement &&
+      `Engagement: ${escapeHtml(item.engagement)}`,
+    item.testType && `Тест: ${escapeHtml(item.testType)}`,
+    item.cvssScore && `CVSS: ${escapeHtml(item.cvssScore)}`,
+    item.vulnerabilityIds && `CVE/GHSA: ${escapeHtml(item.vulnerabilityIds)}`,
+    // Known Exploited / Ransomware - выделяем жирным красным
+    item.knownExploited &&
+      `<span style="color: #a30000; font-weight: bold;">Known Exploited</span>`,
+    item.ransomwareUsed &&
+      `<span style="color: #a30000; font-weight: bold;">Ransomware Used</span>`,
+    item.created && `Создано: ${escapeHtml(item.created)}`,
+  ].filter(Boolean);
 
-      return `
+  return `
         <div style="border: 1px solid #ddd; border-left: 4px solid ${accent}; border-radius: 6px; padding: 12px 15px; margin-bottom: 14px; background: #fff;">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
             ${severityHtml}
@@ -259,8 +259,36 @@ export function renderEngagementFindingsReport(
             renderDetailSection(label, item[key]),
           ).join('')}
         </div>`;
+}
+
+// Отчёт по сборке списком: карточки разбиты на секции по действию импорта
+// (новые / закрытые / переоткрытые), untouched в отчёт не попадает.
+export function renderEngagementFindingsReport(
+  params: EngagementFindingsReportParams,
+): string {
+  const showItemContext = !params.buildId;
+  const hasLabeledSections = params.sections.some((section) => section.label);
+
+  const sectionsHtml = params.sections
+    .map((section) => {
+      if (!section.items.length) {
+        return '';
+      }
+
+      const heading = section.label
+        ? `<h3 style="color: #525252; font-size: 15px; margin: 24px 0 12px;">${escapeHtml(section.label)}: <b>${section.items.length}</b></h3>`
+        : '';
+
+      return `${heading}${section.items
+        .map((item) => renderEngagementItemCard(item, showItemContext))
+        .join('')}`;
     })
     .join('');
+
+  const emptyHtml =
+    hasLabeledSections && !sectionsHtml
+      ? '<p style="font-size: 15px; line-height: 1.5; margin-bottom: 20px;">Изменений не обнаружено.</p>'
+      : '';
 
   return `
 <html>
@@ -269,7 +297,7 @@ export function renderEngagementFindingsReport(
     <div style="background: #fff; padding: 20px 25px; border-radius: 8px; max-width: 800px; width: 100%; margin: auto; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-left: 6px solid #525252;">
       <h2 style="color: #525252; margin-top: 0; margin-bottom: 10px;">${escapeHtml(params.title)}</h2>
       <div style="font-size: 13px; color: #777; margin-bottom: 20px;">
-        Время формирования: ${escapeHtml(params.timestamp)}${params.productName ? ` &nbsp;·&nbsp; Проект: ${escapeHtml(params.productName)}` : ''}${params.engagementName ? ` &nbsp;·&nbsp; Сборка: ${escapeHtml(params.engagementName)}` : ''}${params.buildInfo ? ` &nbsp;·&nbsp; Ветка/Тег: ${escapeHtml(params.buildInfo)}` : ''} &nbsp;·&nbsp; Всего уязвимостей - <b>${params.count}</b>
+        Время формирования: ${escapeHtml(params.timestamp)}${params.productName ? ` &nbsp;·&nbsp; Проект: ${escapeHtml(params.productName)}` : ''}${params.buildId ? ` &nbsp;·&nbsp; Сборка: ${escapeHtml(params.buildId)}` : ''}${params.buildInfo ? ` &nbsp;·&nbsp; Ветка/Тег: ${escapeHtml(params.buildInfo)}` : ''} &nbsp;·&nbsp; Всего уязвимостей - <b>${params.count}</b>
       </div>
       <p style="font-size: 15px; line-height: 1.5; margin-bottom: 20px;">
         ${params.intro}<br />
@@ -277,7 +305,7 @@ export function renderEngagementFindingsReport(
         <b>${params.severity.High}</b>, Medium: <b>${params.severity.Medium}</b>, Low:
         <b>${params.severity.Low}</b>
       </p>
-      ${itemsHtml}
+      ${emptyHtml}${sectionsHtml}
     </div>
   </body>
 </html>`;

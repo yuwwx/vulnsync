@@ -16,11 +16,11 @@ import { DEFAULT_AI_SYSTEM_PROMPT } from './ai-prompt';
 import { plainToInstance } from 'class-transformer';
 import { SettingsService } from '@/settings/settings.service';
 
-  // Сортировка: FE column id -> поле сортировки DD API.
-  // Только из разрешённых в ApiFindingFilter (иначе DD молча игнорирует
-  // параметр и оставляет свой дефолт order_by(id)).
-  // severity мапится на numerical_severity - веса критичности S0..S4,
-  // а не алфавитный порядок. Сортировка по дате в DD API недоступна.
+// Сортировка: FE column id -> поле сортировки DD API.
+// Только из разрешённых в ApiFindingFilter (иначе DD молча игнорирует
+// параметр и оставляет свой дефолт order_by(id)).
+// severity мапится на numerical_severity - веса критичности S0..S4,
+// а не алфавитный порядок. Сортировка по дате в DD API недоступна.
 const SORT_FIELDS: Record<string, string> = {
   id: 'id',
   title: 'title',

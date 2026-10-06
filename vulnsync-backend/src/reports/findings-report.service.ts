@@ -21,9 +21,31 @@ import {
 
 type Finding = Record<string, unknown>;
 
+// Элемент action set'а импорта DefectDojo (test_import_finding_action_set)
+type TestImportFindingAction = {
+  // N - created, C - closed, R - reactivated, U - untouched
+  action?: string;
+  finding?: number | string;
+};
+
+// Импорт скана DefectDojo (запись на каждый import/reimport)
+type TestImport = {
+  id?: number;
+  test_import_finding_action_set?: TestImportFindingAction[];
+};
+
 const REPORT_SEVERITIES = ['Critical', 'High', 'Medium', 'Low'] as const;
 
 const FINDINGS_LIMIT = 10000;
+
+// Действия импорта DefectDojo (Test_Import_Finding_Action.action)
+const IMPORT_ACTION_CREATED = 'N';
+const IMPORT_ACTION_CLOSED = 'C';
+const IMPORT_ACTION_REACTIVATED = 'R';
+const IMPORT_ACTION_UNTOUCHED = 'U';
+
+// Порция id при выборке findings по списку (лимит длины URL)
+const FINDINGS_ID_BATCH = 200;
 
 function asString(value: unknown): string {
   if (value == null || typeof value === 'object') {
@@ -200,52 +222,135 @@ export class FindingsReportService {
     }
   }
 
-  // Отчёт по конкретному engagement: GET findings по test__engagement
-  async sendEngagementFindingsReport(engagementId: number) {
+  // Отчёт по конкретной сборке engagement: изменения берём из импорта скана -
+  // GET /api/v2/test_imports/?build_id= возвращает action set'ы импорта
+  // (N - created, C - closed, R - reactivated, U - untouched), затем
+  // выгружаем сами findings по их id. Untouched в отчёт не попадает.
+  async sendBuildFindingsReport(scope: {
+    engagementId: number;
+    buildId: string;
+  }) {
+    const { engagementId, buildId } = scope;
+
     this.logger.log(
-      `=== Engagement findings report: started (id=${engagementId}) ===`,
+      `=== Build findings report: started (engagement=${engagementId}, build=${buildId}) ===`,
     );
 
     const engagement = await this.defectDojoClient.getEngagement(engagementId);
-
-    const findings = await this.fetchFindings(
-      { test__engagement: engagementId },
-      `engagement=${engagementId}`,
-    );
-    const engagementName =
-      asString(engagement?.name) ||
-      this.getEngagementName(findings, engagementId);
-
     const product = await this.getEngagementProduct(engagement);
+
+    const testImports = await this.fetchTestImports(buildId);
+
+    if (!testImports.length) {
+      throw new BadRequestException(
+        `No test imports found in DefectDojo for build_id=${buildId}`,
+      );
+    }
+
+    // Один build_id может попасть в несколько импортов (reimport):
+    // записи отсортированы по возрастанию id, последняя перекрывает
+    // действия предыдущих
+    const actionByFindingId = new Map<string, string>();
+
+    for (const testImport of testImports) {
+      for (const entry of testImport.test_import_finding_action_set ?? []) {
+        const findingId = asString(entry?.finding);
+
+        if (findingId) {
+          actionByFindingId.set(findingId, asString(entry?.action));
+        }
+      }
+    }
+
+    // Скоуп по engagement отсекает импорты с тем же build_id в других engagement
+    const findings = await this.fetchFindingsByIds(
+      [...actionByFindingId.keys()],
+      engagementId,
+      `build=${buildId}, engagement=${engagementId}`,
+    );
+
+    // Разнос по действию импорта
+    const created: Finding[] = [];
+    const closed: Finding[] = [];
+    const reactivated: Finding[] = [];
+    let untouchedCount = 0;
+    let unknownCount = 0;
+
+    for (const finding of findings) {
+      switch (actionByFindingId.get(asString(finding.id))) {
+        case IMPORT_ACTION_CREATED:
+          created.push(finding);
+          break;
+        case IMPORT_ACTION_CLOSED:
+          closed.push(finding);
+          break;
+        case IMPORT_ACTION_REACTIVATED:
+          reactivated.push(finding);
+          break;
+        case IMPORT_ACTION_UNTOUCHED:
+          untouchedCount += 1;
+          break;
+        default:
+          unknownCount += 1;
+      }
+    }
+
+    if (unknownCount) {
+      this.logger.warn(
+        `Build findings report: ${unknownCount} findings without import action (engagement=${engagementId}, build=${buildId})`,
+      );
+    }
+
     // Название продукта - в заголовок и тему письма (если резолвится)
     const productSubject = product?.name ? `проект ${product.name}, ` : '';
-    // Контекст сборки из engagement: версия, ID сборки, ветка/тег
+    // Сборку теперь определяет build_id; в контексте остаются только
+    // версия и ветка/тег из engagement
     const buildInfo = [
       engagement?.version && `v${engagement.version}`,
-      engagement?.build_id && `build ${engagement.build_id}`,
       engagement?.branch_tag,
     ]
       .filter(Boolean)
       .join(' · ');
 
+    // В теме перечисляем ненулевые категории изменений
+    const subjectCounts = [
+      created.length && `новых - ${created.length}`,
+      closed.length && `закрытых - ${closed.length}`,
+      reactivated.length && `переоткрытых - ${reactivated.length}`,
+    ]
+      .filter(Boolean)
+      .join(', ');
+
     const summary = await this.sendFindingsReportEmail({
-      title: `Отчёт об уязвимостях (${productSubject}сборка ${engagementName})`,
-      intro: `Добрый день! Общее количество новых обнаруженных уязвимостей в сборке ${escapeHtml(engagementName)} - <b>${findings.length}</b>.`,
-      subject: `Отчет об уязвимостях (${productSubject}сборка ${engagementName}, новых уязвимостей - ${findings.length})`,
-      findings,
+      title: `Отчёт об уязвимостях (${productSubject}сборка ${buildId})`,
+      intro: `Добрый день! Изменения в сборке ${escapeHtml(buildId)}: новых - <b>${created.length}</b>, закрытых - <b>${closed.length}</b>, переоткрытых - <b>${reactivated.length}</b>, без изменений - <b>${untouchedCount}</b>.`,
+      subject: `Отчет об уязвимостях (${productSubject}сборка ${buildId}${subjectCounts ? `, ${subjectCounts}` : ''})`,
+      sections: [
+        { label: 'Новые уязвимости', findings: created },
+        { label: 'Закрытые уязвимости', findings: closed },
+        { label: 'Переоткрытые уязвимости', findings: reactivated },
+      ],
       productTypeId: product?.typeId,
       productName: product?.name,
-      engagementName,
+      buildId,
       buildInfo,
-      // Отчёт по engagement отправляем списком с описанием уязвимостей
+      // Отчёт по сборке отправляем списком с описанием уязвимостей
       listView: true,
     });
 
     this.logger.log(
-      `=== Engagement findings report: sent (${findings.length} findings) ===`,
+      `=== Build findings report: sent (created=${created.length}, closed=${closed.length}, reactivated=${reactivated.length}, untouched=${untouchedCount}) ===`,
     );
 
-    return { engagementId, engagementName, ...summary };
+    return {
+      engagementId,
+      buildId,
+      created: created.length,
+      closed: closed.length,
+      reactivated: reactivated.length,
+      untouched: untouchedCount,
+      ...summary,
+    };
   }
 
   // GET /api/v2/findings/ с сортировкой по критичности.
@@ -274,12 +379,52 @@ export class FindingsReportService {
     return sortBySeverity(Array.isArray(data?.results) ? data.results : []);
   }
 
-  private getEngagementName(findings: Finding[], engagementId: number): string {
-    const name = findings[0]
-      ? getNested(findings[0], 'related_fields.test.engagement.name')
-      : '';
+  // Импорты скана по build_id: из них берём test_import_finding_action_set -
+  // какие действия (N/C/R/U) импорт произвёл с каждой уязвимостью
+  private async fetchTestImports(buildId: string): Promise<TestImport[]> {
+    const client = await this.defectDojoClient.getClient();
 
-    return name || `#${engagementId}`;
+    this.logger.log(`Requesting DefectDojo test imports: build_id=${buildId}`);
+
+    const { data } = await client.get<{ results?: TestImport[] }>(
+      '/api/v2/test_imports/',
+      {
+        params: {
+          build_id: buildId,
+          // по возрастанию id: действия последнего импорта перекрывают ранние
+          o: 'id',
+          limit: FINDINGS_LIMIT,
+        },
+      },
+    );
+
+    return Array.isArray(data?.results) ? data.results : [];
+  }
+
+  // Findings по набору id из action set'ов импорта. Фильтр id DD читает как
+  // "in": /api/v2/findings/?id=1,2,3. Идём порциями, чтобы не упереться
+  // в лимит длины URL.
+  private async fetchFindingsByIds(
+    findingIds: string[],
+    engagementId: number,
+    logContext: string,
+  ): Promise<Finding[]> {
+    const idFilters: string[] = [];
+
+    for (let i = 0; i < findingIds.length; i += FINDINGS_ID_BATCH) {
+      idFilters.push(findingIds.slice(i, i + FINDINGS_ID_BATCH).join(','));
+    }
+
+    const batches = await Promise.all(
+      idFilters.map((ids) =>
+        this.fetchFindings(
+          { id: ids, test__engagement: engagementId },
+          `${logContext}, batch of ${ids.split(',').length} ids`,
+        ),
+      ),
+    );
+
+    return batches.flat();
   }
 
   // Полный отчёт по активным findings продукта или типа продуктов.
@@ -349,41 +494,60 @@ export class FindingsReportService {
     title: string;
     intro: string;
     subject: string;
-    findings: Finding[];
+    // Табличный/списковый отчёт одним списком (yesterday, полный отчёт)
+    findings?: Finding[];
+    // Списковый отчёт по сборке: секции по действию импорта
+    // (created/closed/reactivated; untouched в отчёт не попадает)
+    sections?: Array<{ label: string; findings: Finding[] }>;
     // Тип продукта DefectDojo: к общему DD_REPORT_MAIL_TO добавляются
     // адреса из настроек уведомлений этого типа продукта
     productTypeId?: number;
     // Проект и сборка для шапки письма (только в списковом виде)
     productName?: string;
-    engagementName?: string;
-    // Контекст сборки: версия, build id, ветка/тег (только в списковом виде)
+    // build_id импорта вместо имени engagement
+    buildId?: string;
+    // Контекст сборки: версия, ветка/тег (только в списковом виде)
     buildInfo?: string;
-    // Список уязвимостей с описанием (engagement) вместо таблицы
+    // Список уязвимостей с описанием вместо таблицы
     listView?: boolean;
   }) {
     const baseUrl = await this.defectDojoClient.getBaseUrl();
-    const counts = this.countBySeverity(params.findings);
+
+    const reportFindings = params.sections
+      ? params.sections.flatMap((section) => section.findings)
+      : (params.findings ?? []);
+
+    const counts = this.countBySeverity(reportFindings);
     const timestamp = this.formatTimestamp(new Date());
+
+    // Списковый отчёт: либо секции по сборке, либо один плоский список
+    // без заголовка (полный отчёт)
+    const sections = params.sections
+      ? params.sections.map((section) => ({
+          label: section.label,
+          items: this.buildReportItems(section.findings, baseUrl),
+        }))
+      : [{ items: this.buildReportItems(reportFindings, baseUrl) }];
 
     const html = params.listView
       ? renderEngagementFindingsReport({
           title: params.title,
           intro: params.intro,
           timestamp,
-          count: params.findings.length,
+          count: reportFindings.length,
           productName: params.productName,
-          engagementName: params.engagementName,
+          buildId: params.buildId,
           buildInfo: params.buildInfo,
           severity: counts,
-          items: this.buildReportItems(params.findings, baseUrl),
+          sections,
         })
       : renderFindingsReport({
           title: params.title,
           intro: params.intro,
           timestamp,
-          count: params.findings.length,
+          count: reportFindings.length,
           severity: counts,
-          rows: this.buildReportRows(params.findings, baseUrl),
+          rows: this.buildReportRows(reportFindings, baseUrl),
         });
 
     const to = await this.resolveRecipients(params.productTypeId);
@@ -391,7 +555,7 @@ export class FindingsReportService {
     await this.mailer.send({ to, subject: params.subject, html });
 
     return {
-      totalFindings: params.findings.length,
+      totalFindings: reportFindings.length,
       severity: counts,
     };
   }

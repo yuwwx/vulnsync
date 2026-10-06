@@ -1,12 +1,6 @@
 // src/reports/reports.controller.ts
 import { LogAction } from '@/common/decorators/logAction.decorator';
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Param,
-  Post,
-} from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
 import { FindingsReportService } from './findings-report.service';
 import { ReportQueueService } from './report-queue.service';
 import { Public } from '@/common/decorators/public.decorator';
@@ -26,17 +20,31 @@ export class ReportsController {
     return this.service.sendYesterdayFindingsReport();
   }
 
-  // Отчёт по конкретному engagement DefectDojo.
+  // Отчёт по конкретной сборке (импорту скана) engagement DefectDojo.
   // Не отправляется сразу: ставится в очередь (см. ReportQueueService),
   // чтобы массовые запуски от пайплайнов не заваливали DefectDojo и SMTP.
   // VIEWER - для технических учеток из LDAP (пайплайны), ADMIN - для людей.
-  @LogAction('REPORTS_RUN_ENGAGEMENT_FINDINGS')
+  @LogAction('REPORTS_RUN_BUILD_FINDINGS')
   @Public() // TODO: temporary, remove after testing
-  @Post('engagements/:engagementId/run')
-  async runForEngagement(@Param('engagementId') engagementId: number) {
-    const runAt = await this.queue.enqueueEngagementFindings(
-      Number(engagementId),
-    );
+  @Post('builds/run')
+  async runForBuild(
+    @Body() body: { engagement_id?: number; build_id?: string },
+  ) {
+    const engagementId = Number(body?.engagement_id);
+    const buildId = String(body?.build_id ?? '').trim();
+
+    if (!Number.isInteger(engagementId) || engagementId <= 0) {
+      throw new BadRequestException('Укажите engagement_id (целое число)');
+    }
+
+    if (!buildId) {
+      throw new BadRequestException('Укажите build_id');
+    }
+
+    const runAt = await this.queue.enqueueBuildFindings({
+      engagementId,
+      buildId,
+    });
 
     return { status: 'queued', runAt: runAt.toISOString() };
   }

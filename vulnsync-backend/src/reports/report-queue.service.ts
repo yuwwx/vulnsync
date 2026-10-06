@@ -13,12 +13,34 @@ const REPORT_RUN_DELAY_MS = 5 * 60 * 1000;
 // Максимум отчётов за один проход диспетчера (раз в минуту)
 const QUEUE_BATCH = 5;
 
-const TYPE_ENGAGEMENT_FINDINGS = 'ENGAGEMENT_FINDINGS';
+const TYPE_BUILD_FINDINGS = 'BUILD_FINDINGS';
 const TYPE_PRODUCT_FINDINGS = 'PRODUCT_FINDINGS';
 const TYPE_PRODUCT_TYPE_FINDINGS = 'PRODUCT_TYPE_FINDINGS';
 
 // Полный отчёт: либо по конкретному продукту, либо по типу продуктов
 type FullFindingsScope = { productTypeId?: number; productId?: number };
+
+// Отчёт по сборке: engagement + build_id импорта скана
+type BuildFindingsScope = { engagementId: number; buildId: string };
+
+// externalId пункта очереди для сборки: "<engagementId>:<buildId>".
+// engagementId - число, ':' режем по первому вхождению (может быть в build_id)
+function toQueueExternalId(scope: BuildFindingsScope): string {
+  return `${scope.engagementId}:${scope.buildId}`;
+}
+
+function parseQueueExternalId(externalId: string): BuildFindingsScope | null {
+  const separator = externalId.indexOf(':');
+  const engagementId = Number(externalId.slice(0, separator));
+
+  if (separator <= 0 || !Number.isInteger(engagementId) || engagementId <= 0) {
+    return null;
+  }
+
+  const buildId = externalId.slice(separator + 1);
+
+  return buildId ? { engagementId, buildId } : null;
+}
 
 @Injectable()
 export class ReportQueueService {
@@ -29,17 +51,17 @@ export class ReportQueueService {
     private findingsReport: FindingsReportService,
   ) {}
 
-  // Поставить отчёт по engagement в очередь.
-  // Повторный вызов, пока отчёт ещё не отправлен, ничего не меняет:
-  // первый вызов выигрывает (throttle), повторной рассылки не будет.
-  async enqueueEngagementFindings(engagementId: number): Promise<Date> {
+  // Поставить отчёт по сборке (импорту скана) в очередь.
+  // Throttle тот же: пока отчёт в очереди, повторная постановка не меняет срок.
+  async enqueueBuildFindings(scope: BuildFindingsScope): Promise<Date> {
     const runAt = new Date(Date.now() + REPORT_RUN_DELAY_MS);
+    const externalId = toQueueExternalId(scope);
 
     const existing = await this.prisma.reportQueueItem.findUnique({
       where: {
         type_externalId: {
-          type: TYPE_ENGAGEMENT_FINDINGS,
-          externalId: String(engagementId),
+          type: TYPE_BUILD_FINDINGS,
+          externalId,
         },
       },
     });
@@ -50,14 +72,14 @@ export class ReportQueueService {
 
     await this.prisma.reportQueueItem.create({
       data: {
-        type: TYPE_ENGAGEMENT_FINDINGS,
-        externalId: String(engagementId),
+        type: TYPE_BUILD_FINDINGS,
+        externalId,
         runAt,
       },
     });
 
     this.logger.log(
-      `Report queued: type=${TYPE_ENGAGEMENT_FINDINGS}, engagementId=${engagementId}, runAt=${runAt.toISOString()}`,
+      `Report queued: type=${TYPE_BUILD_FINDINGS}, engagementId=${scope.engagementId}, buildId=${scope.buildId}, runAt=${runAt.toISOString()}`,
     );
 
     return runAt;
@@ -123,10 +145,17 @@ export class ReportQueueService {
   }
 
   private async dispatch(type: string, externalId: string) {
-    if (type === TYPE_ENGAGEMENT_FINDINGS) {
-      await this.findingsReport.sendEngagementFindingsReport(
-        Number(externalId),
-      );
+    if (type === TYPE_BUILD_FINDINGS) {
+      const scope = parseQueueExternalId(externalId);
+
+      if (!scope) {
+        this.logger.error(
+          `Invalid externalId for report queue item: type=${type}, externalId=${externalId}`,
+        );
+        return;
+      }
+
+      await this.findingsReport.sendBuildFindingsReport(scope);
       return;
     }
 
