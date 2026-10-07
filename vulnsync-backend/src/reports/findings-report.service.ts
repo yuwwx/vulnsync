@@ -31,6 +31,9 @@ type TestImportFindingAction = {
 // Импорт скана DefectDojo (запись на каждый import/reimport)
 type TestImport = {
   id?: number;
+  version?: string;
+  branch_tag?: string;
+  commit_hash?: string;
   test_import_finding_action_set?: TestImportFindingAction[];
 };
 
@@ -301,30 +304,41 @@ export class FindingsReportService {
       );
     }
 
-    // Название продукта - в заголовок и тему письма (если резолвится)
-    const productSubject = product?.name ? `проект ${product.name}, ` : '';
-    // Сборку теперь определяет build_id; в контексте остаются только
-    // версия и ветка/тег из engagement
-    const buildInfo = [
-      engagement?.version && `v${engagement.version}`,
-      engagement?.branch_tag,
-    ]
-      .filter(Boolean)
-      .join(' · ');
+    // Контекст сборки из последнего импорта этого build_id (fallback - на
+    // engagement; commit_hash в engagement нет, берётся только из импорта)
+    const lastImport = testImports[testImports.length - 1];
+    const buildVersion =
+      asString(lastImport?.version) || asString(engagement?.version);
+    const buildBranchTag =
+      asString(lastImport?.branch_tag) || asString(engagement?.branch_tag);
+    const buildCommitHash = asString(lastImport?.commit_hash);
 
-    // В теме перечисляем ненулевые категории изменений
-    const subjectCounts = [
-      created.length && `новых - ${created.length}`,
-      closed.length && `закрытых - ${closed.length}`,
-      reactivated.length && `переоткрытых - ${reactivated.length}`,
+    // Проект и версия - в тему/заголовок письма; номер сборки - только в теле
+    const scopeLabel = [
+      product?.name && `проект ${product.name}`,
+      buildVersion && `версия ${buildVersion}`,
     ]
       .filter(Boolean)
       .join(', ');
 
+    // Хвост темы/заголовка: ненулевые категории изменений,
+    // а если изменений нет совсем - "изменений нет"
+    const subjectCounts =
+      created.length + closed.length + reactivated.length
+        ? [
+            created.length && `новых - ${created.length}`,
+            closed.length && `закрытых - ${closed.length}`,
+            reactivated.length && `переоткрытых - ${reactivated.length}`,
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : 'изменений нет';
+    const subjectSuffix = scopeLabel ? `, ${subjectCounts}` : subjectCounts;
+
     const summary = await this.sendFindingsReportEmail({
-      title: `Отчёт об уязвимостях (${productSubject}сборка ${buildId})`,
+      title: `Отчёт об уязвимостях (${scopeLabel}${subjectSuffix})`,
       intro: `Добрый день! Изменения в сборке ${escapeHtml(buildId)}: новых - <b>${created.length}</b>, закрытых - <b>${closed.length}</b>, переоткрытых - <b>${reactivated.length}</b>, без изменений - <b>${untouchedCount}</b>.`,
-      subject: `Отчет об уязвимостях (${productSubject}сборка ${buildId}${subjectCounts ? `, ${subjectCounts}` : ''})`,
+      subject: `Отчет об уязвимостях (${scopeLabel}${subjectSuffix})`,
       sections: [
         { label: 'Новые уязвимости', findings: created },
         { label: 'Закрытые уязвимости', findings: closed },
@@ -333,7 +347,9 @@ export class FindingsReportService {
       productTypeId: product?.typeId,
       productName: product?.name,
       buildId,
-      buildInfo,
+      buildVersion,
+      buildBranchTag,
+      buildCommitHash,
       // Отчёт по сборке отправляем списком с описанием уязвимостей
       listView: true,
     });
@@ -506,8 +522,11 @@ export class FindingsReportService {
     productName?: string;
     // build_id импорта вместо имени engagement
     buildId?: string;
-    // Контекст сборки: версия, ветка/тег (только в списковом виде)
-    buildInfo?: string;
+    // Контекст сборки из импорта: версия, ветка/тег, commit
+    // (только в списковом виде)
+    buildVersion?: string;
+    buildBranchTag?: string;
+    buildCommitHash?: string;
     // Список уязвимостей с описанием вместо таблицы
     listView?: boolean;
   }) {
@@ -537,7 +556,9 @@ export class FindingsReportService {
           count: reportFindings.length,
           productName: params.productName,
           buildId: params.buildId,
-          buildInfo: params.buildInfo,
+          buildVersion: params.buildVersion,
+          buildBranchTag: params.buildBranchTag,
+          buildCommitHash: params.buildCommitHash,
           severity: counts,
           sections,
         })
