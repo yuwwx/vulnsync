@@ -176,9 +176,12 @@ export default function VulnerabilitiesPage() {
       .catch(() => toast.error("Не удалось получить сканирования"))
       .finally(() => setScansLoading(false));
 
-    DefectDojoReferenceService.getProductSeverityCounts(productId)
-      .then(setSeverityCounts)
-      .catch(() => setSeverityCounts(null));
+    // Временно отключено: 5 доп. запросов к DD за разбивкой по критичности.
+    // Эндпоинт (defectdojo service/controller) и UI-блок бейджей оставлены —
+    // чтобы вернуть, раскомментируй вызов ниже.
+    // DefectDojoReferenceService.getProductSeverityCounts(productId)
+    //   .then(setSeverityCounts)
+    //   .catch(() => setSeverityCounts(null));
   };
 
   // Выбор типа продуктов: список уязвимостей НЕ грузим автоматически —
