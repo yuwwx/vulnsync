@@ -4,7 +4,13 @@ import { plainToInstance } from 'class-transformer';
 import { DefectDojoClient } from './defectdojo.client';
 import { DefectDojoFindingDto } from './dto/defectdojo-finding.dto';
 import { DefectDojoProductTypeDto } from './dto/defectdojo-product.dto';
+import {
+  DefectDojoEngagementDto,
+  DefectDojoTestDto,
+} from './dto/defectdojo-scan.dto';
 import { DefectDojoProduct } from './types/defectdojo.types';
+
+const SEVERITIES = ['Critical', 'High', 'Medium', 'Low', 'Info'] as const;
 
 @Injectable()
 export class DefectDojoService {
@@ -46,6 +52,58 @@ export class DefectDojoService {
     const product = await this.client.getProduct(productId);
 
     return product;
+  }
+
+  // Число активных findings по фильтру (лёгкий COUNT-запрос, limit=1)
+  private async getFindingsCount(
+    filters: Record<string, unknown>,
+  ): Promise<number> {
+    const response = await this.client.getFindings(filters, 1, 0);
+    return response.count;
+  }
+
+  // Разбивка открытых уязвимостей продукта по критичности.
+  // 5 лёгких COUNT-запросов (по одному на severity), без выкачивания findings.
+  async getProductSeverityCounts(
+    productId: number,
+  ): Promise<Record<string, number>> {
+    const entries = await Promise.all(
+      SEVERITIES.map(async (severity) => {
+        const count = await this.getFindingsCount({
+          test__engagement__product: productId,
+          severity,
+        });
+        return [severity, count] as const;
+      }),
+    );
+
+    return Object.fromEntries(entries);
+  }
+
+  // Дерево сканирований продукта: engagements, внутри каждого — тесты
+  async getProductScans(productId: number): Promise<DefectDojoEngagementDto[]> {
+    const engagements = await this.client.getEngagements(productId);
+
+    const engagementsArray = Array.isArray(engagements) ? engagements : [];
+
+    return Promise.all(
+      engagementsArray.map(async (engagement) => {
+        const tests = await this.client.getTests(engagement.id);
+
+        const engagementDto = plainToInstance(
+          DefectDojoEngagementDto,
+          engagement,
+          { excludeExtraneousValues: true },
+        );
+
+        return {
+          ...engagementDto,
+          tests: plainToInstance(DefectDojoTestDto, tests, {
+            excludeExtraneousValues: true,
+          }),
+        };
+      }),
+    );
   }
 
   async getFindings(

@@ -25,6 +25,18 @@ export class DefectDojoController {
     return this.service.getProduct(productId);
   }
 
+  @LogAction('DEFECTDOJO_GET_PRODUCT_SCANS')
+  @Get('products/:productId/scans')
+  getProductScans(@Param('productId') productId: string) {
+    return this.service.getProductScans(Number(productId));
+  }
+
+  @LogAction('DEFECTDOJO_GET_PRODUCT_SEVERITY_COUNTS')
+  @Get('products/:productId/severity-counts')
+  getProductSeverityCounts(@Param('productId') productId: string) {
+    return this.service.getProductSeverityCounts(Number(productId));
+  }
+
   @LogAction('DEFECTDOJO_GET_FINDINGS_BY_PRODUCT_TYPE')
   @Get('product-type/:productTypeId/findings')
   getFindingsByProductType(@Param('productTypeId') productTypeId: number) {

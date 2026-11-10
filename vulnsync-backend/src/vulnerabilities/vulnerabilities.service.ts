@@ -42,25 +42,33 @@ export class VulnerabilitiesService {
     return this.defectDojo.getProductTypes();
   }
 
-  // Список уязвимостей: либо по типу продуктов, либо по конкретному продукту
+  // Список уязвимостей: по типу продуктов, по конкретному продукту или по тесту
   async getVulnerabilities(
-    scope: { productTypeId?: number; productId?: number },
+    scope: { productTypeId?: number; productId?: number; testId?: number },
     page = 1,
     limit = 10000,
     title?: string,
     sort?: string,
   ): Promise<VulnerabilityListResponseDto> {
-    if (Boolean(scope.productTypeId) === Boolean(scope.productId)) {
+    const scopeKeys = [
+      scope.productTypeId,
+      scope.productId,
+      scope.testId,
+    ].filter(Boolean);
+
+    if (scopeKeys.length !== 1) {
       throw new BadRequestException(
-        'Укажите ровно одно: productTypeId или productId',
+        'Укажите ровно одно: productTypeId, productId или testId',
       );
     }
 
     const offset = (page - 1) * limit;
 
-    const filters = scope.productId
-      ? { test__engagement__product: scope.productId }
-      : { test__engagement__product__prod_type: scope.productTypeId };
+    const filters = scope.testId
+      ? { test: scope.testId }
+      : scope.productId
+        ? { test__engagement__product: scope.productId }
+        : { test__engagement__product__prod_type: scope.productTypeId };
 
     // Формат FE: 'severity' | '-severity' ... (минус = по убыванию)
     const ddField = sort ? SORT_FIELDS[sort.replace(/^-/, '')] : undefined;

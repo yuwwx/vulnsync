@@ -7,6 +7,22 @@ import { SeverityDialog } from "@/components/vulnerabilities/SeverityDialog";
 import { vulnerabilityColumns } from "@/components/vulnerabilities/vulnerabilities-columns";
 import { VulnerabilitiesTable } from "@/components/vulnerabilities/vulnerabilities-table";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DefectDojoEngagement,
   DefectDojoProduct,
   DefectDojoProductType,
   DefectDojoReferenceService,
@@ -17,6 +33,16 @@ import { VulnerabilitySyncService } from "@/services/vulnerability-sync.service"
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+
+const SEVERITY_ORDER = ["Critical", "High", "Medium", "Low", "Info"] as const;
+
+const SEVERITY_STYLES: Record<string, string> = {
+  Critical: "bg-red-100 text-red-700",
+  High: "bg-orange-100 text-orange-700",
+  Medium: "bg-yellow-100 text-yellow-800",
+  Low: "bg-blue-100 text-blue-700",
+  Info: "bg-neutral-100 text-neutral-600",
+};
 
 export default function VulnerabilitiesPage() {
   const [productTypes, setProductTypes] = useState<DefectDojoProductType[]>([]);
@@ -31,12 +57,24 @@ export default function VulnerabilitiesPage() {
   );
   // Выбран ли пункт «Все» (весь тип) — отдельно от «ничего не выбрано»
   const [isAllProductsSelected, setIsAllProductsSelected] = useState(false);
-  // Загруженный скоуп уязвимостей; null = тип выбран, но «Все»/продукт ещё
-  // не выбраны — тяжёлый запрос не выполняется
+  // Загруженный скоуп уязвимостей; null = продукт выбран, но тест/весь
+  // продукт ещё не выбраны — тяжёлый запрос не выполняется
   const [selectedScope, setSelectedScope] = useState<{
     productTypeId?: number;
     productId?: number;
+    testId?: number;
   } | null>(null);
+  // Подпись выбранного скоупа для «хлебных крошек» над таблицей
+  const [scopeLabel, setScopeLabel] = useState<string | null>(null);
+  // Сканирования выбранного продукта: engagements, внутри каждого — тесты
+  const [scans, setScans] = useState<DefectDojoEngagement[]>([]);
+  const [scansLoading, setScansLoading] = useState(false);
+  const [openEngagements, setOpenEngagements] = useState<string[]>([]);
+  // Разбивка открытых уязвимостей продукта по критичности
+  const [severityCounts, setSeverityCounts] = useState<Record<
+    string,
+    number
+  > | null>(null);
 
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
   // Выделение по finding id, вне таблицы: переживает смену страницы,
@@ -88,7 +126,7 @@ export default function VulnerabilitiesPage() {
   // Выделения живут в selectedById и от запросов не зависят.
   const loadVulnerabilities = useCallback(
     (
-      scope: { productTypeId?: number; productId?: number },
+      scope: { productTypeId?: number; productId?: number; testId?: number },
       page = 1,
       search = "",
       sort: string | null = null,
@@ -123,6 +161,26 @@ export default function VulnerabilitiesPage() {
       .finally(() => setProductsLoading(false));
   };
 
+  const loadScans = (productId: number) => {
+    setScansLoading(true);
+    setScans([]);
+    setOpenEngagements([]);
+    setSeverityCounts(null);
+
+    DefectDojoReferenceService.getProductScans(productId)
+      .then((tree) => {
+        setScans(tree);
+        // Сканирования раскрыты по умолчанию
+        setOpenEngagements(tree.map((engagement) => String(engagement.id)));
+      })
+      .catch(() => toast.error("Не удалось получить сканирования"))
+      .finally(() => setScansLoading(false));
+
+    DefectDojoReferenceService.getProductSeverityCounts(productId)
+      .then(setSeverityCounts)
+      .catch(() => setSeverityCounts(null));
+  };
+
   // Выбор типа продуктов: список уязвимостей НЕ грузим автоматически —
   // запрос по всему типу тяжёлый, ждём выбора «Все» или конкретного продукта
   const handleSelectType = (type: DefectDojoProductType) => {
@@ -131,6 +189,10 @@ export default function VulnerabilitiesPage() {
     setIsAllProductsSelected(false);
     setSelectedById(new Map());
     setSelectedScope(null);
+    setScopeLabel(null);
+    setScans([]);
+    setOpenEngagements([]);
+    setSeverityCounts(null);
     setVulnsSearch("");
     setPagination((prev) => ({ ...prev, page: 1 }));
     loadProducts(type.id);
@@ -143,17 +205,52 @@ export default function VulnerabilitiesPage() {
     setVulnsSearch("");
     const scope = { productTypeId: type.id };
     setSelectedScope(scope);
+    setScopeLabel(`Все уязвимости группы продуктов «${type.name}»`);
     loadVulnerabilities(scope);
   };
 
+  // Выбор продукта: грузим не уязвимости, а дерево сканирований
   const handleSelectProduct = (product: DefectDojoProduct) => {
     setSelectedProductId(product.id);
     setIsAllProductsSelected(false);
     setSelectedById(new Map());
     setVulnsSearch("");
-    const scope = { productId: product.id };
+    setSelectedScope(null);
+    setScopeLabel(null);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+    loadScans(product.id);
+  };
+
+  // Уязвимости всего продукта
+  const handleSelectWholeProduct = () => {
+    if (!selectedProductId) return;
+    const product = products.find((p) => p.id === selectedProductId);
+    setSelectedById(new Map());
+    setVulnsSearch("");
+    const scope = { productId: selectedProductId };
     setSelectedScope(scope);
+    setScopeLabel(
+      product
+        ? `Все уязвимости продукта: ${product.name}`
+        : "Все уязвимости продукта",
+    );
     loadVulnerabilities(scope);
+  };
+
+  // Уязвимости конкретного теста
+  const handleSelectTest = (testId: number, title: string) => {
+    setSelectedById(new Map());
+    setVulnsSearch("");
+    const scope = { testId };
+    setSelectedScope(scope);
+    setScopeLabel(`Тест: ${title}`);
+    loadVulnerabilities(scope);
+  };
+
+  // Назад к списку сканирований продукта
+  const handleBackToScans = () => {
+    setSelectedScope(null);
+    setScopeLabel(null);
   };
 
   // Полный отчёт по активным уязвимостям: продукт или весь тип.
@@ -643,6 +740,24 @@ export default function VulnerabilitiesPage() {
     ],
   );
 
+  const selectedType = useMemo(
+    () => productTypes.find((type) => type.id === selectedProductTypeId) ?? null,
+    [productTypes, selectedProductTypeId],
+  );
+
+  // Сводка по продуктам типа: суммарное число findings для пункта «Все»
+  const totalFindingsCount = useMemo(
+    () =>
+      products.reduce((sum, product) => sum + (product.findingsCount ?? 0), 0),
+    [products],
+  );
+
+  // Выбранный продукт (для числа открытых уязвимостей из ответа /products)
+  const selectedProduct = useMemo(
+    () => products.find((product) => product.id === selectedProductId) ?? null,
+    [products, selectedProductId],
+  );
+
   return (
     <>
       <div className="flex gap-6">
@@ -704,18 +819,211 @@ export default function VulnerabilitiesPage() {
           ) : !selectedProductTypeId ? (
             <div className="text-neutral-500">Выберите тип продуктов</div>
           ) : !selectedScope ? (
-            <div className="text-neutral-500">
-              Выберите продукт или «Все», чтобы загрузить уязвимости
-            </div>
+            selectedProductId ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-medium">Сканирования</h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleRunFullReport()}
+                  >
+                    Отчёт по продукту (на почту)
+                  </Button>
+                </div>
+                {severityCounts && (
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {SEVERITY_ORDER.map((severity) => (
+                      <span
+                        key={severity}
+                        className={`rounded px-2 py-0.5 font-medium ${SEVERITY_STYLES[severity]}`}
+                      >
+                        {severity}: {severityCounts[severity] ?? 0}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {scansLoading ? (
+                  <div className="text-neutral-500">
+                    Загрузка сканирований…
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleSelectWholeProduct}
+                      className="flex w-full items-center justify-between rounded-md border border-dashed bg-muted/40 px-3 py-4 text-left text-sm font-semibold hover:bg-muted"
+                    >
+                      <span>
+                        Все уязвимости продукта
+                        {selectedProduct ? `: ${selectedProduct.name}` : ""}
+                      </span>
+                      <span className="text-xs font-normal text-muted-foreground">
+                        {selectedProduct?.findingsCount ?? 0}
+                      </span>
+                    </button>
+                    {scans.length === 0 ? (
+                      <div className="text-neutral-500">
+                        У продукта нет сканирований
+                      </div>
+                    ) : (
+                      <Accordion
+                        type="multiple"
+                        value={openEngagements}
+                        onValueChange={setOpenEngagements}
+                      >
+                        {scans.map((engagement) => (
+                          <AccordionItem
+                            key={engagement.id}
+                            value={String(engagement.id)}
+                          >
+                            <AccordionTrigger>
+                              <span className="flex flex-col gap-0.5">
+                                <span>
+                                  {engagement.name ??
+                                    `Сканирование #${engagement.id}`}
+                                </span>
+                                <span className="text-xs font-normal text-muted-foreground">
+                                  {[
+                                    engagement.engagementType,
+                                    engagement.version &&
+                                      `версия ${engagement.version}`,
+                                    engagement.buildId &&
+                                      `build ${engagement.buildId}`,
+                                    engagement.branchTag &&
+                                      `branch ${engagement.branchTag}`,
+                                    engagement.commitHash &&
+                                      `commit ${engagement.commitHash}`,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </span>
+                              </span>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              {engagement.tests.length === 0 ? (
+                                <div className="text-neutral-500">
+                                  Нет тестов
+                                </div>
+                              ) : (
+                                <ul className="space-y-1">
+                                  {engagement.tests.map((test) => (
+                                    <li key={test.id}>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleSelectTest(
+                                            test.id,
+                                            test.title ?? `Тест #${test.id}`,
+                                          )
+                                        }
+                                        className="w-full rounded p-2 text-left text-sm hover:bg-muted"
+                                      >
+                                        <span className="font-medium">
+                                          {test.title ?? `Тест #${test.id}`}
+                                        </span>
+                                        <span className="ml-2 text-xs text-muted-foreground">
+                                          {[
+                                            test.testTypeName,
+                                            test.buildId &&
+                                              `build ${test.buildId}`,
+                                            test.branchTag &&
+                                              `branch ${test.branchTag}`,
+                                            test.commitHash &&
+                                              `commit ${test.commitHash}`,
+                                          ]
+                                            .filter(Boolean)
+                                            .join(" · ")}
+                                        </span>
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h2 className="text-lg font-medium">
+                  Группа продуктов{selectedType ? `: ${selectedType.name}` : ""}
+                </h2>
+              {productsLoading ? (
+                <div className="text-neutral-500">Загрузка продуктов…</div>
+              ) : products.length === 0 ? (
+                <div className="text-neutral-500">
+                  В этом типе продуктов нет продуктов
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Продукт</TableHead>
+                      <TableHead className="text-right">
+                        Открытых уязвимостей
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow
+                      className="cursor-pointer"
+                      onClick={() =>
+                        selectedType && handleSelectAllProducts(selectedType)
+                      }
+                    >
+                      <TableCell className="font-medium">Все</TableCell>
+                      <TableCell className="text-right">
+                        {totalFindingsCount}
+                      </TableCell>
+                    </TableRow>
+                    {products.map((product) => (
+                      <TableRow
+                        key={product.id}
+                        className="cursor-pointer"
+                        onClick={() => handleSelectProduct(product)}
+                      >
+                        <TableCell className="font-medium">
+                          {product.name}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {product.findingsCount ?? 0}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+              </div>
+            )
           ) : (
-            // Таблица не размонтируется на время загрузки (иначе ремонтинг
-            // поискового инпута зацикливал запросы), только затемняется
-            <div
-              className={
-                loadingVulns ? "opacity-50 pointer-events-none" : ""
-              }
-            >
-              <VulnerabilitiesTable
+            <div>
+              {scopeLabel && (
+                <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+                  {selectedProductId && (
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={handleBackToScans}
+                    >
+                      ← Сканирования
+                    </Button>
+                  )}
+                  <span>{scopeLabel}</span>
+                </div>
+              )}
+              {/* Таблица не размонтируется на время загрузки (иначе ремонтинг
+                  поискового инпута зацикливал запросы), только затемняется */}
+              <div
+                className={
+                  loadingVulns ? "opacity-50 pointer-events-none" : ""
+                }
+              >
+                <VulnerabilitiesTable
                 data={vulns}
                 columns={columns}
                 onSelectionChange={handleSelectionChange}
@@ -728,7 +1036,9 @@ export default function VulnerabilitiesPage() {
                 sort={sort}
                 onSortToggle={handleSortToggle}
                 fullReportAction={{
-                  label: "Отчёт об уязвимостях",
+                  label: selectedProductId
+                    ? "Отчёт по продукту (на почту)"
+                    : "Отчёт по группе продуктов (на почту)",
                   disabled: !selectedProductTypeId,
                   onClick: () => void handleRunFullReport(),
                 }}
@@ -770,6 +1080,7 @@ export default function VulnerabilitiesPage() {
                   },
                  ]}
               />
+              </div>
             </div>
           )}
         </div>

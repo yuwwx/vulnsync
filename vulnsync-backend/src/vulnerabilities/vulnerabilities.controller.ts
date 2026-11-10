@@ -12,6 +12,7 @@ export class VulnerabilitiesController {
   getVulnerabilities(
     @Query('productTypeId') productTypeId?: string,
     @Query('productId') productId?: string,
+    @Query('testId') testId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('title') title?: string,
@@ -21,6 +22,7 @@ export class VulnerabilitiesController {
       {
         productTypeId: productTypeId ? Number(productTypeId) : undefined,
         productId: productId ? Number(productId) : undefined,
+        testId: testId ? Number(testId) : undefined,
       },
       Number(page) || 1,
       Number(limit) || 10000,

@@ -33,11 +33,11 @@ export interface AiMessage {
 }
 
 export const VulnerabilitiesService = {
-  // scope: либо тип продуктов, либо конкретный продукт (ровно одно).
+  // scope: либо тип продуктов, либо конкретный продукт, либо тест (ровно одно).
   // Пагинация, поиск по title и сортировка — серверные.
   // sort: колонка с опциональным минусом ("severity" | "-id"), ровно как DD o.
   async getVulnerabilities(
-    scope: { productTypeId?: number; productId?: number },
+    scope: { productTypeId?: number; productId?: number; testId?: number },
     page: number,
     limit: number,
     search?: string,

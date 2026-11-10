@@ -2,8 +2,10 @@
 import { IntegrationType } from '@/common/enums/integration-type.enum';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
+  DefectDojoEngagement,
   DefectDojoProduct,
   DefectDojoProductType,
+  DefectDojoTest,
 } from './types/defectdojo.types';
 import {
   Injectable,
@@ -41,16 +43,6 @@ type DefectDojoApiError = {
     data?: unknown;
   };
   message?: string;
-};
-
-type DefectDojoEngagement = {
-  id: number;
-  name?: string;
-  product?: number;
-  // контекст сборки (заполняется для CI/CD-engagement)
-  version?: string;
-  build_id?: string;
-  branch_tag?: string;
 };
 
 @Injectable()
@@ -185,6 +177,64 @@ export class DefectDojoClient {
     } catch (error) {
       throw this.logAxiosError(
         `Failed to fetch product (productId=${productId})`,
+        error,
+      );
+    }
+  }
+
+  async getEngagements(productId: number): Promise<DefectDojoEngagement[]> {
+    const client = await this.getClient();
+
+    this.logger.log(`Fetching DefectDojo engagements: productId=${productId}`);
+
+    try {
+      const { data } = await client.get<{ results?: DefectDojoEngagement[] }>(
+        '/api/v2/engagements/',
+        {
+          params: { product: productId, limit: 1000 },
+        },
+      );
+
+      if (!Array.isArray(data?.results)) {
+        this.logger.error('Invalid engagements response structure');
+        throw new InternalServerErrorException(
+          'Invalid response from DefectDojo API',
+        );
+      }
+
+      return data.results;
+    } catch (error) {
+      throw this.logAxiosError(
+        `Failed to fetch engagements (productId=${productId})`,
+        error,
+      );
+    }
+  }
+
+  async getTests(engagementId: number): Promise<DefectDojoTest[]> {
+    const client = await this.getClient();
+
+    this.logger.log(`Fetching DefectDojo tests: engagementId=${engagementId}`);
+
+    try {
+      const { data } = await client.get<{ results?: DefectDojoTest[] }>(
+        '/api/v2/tests/',
+        {
+          params: { engagement: engagementId, limit: 1000 },
+        },
+      );
+
+      if (!Array.isArray(data?.results)) {
+        this.logger.error('Invalid tests response structure');
+        throw new InternalServerErrorException(
+          'Invalid response from DefectDojo API',
+        );
+      }
+
+      return data.results;
+    } catch (error) {
+      throw this.logAxiosError(
+        `Failed to fetch tests (engagementId=${engagementId})`,
         error,
       );
     }

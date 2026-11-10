@@ -10,4 +10,7 @@ export class DefectDojoProductTypeDto {
 
   @Expose({ name: 'product_type' })
   productType: number;
+
+  @Expose({ name: 'findings_count' })
+  findingsCount: number;
 }
