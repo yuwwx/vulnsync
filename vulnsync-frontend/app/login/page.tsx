@@ -19,7 +19,7 @@ export default function LoginPage() {
 
     try {
       await AuthService.login({ username, password });
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     } catch (e) {
       if (e instanceof AuthError) {
         setError(e.message);
@@ -36,7 +36,7 @@ export default function LoginPage() {
   return (
     <form onSubmit={submit} className="flex items-center justify-center">
       <div className="w-96 space-y-4">
-        <h1 className="text-xl font-bold">VulnSync</h1>
+        <h1 className="text-xl font-bold">Вход</h1>
 
         {error && (
           <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -45,7 +45,7 @@ export default function LoginPage() {
         )}
 
         <Input
-          placeholder="Username"
+          placeholder="Логин"
           value={username}
           onChange={(e) => {
             setUsername(e.target.value);
@@ -56,7 +56,7 @@ export default function LoginPage() {
 
         <Input
           type="password"
-          placeholder="Password"
+          placeholder="Пароль"
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
@@ -66,7 +66,7 @@ export default function LoginPage() {
         />
 
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Logging in…" : "Login"}
+          {loading ? "Вход…" : "Войти"}
         </Button>
       </div>
     </form>

@@ -9,52 +9,74 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowRight, Database, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, GitBranch, Search, Send, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { type CSSProperties } from "react";
 
 const features = [
   {
-    title: "Синхронизация уязвимостей",
+    title: "Список уязвимостей",
     description:
-      "Агрегация данных из всех источников (DefectDojo, DT, Jira и др.).",
-    icon: <Zap className="w-5 h-5" />,
+      "Поиск, сортировка и пагинация — без тяжёлых страниц DefectDojo.",
+    icon: <Search className="w-5 h-5" />,
   },
   {
-    title: "Единый дашборд",
+    title: "Сканирования и тесты",
     description:
-      "Все уязвимости в одном месте с фильтрами, статусами и приоритетами.",
-    icon: <ShieldCheck className="w-5 h-5" />,
+      "Drill-down по engagements и тестам, фильтр по продукту или тесту.",
+    icon: <GitBranch className="w-5 h-5" />,
   },
   {
-    title: "История и аудит",
+    title: "Jira и отчёты",
     description:
-      "Логирование изменений и отслеживание статусов по каждому тикету.",
-    icon: <Database className="w-5 h-5" />,
+      "Отправка в Jira, синхронизация статусов и отчёты по продукту на почту.",
+    icon: <Send className="w-5 h-5" />,
+  },
+  {
+    title: "AI-описания",
+    description: "Генерация описаний и ответы AI по выбранным уязвимостям.",
+    icon: <Sparkles className="w-5 h-5" />,
   },
 ];
 
 const integrations = ["DefectDojo", "DependencyTrack", "Jira"];
 
+// Сетка на весь экран (fixed, чтобы не ограничиваться контейнером <main>)
+const gridBackground: CSSProperties = {
+  backgroundImage:
+    "linear-gradient(to right, color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px)",
+  backgroundSize: "44px 44px",
+};
+
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Hero */}
-      <section className="container mx-auto py-16">
+    <div className="relative">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 bottom-0 top-14 z-0"
+        style={gridBackground}
+      />
+
+      <section className="container relative z-10 mx-auto py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div>
-            <Badge className="mb-4">VulnSync</Badge>
             <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              Объединяй уязвимости <br /> в одном месте
+              VulnSync
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              Синхронизация между системами, единый дашборд, история изменений и
-              удобный workflow.
+              Смотри уязвимости, разбирай их по продуктам и сканированиям,
+              отправляй в Jira и получай отчёты — в простом интерфейсе.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/vulnerabilities">
+              <Link href="/dashboard">
                 <Button size="lg">
-                  Перейти к уязвимостям <ArrowRight className="ml-2 w-4 h-4" />
+                  Открыть дашборд <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+              <Link href="/vulnerabilities">
+                <Button size="lg" variant="outline">
+                  К уязвимостям
                 </Button>
               </Link>
             </div>
@@ -63,9 +85,9 @@ export default function Home() {
           <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Что внутри VulnSync</CardTitle>
+                <CardTitle>Что внутри</CardTitle>
                 <CardDescription>
-                  Автоматизация, удобство и контроль.
+                  Всё для работы с уязвимостями в одном месте.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
@@ -85,10 +107,8 @@ export default function Home() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Продукты</CardTitle>
-                <CardDescription>
-                  Подключи источники данных за пару минут
-                </CardDescription>
+                <CardTitle>Источники данных</CardTitle>
+                <CardDescription>Подключаются за пару минут</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 {integrations.map((name) => (
@@ -99,72 +119,6 @@ export default function Home() {
               </CardContent>
             </Card>
           </div>
-        </div>
-      </section>
-
-      <section className="container mx-auto py-16">
-        <h2 className="text-3xl font-bold text-center">Как это работает</h2>
-        <p className="text-center text-muted-foreground mt-2">
-          Быстро настраивается и сразу приносит пользу
-        </p>
-
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>1. Подключи источники</CardTitle>
-              <CardDescription>
-                Добавь маппинги и настрои синхронизацию
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Поддержка DefectDojo, DependencyTrack, Jira и других систем.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>2. Синхронизируй данные</CardTitle>
-              <CardDescription>
-                Объединяй уязвимости в единый поток
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Уведомления, статусы, приоритеты и история изменений.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>3. Управляй рисками</CardTitle>
-              <CardDescription>Отслеживай и закрывай задачи</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Единый дашборд с фильтрами, графиками и экспортом.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      <section className="container mx-auto py-16">
-        <div className="rounded-2xl border bg-card p-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div>
-            <h3 className="text-2xl font-bold">Готов начать?</h3>
-            <p className="text-muted-foreground mt-2">
-              Настрой VulnSync за 5 минут и получи единый контроль над
-              уязвимостями.
-            </p>
-          </div>
-          <Link href="/integrations">
-            <Button size="lg">
-              Начать настройку <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </Link>
         </div>
       </section>
     </div>
