@@ -321,6 +321,97 @@ export class DefectDojoClient {
     }
   }
 
+  // Разбивка активных findings по критичности одним запросом:
+  // v3 include=counts отдаёт meta.counts.
+  // asset — продукт, organization — группа продуктов (product type).
+  // Без фильтра — по всем продуктам.
+  async getSeverityCounts(filter?: {
+    asset?: number;
+    organization?: number;
+  }): Promise<{
+    severity: Record<string, number>;
+    total: number;
+  }> {
+    const client = await this.getClient();
+
+    this.logger.log(
+      `Fetching DefectDojo severity counts: ${JSON.stringify(filter ?? 'ALL')}`,
+    );
+
+    try {
+      const params: Record<string, unknown> = {
+        include: 'counts',
+        active: true,
+        limit: 1,
+      };
+      if (filter?.asset) {
+        params.asset = filter.asset;
+      }
+      if (filter?.organization) {
+        params.organization = filter.organization;
+      }
+
+      const { data } = await client.get<{
+        meta?: {
+          counts?: { severity?: Record<string, number>; total?: number };
+        };
+      }>('/api/v3/findings', { params });
+
+      const counts = data?.meta?.counts ?? {};
+
+      return {
+        severity: counts.severity ?? {},
+        total: counts.total ?? 0,
+      };
+    } catch (error) {
+      throw this.logAxiosError(
+        `Failed to fetch severity counts (${JSON.stringify(filter ?? 'ALL')})`,
+        error,
+      );
+    }
+  }
+
+  async getProductSeverityCounts(
+    productId: number,
+  ): Promise<Record<string, number>> {
+    const { severity } = await this.getSeverityCounts({ asset: productId });
+
+    return severity;
+  }
+
+  async getProductTypeSeverityCounts(
+    productTypeId: number,
+  ): Promise<Record<string, number>> {
+    const { severity } = await this.getSeverityCounts({
+      organization: productTypeId,
+    });
+
+    return severity;
+  }
+
+  // Количество продуктов (assets) — лёгкий count-запрос
+  async getProductsCount(): Promise<number> {
+    const client = await this.getClient();
+
+    const { data } = await client.get<{ count?: number }>('/api/v2/products/', {
+      params: { limit: 1 },
+    });
+
+    return data?.count ?? 0;
+  }
+
+  // Количество групп продуктов (product types) — лёгкий count-запрос
+  async getProductTypesCount(): Promise<number> {
+    const client = await this.getClient();
+
+    const { data } = await client.get<{ count?: number }>(
+      '/api/v2/product_types/',
+      { params: { limit: 1 } },
+    );
+
+    return data?.count ?? 0;
+  }
+
   async getFinding(id: number) {
     const client = await this.getClient();
 

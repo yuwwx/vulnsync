@@ -41,7 +41,21 @@ export type DefectDojoEngagement = {
   tests: DefectDojoTest[];
 };
 
+export type DefectDojoDashboard = {
+  productTypes: number;
+  products: number;
+  severity: Record<string, number>;
+  totalFindings: number;
+};
+
 export const DefectDojoReferenceService = {
+  async getDashboard(): Promise<DefectDojoDashboard> {
+    const { data } = await api.get<DefectDojoDashboard>(
+      "/integrations/defectdojo/dashboard",
+    );
+    return data;
+  },
+
   async getProducts(productTypeId?: number): Promise<DefectDojoProduct[]> {
     const { data } = await api.get<DefectDojoProduct[]>(
       "/integrations/defectdojo/products",
@@ -62,6 +76,15 @@ export const DefectDojoReferenceService = {
   ): Promise<Record<string, number>> {
     const { data } = await api.get<Record<string, number>>(
       `/integrations/defectdojo/products/${productId}/severity-counts`,
+    );
+    return data;
+  },
+
+  async getProductTypeSeverityCounts(
+    productTypeId: number,
+  ): Promise<Record<string, number>> {
+    const { data } = await api.get<Record<string, number>>(
+      `/integrations/defectdojo/product-types/${productTypeId}/severity-counts`,
     );
     return data;
   },

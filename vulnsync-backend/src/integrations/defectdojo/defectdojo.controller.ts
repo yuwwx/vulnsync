@@ -13,6 +13,12 @@ export class DefectDojoController {
     return this.service.getProductTypes();
   }
 
+  @LogAction('DEFECTDOJO_GET_DASHBOARD')
+  @Get('dashboard')
+  getDashboard() {
+    return this.service.getDashboard();
+  }
+
   @LogAction('DEFECTDOJO_GET_PRODUCTS')
   @Get('products')
   getProducts(@Query('productTypeId') productTypeId?: number) {
@@ -35,6 +41,12 @@ export class DefectDojoController {
   @Get('products/:productId/severity-counts')
   getProductSeverityCounts(@Param('productId') productId: string) {
     return this.service.getProductSeverityCounts(Number(productId));
+  }
+
+  @LogAction('DEFECTDOJO_GET_PRODUCT_TYPE_SEVERITY_COUNTS')
+  @Get('product-types/:productTypeId/severity-counts')
+  getProductTypeSeverityCounts(@Param('productTypeId') productTypeId: string) {
+    return this.service.getProductTypeSeverityCounts(Number(productTypeId));
   }
 
   @LogAction('DEFECTDOJO_GET_FINDINGS_BY_PRODUCT_TYPE')

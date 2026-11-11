@@ -9,6 +9,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
+  { href: "/dashboard", label: "Дашборд" },
   { href: "/vulnerabilities", label: "Уязвимости" },
   { href: "/products", label: "Продукты" },
   { href: "/integrations", label: "Интреграции", adminOnly: true },

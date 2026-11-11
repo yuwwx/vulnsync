@@ -10,8 +10,6 @@ import {
 } from './dto/defectdojo-scan.dto';
 import { DefectDojoProduct } from './types/defectdojo.types';
 
-const SEVERITIES = ['Critical', 'High', 'Medium', 'Low', 'Info'] as const;
-
 @Injectable()
 export class DefectDojoService {
   private readonly logger = new Logger(DefectDojoService.name);
@@ -54,30 +52,35 @@ export class DefectDojoService {
     return product;
   }
 
-  // Число активных findings по фильтру (лёгкий COUNT-запрос, limit=1)
-  private async getFindingsCount(
-    filters: Record<string, unknown>,
-  ): Promise<number> {
-    const response = await this.client.getFindings(filters, 1, 0);
-    return response.count;
-  }
-
-  // Разбивка открытых уязвимостей продукта по критичности.
-  // 5 лёгких COUNT-запросов (по одному на severity), без выкачивания findings.
+  // Разбивка открытых уязвимостей продукта по критичности —
+  // одним запросом к v3 (meta.counts.severity)
   async getProductSeverityCounts(
     productId: number,
   ): Promise<Record<string, number>> {
-    const entries = await Promise.all(
-      SEVERITIES.map(async (severity) => {
-        const count = await this.getFindingsCount({
-          test__engagement__product: productId,
-          severity,
-        });
-        return [severity, count] as const;
-      }),
-    );
+    return this.client.getProductSeverityCounts(productId);
+  }
 
-    return Object.fromEntries(entries);
+  // Разбивка по критичности для группы продуктов (product type)
+  async getProductTypeSeverityCounts(
+    productTypeId: number,
+  ): Promise<Record<string, number>> {
+    return this.client.getProductTypeSeverityCounts(productTypeId);
+  }
+
+  // Данные для дашборда: группы продуктов, продукты и разбивка по критичности
+  async getDashboard() {
+    const [productTypes, products, severity] = await Promise.all([
+      this.client.getProductTypesCount(),
+      this.client.getProductsCount(),
+      this.client.getSeverityCounts(),
+    ]);
+
+    return {
+      productTypes,
+      products,
+      severity: severity.severity,
+      totalFindings: severity.total,
+    };
   }
 
   // Дерево сканирований продукта: engagements, внутри каждого — тесты
