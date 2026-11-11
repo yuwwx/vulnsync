@@ -16,7 +16,19 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Бэкенд продлевает access-токен, пока пользователь активен.
+    const refreshed = response.headers["x-refreshed-token"];
+    if (
+      typeof window !== "undefined" &&
+      typeof refreshed === "string" &&
+      refreshed
+    ) {
+      window.localStorage.setItem("access_token", refreshed);
+    }
+
+    return response;
+  },
   (error: unknown) => {
     // Если токен протух — выход и редирект
     if (

@@ -112,8 +112,13 @@ export class DefectDojoService {
     return this.client.getProductTypeSeverityCounts(productTypeId);
   }
 
-  // Данные для дашборда: группы продуктов, продукты и разбивка по критичности
-  async getDashboard() {
+  // Данные для дашборда: группы продуктов, продукты и разбивка по критичности.
+  // Для ограниченного пользователя считаем только по разрешённым группам.
+  async getDashboard(allowedProductTypeIds: number[] | null = null) {
+    if (allowedProductTypeIds !== null) {
+      return this.getScopedDashboard(allowedProductTypeIds);
+    }
+
     const [productTypes, products, severity] = await Promise.all([
       this.client.getProductTypesCount(),
       this.client.getProductsCount(),
@@ -125,6 +130,37 @@ export class DefectDojoService {
       products,
       severity: severity.severity,
       totalFindings: severity.total,
+    };
+  }
+
+  private async getScopedDashboard(allowedProductTypeIds: number[]) {
+    const empty = {
+      productTypes: 0,
+      products: 0,
+      severity: {},
+      totalFindings: 0,
+    };
+
+    if (allowedProductTypeIds.length === 0) {
+      return empty;
+    }
+
+    const products = await this.getProducts(undefined, allowedProductTypeIds);
+    const assetIds = products.map((product) => product.id);
+
+    if (assetIds.length === 0) {
+      return { ...empty, productTypes: allowedProductTypeIds.length };
+    }
+
+    // v3 не умеет organization__in, но умеет asset__in, поэтому severity
+    // по всем разрешённым группам берём одним запросом.
+    const counts = await this.client.getSeverityCounts({ assets: assetIds });
+
+    return {
+      productTypes: allowedProductTypeIds.length,
+      products: products.length,
+      severity: counts.severity,
+      totalFindings: counts.total,
     };
   }
 

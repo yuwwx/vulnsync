@@ -21,8 +21,14 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async login(user: AuthenticatedUser) {
-    const payload = { sub: user.id, username: user.username, role: user.role };
+  login(user: AuthenticatedUser) {
+    // sess - момент начала сессии: продлеваем токен, но не дольше него.
+    const payload = {
+      sub: user.id,
+      username: user.username,
+      role: user.role,
+      sess: Math.floor(Date.now() / 1000),
+    };
     return {
       access_token: this.jwtService.sign(payload),
       username: user.username,

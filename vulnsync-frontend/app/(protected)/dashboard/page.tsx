@@ -5,9 +5,7 @@ import {
   DefectDojoReferenceService,
   type DefectDojoDashboard,
 } from "@/services/reference/defectdojo.service";
-import { useAuth } from "@/lib/useAuth";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 const SEVERITY_ORDER = ["Critical", "High", "Medium", "Low", "Info"] as const;
@@ -36,23 +34,11 @@ function StatCard({ title, value }: { title: string; value: number }) {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const { isUser } = useAuth();
   const [data, setData] = useState<DefectDojoDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isUser) {
-      router.replace("/vulnerabilities");
-    }
-  }, [isUser, router]);
-
-  useEffect(() => {
-    if (isUser) {
-      return;
-    }
-
     let cancelled = false;
 
     DefectDojoReferenceService.getDashboard()
@@ -76,11 +62,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [isUser]);
-
-  if (isUser) {
-    return null;
-  }
+  }, []);
 
   const severity = data?.severity ?? {};
   const severityTotal = SEVERITY_ORDER.reduce(

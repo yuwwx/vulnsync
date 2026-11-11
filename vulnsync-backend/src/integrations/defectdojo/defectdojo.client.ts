@@ -327,6 +327,7 @@ export class DefectDojoClient {
   // Без фильтра — по всем продуктам.
   async getSeverityCounts(filter?: {
     asset?: number;
+    assets?: number[];
     organization?: number;
   }): Promise<{
     severity: Record<string, number>;
@@ -344,7 +345,9 @@ export class DefectDojoClient {
         active: true,
         limit: 1,
       };
-      if (filter?.asset) {
+      if (filter?.assets?.length) {
+        params.asset__in = filter.assets.join(',');
+      } else if (filter?.asset) {
         params.asset = filter.asset;
       }
       if (filter?.organization) {

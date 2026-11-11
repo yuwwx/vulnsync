@@ -8,6 +8,9 @@ type JwtPayload = {
   sub: string;
   username: string;
   role: string;
+  sess?: number;
+  iat?: number;
+  exp?: number;
 };
 
 @Injectable()
@@ -17,11 +20,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: config.getOrThrow<string>('JWT_SECRET'),
+      // Фиксируем алгоритм, чтобы исключить подмену alg в токене.
+      algorithms: ['HS256'],
     });
   }
 
-  async validate(payload: JwtPayload) {
+  validate(payload: JwtPayload) {
     // payload.sub содержит user.id
-    return { id: payload.sub, username: payload.username, role: payload.role };
+    return {
+      id: payload.sub,
+      username: payload.username,
+      role: payload.role,
+      sessionStartedAt: payload.sess ?? payload.iat,
+      tokenExpiresAt: payload.exp,
+    };
   }
 }

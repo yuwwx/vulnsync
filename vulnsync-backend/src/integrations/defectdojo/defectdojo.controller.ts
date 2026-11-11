@@ -3,7 +3,6 @@ import { ProductAccessService } from '@/access/product-access.service';
 import type { RequestUser } from '@/access/product-access.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { LogAction } from '@/common/decorators/logAction.decorator';
-import { Roles } from '@/common/decorators/roles.decorator';
 import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { DefectDojoService } from './defectdojo.service';
 
@@ -25,13 +24,10 @@ export class DefectDojoController {
     );
   }
 
-  // Дашборд показывает сводку по всем продуктам, поэтому доступен
-  // только неограниченным ролям (ADMIN и VIEWER).
   @LogAction('DEFECTDOJO_GET_DASHBOARD')
-  @Roles('ADMIN', 'VIEWER')
   @Get('dashboard')
-  getDashboard() {
-    return this.service.getDashboard();
+  async getDashboard(@CurrentUser() user: RequestUser) {
+    return this.service.getDashboard(await this.access.getScope(user));
   }
 
   @LogAction('DEFECTDOJO_GET_PRODUCTS')

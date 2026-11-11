@@ -32,6 +32,8 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3001',
     credentials: true,
+    // Фронт забирает обновлённый access-токен из этого заголовка.
+    exposedHeaders: ['X-Refreshed-Token'],
   });
 
   const port = process.env.PORT || 3000;

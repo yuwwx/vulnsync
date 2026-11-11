@@ -9,9 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/lib/useAuth";
+import { useMounted } from "@/lib/useMounted";
 import { ArrowRight, GitBranch, Search, Send, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { type CSSProperties } from "react";
+import { useRouter } from "next/navigation";
+import { type CSSProperties, useEffect } from "react";
 
 const features = [
   {
@@ -44,11 +47,26 @@ const integrations = ["DefectDojo", "DependencyTrack", "Jira"];
 // Сетка на весь экран (fixed, чтобы не ограничиваться контейнером <main>)
 const gridBackground: CSSProperties = {
   backgroundImage:
-    "linear-gradient(to right, color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px)",
+    "linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px)",
   backgroundSize: "44px 44px",
 };
 
 export default function Home() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const mounted = useMounted();
+
+  // Залогиненному лендинг не нужен — сразу дашборд.
+  useEffect(() => {
+    if (mounted && isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [mounted, isAuthenticated, router]);
+
+  if (mounted && isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="relative">
       <div
@@ -69,12 +87,12 @@ export default function Home() {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/dashboard">
+              <Link href="/login">
                 <Button size="lg">
-                  Открыть дашборд <ArrowRight className="ml-2 w-4 h-4" />
+                  Войти <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
-              <Link href="/vulnerabilities">
+              <Link href="/login">
                 <Button size="lg" variant="outline">
                   К уязвимостям
                 </Button>

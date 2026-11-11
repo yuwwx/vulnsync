@@ -9,7 +9,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/dashboard", label: "Дашборд", hideForUser: true },
+  { href: "/dashboard", label: "Дашборд" },
   { href: "/vulnerabilities", label: "Уязвимости" },
   { href: "/products", label: "Продукты", hideForUser: true },
   { href: "/integrations", label: "Интреграции", adminOnly: true },
@@ -36,7 +36,10 @@ export function Header() {
   return (
     <header className="border-b">
       <div className="container mx-auto flex h-14 items-center justify-between relative">
-        <Link href="/" className="font-bold text-lg hover:opacity-80">
+        <Link
+          href={mounted && isAuthenticated ? "/dashboard" : "/"}
+          className="font-bold text-lg hover:opacity-80"
+        >
           VulnSync
         </Link>
 
