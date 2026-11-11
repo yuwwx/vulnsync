@@ -91,7 +91,7 @@ function RowActions({ vuln, actions }: { vuln: Vulnerability; actions: VulnActio
           </>
         )}
         <DropdownMenuItem onClick={() => actions.onGenerateDescription(vuln)}>
-          Сгенерировать описание
+          Сгенерировать описание для Jira
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => actions.onAskAi(vuln)}>
           Спросить у AI

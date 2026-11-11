@@ -37,3 +37,21 @@ export interface DefectDojoTest {
   target_start?: string;
   target_end?: string;
 }
+
+export interface DefectDojoTestImportFindingAction {
+  id?: number;
+  finding?: number;
+  action?: string;
+  created?: string;
+}
+
+export interface DefectDojoTestImport {
+  id: number;
+  created?: string;
+  version?: string | null;
+  branch_tag?: string | null;
+  build_id?: string | null;
+  commit_hash?: string | null;
+  test?: number;
+  test_import_finding_action_set?: DefectDojoTestImportFindingAction[];
+}

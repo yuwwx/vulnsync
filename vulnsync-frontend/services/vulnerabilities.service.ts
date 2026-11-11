@@ -27,6 +27,21 @@ export interface JiraDescriptionResponse {
   description: string;
 }
 
+export interface ImportHistoryAction {
+  action: string | null;
+  created: string | null;
+}
+
+export interface ImportHistoryEntry {
+  id: number;
+  created: string | null;
+  version: string | null;
+  branchTag: string | null;
+  buildId: string | null;
+  commitHash: string | null;
+  actions: ImportHistoryAction[];
+}
+
 export interface FindingVulnerabilityId {
   vulnerability_id?: string | null;
 }
@@ -76,7 +91,10 @@ export interface VulnerabilityFinding {
         branch_tag?: string;
         build_id?: string;
         commit_hash?: string;
-        product?: { name?: string; prod_type?: { name?: string } };
+        product?: {
+          name?: string;
+          prod_type?: { id?: number; name?: string };
+        };
       };
     };
   };
@@ -122,6 +140,13 @@ export const VulnerabilitiesService = {
   async getVulnerability(id: number): Promise<VulnerabilityDetail> {
     const { data } = await api.get<VulnerabilityDetail>(
       `/vulnerabilities/${id}`,
+    );
+    return data;
+  },
+
+  async getImportHistory(id: number): Promise<ImportHistoryEntry[]> {
+    const { data } = await api.get<ImportHistoryEntry[]>(
+      `/vulnerabilities/${id}/import-history`,
     );
     return data;
   },

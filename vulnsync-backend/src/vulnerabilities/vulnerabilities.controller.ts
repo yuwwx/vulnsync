@@ -37,6 +37,15 @@ export class VulnerabilitiesController {
     );
   }
 
+  @LogAction('GET_VULNERABILITY_IMPORT_HISTORY')
+  @Get(':id/import-history')
+  getImportHistory(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.vulnerabilitiesService.getVulnerabilityImportHistory(
+      user,
+      Number(id),
+    );
+  }
+
   @LogAction('GET_VULNERABILITY')
   @Get(':id')
   getVulnerability(@CurrentUser() user: RequestUser, @Param('id') id: string) {

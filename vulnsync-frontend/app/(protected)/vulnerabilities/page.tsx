@@ -468,6 +468,22 @@ export default function VulnerabilitiesPage() {
     }
   };
 
+  // CSV по текущей группе продуктов или продукту (экспорт DefectDojo).
+  const handleExportCsv = async () => {
+    if (!selectedProductTypeId) return;
+
+    const scope =
+      !isAllProductsSelected && selectedProductId
+        ? { productId: selectedProductId }
+        : { productTypeId: selectedProductTypeId };
+
+    try {
+      await ReportsService.exportFindingsCsv(scope);
+    } catch {
+      toast.error("Не удалось скачать CSV");
+    }
+  };
+
   // --- Выделение (вне таблицы, переживает пагинацию и поиск) ---
 
   // Массив выбранных из карты id → уязвимость
@@ -1068,13 +1084,23 @@ export default function VulnerabilitiesPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-medium">Сканирования</h2>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handleRunFullReport()}
-                  >
-                    Отчёт по продукту (на почту)
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Отчёты <ChevronDown />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => void handleRunFullReport()}
+                      >
+                        Отчёт по продукту (на почту)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => void handleExportCsv()}>
+                        Экспорт уязвимостей по продукту (в CSV)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <SeverityBadges counts={severityCounts} />
                 {scansLoading ? (
@@ -1302,16 +1328,25 @@ export default function VulnerabilitiesPage() {
                 }
                 sort={sort}
                 onSortToggle={handleSortToggle}
-                fullReportAction={{
-                  label: selectedProductId
-                    ? "Отчёт по продукту (на почту)"
-                    : "Отчёт по группе продуктов (на почту)",
-                  disabled: !selectedProductTypeId,
-                  onClick: () => void handleRunFullReport(),
-                }}
+                reportActions={[
+                  {
+                    label: selectedProductId
+                      ? "Отчёт по продукту (на почту)"
+                      : "Отчёт по группе продуктов (на почту)",
+                    disabled: !selectedProductTypeId,
+                    onClick: () => void handleRunFullReport(),
+                  },
+                  {
+                    label: selectedProductId
+                      ? "Экспорт уязвимостей по продукту (в CSV)"
+                      : "Экспорт уязвимостей по группе продуктов (в CSV)",
+                    disabled: !selectedProductTypeId,
+                    onClick: () => void handleExportCsv(),
+                  },
+                ]}
                 bulkActions={[
                   {
-                    label: `Сгенерировать описание (${selectedVulns.length})`,
+                    label: `Сгенерировать описание для Jira (${selectedVulns.length})`,
                     disabled: selectedVulns.length === 0,
                     onClick: handleBulkGenerateDescription,
                   },

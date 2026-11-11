@@ -6,7 +6,7 @@ import {
   flexRender,
   type ColumnVisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown, ListFilter } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -43,8 +43,8 @@ interface Props {
   selectedCount?: number;
   onSelectionChange?: (rows: Vulnerability[]) => void;
   bulkActions?: BulkAction[];
-  // Отдельная кнопка рядом с «Групповые действия» (не зависит от выделения строк)
-  fullReportAction?: BulkAction;
+  // Пункты меню «Отчёты» (не зависят от выделения строк)
+  reportActions?: BulkAction[];
   // Пагинация и поиск — серверные: таблица не режет данные сама
   page: number;
   limit: number;
@@ -72,7 +72,7 @@ export function VulnerabilitiesTable({
   selectedCount,
   onSelectionChange,
   bulkActions,
-  fullReportAction,
+  reportActions,
   page,
   limit,
   total,
@@ -122,7 +122,7 @@ export function VulnerabilitiesTable({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-2">
-                Групповые действия ({selectedRows}) <ListFilter />
+                Групповые действия ({selectedRows}) <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-[250px]">
@@ -138,15 +138,25 @@ export function VulnerabilitiesTable({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        {fullReportAction && (
-          <Button
-            variant="outline"
-            className="ml-2"
-            disabled={fullReportAction.disabled}
-            onClick={fullReportAction.onClick}
-          >
-            {fullReportAction.label}
-          </Button>
+        {reportActions && reportActions.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="ml-2">
+                Отчёты <ChevronDown />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[280px]">
+              {reportActions.map((action) => (
+                <DropdownMenuItem
+                  key={action.label}
+                  disabled={action.disabled}
+                  onClick={action.onClick}
+                >
+                  {action.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -1,15 +1,30 @@
 // src/reports/reports.controller.ts
+import { ProductAccessService } from '@/access/product-access.service';
+import type { RequestUser } from '@/access/product-access.service';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { LogAction } from '@/common/decorators/logAction.decorator';
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import { Public } from '@/common/decorators/public.decorator';
+import { DefectDojoClient } from '@/integrations/defectdojo/defectdojo.client';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Res,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { FindingsReportService } from './findings-report.service';
 import { ReportQueueService } from './report-queue.service';
-import { Public } from '@/common/decorators/public.decorator';
 
 @Controller('reports')
 export class ReportsController {
   constructor(
     private service: FindingsReportService,
     private queue: ReportQueueService,
+    private access: ProductAccessService,
+    private defectDojo: DefectDojoClient,
   ) {}
 
   // Ручной запуск отчёта - аналог `python3 dd-yesterday-findings.py`
@@ -71,5 +86,51 @@ export class ReportsController {
     const runAt = await this.queue.enqueueFullFindings(scope);
 
     return { status: 'queued', runAt: runAt.toISOString() };
+  }
+
+  // CSV-экспорт findings продукта или группы продуктов.
+  // Использует штатный экспорт DefectDojo v3, поэтому фильтры и колонки
+  // совпадают с его findings, а доступ проверяется по группам продуктов.
+  @LogAction('REPORTS_EXPORT_FINDINGS_CSV')
+  @Get('findings/export.csv')
+  async exportFindingsCsv(
+    @CurrentUser() user: RequestUser,
+    @Res() res: Response,
+    @Query('productTypeId') productTypeId?: string,
+    @Query('productId') productId?: string,
+  ) {
+    const typeId = productTypeId ? Number(productTypeId) : undefined;
+    const prodId = productId ? Number(productId) : undefined;
+
+    if (Boolean(typeId) === Boolean(prodId)) {
+      throw new BadRequestException(
+        'Укажите ровно одно: productTypeId или productId',
+      );
+    }
+
+    const allowed = await this.access.getScope(user);
+
+    let filter: { organization?: number; asset?: number };
+
+    if (typeId) {
+      this.access.assertIdInScope(allowed, typeId);
+      filter = { organization: typeId };
+    } else {
+      const product = await this.defectDojo.getProduct(Number(prodId));
+
+      this.access.assertIdInScope(allowed, Number(product?.prod_type));
+      filter = { asset: Number(prodId) };
+    }
+
+    const csv = await this.defectDojo.getFindingsCsv(filter);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="findings-${typeId ? `product-type-${typeId}` : `product-${prodId}`}.csv"`,
+    );
+
+    // BOM, чтобы Excel корректно определил UTF-8 (в DefectDojo его нет).
+    res.send(Buffer.concat([Buffer.from('\uFEFF'), csv]));
   }
 }

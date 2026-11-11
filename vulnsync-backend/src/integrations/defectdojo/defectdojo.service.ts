@@ -67,6 +67,11 @@ export class DefectDojoService {
     );
   }
 
+  // История импортов для finding (доступность проверяет вызывающий слой).
+  async getFindingTestImports(findingId: number) {
+    return this.client.getTestImportsForFinding(findingId);
+  }
+
   private getNested(value: unknown, path: string): unknown {
     let current = value;
 

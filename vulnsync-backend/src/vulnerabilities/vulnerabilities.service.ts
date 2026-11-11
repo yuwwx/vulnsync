@@ -178,6 +178,34 @@ export class VulnerabilitiesService {
     };
   }
 
+  // История импортов скана по конкретному finding. Загружается лениво
+  // (при раскрытии блока в UI), доступ проверяется по группе продукта.
+  async getVulnerabilityImportHistory(
+    user: RequestUser | undefined,
+    id: number,
+  ) {
+    const finding = await this.defectDojo.getFinding(id);
+
+    await this.assertFindingsAccess(user, [finding]);
+
+    const testImports = await this.defectDojo.getFindingTestImports(id);
+
+    return testImports.map((testImport) => ({
+      id: testImport.id,
+      created: testImport.created ?? null,
+      version: testImport.version ?? null,
+      branchTag: testImport.branch_tag ?? null,
+      buildId: testImport.build_id ?? null,
+      commitHash: testImport.commit_hash ?? null,
+      actions: (testImport.test_import_finding_action_set ?? [])
+        .filter((action) => Number(action.finding) === id)
+        .map((action) => ({
+          action: action.action ?? null,
+          created: action.created ?? null,
+        })),
+    }));
+  }
+
   async getJiraDescriptionPreview(
     user: RequestUser | undefined,
     findingIds: number[],

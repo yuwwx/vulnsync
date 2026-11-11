@@ -6,6 +6,7 @@ import {
   DefectDojoProduct,
   DefectDojoProductType,
   DefectDojoTest,
+  DefectDojoTestImport,
 } from './types/defectdojo.types';
 import {
   Injectable,
@@ -390,6 +391,73 @@ export class DefectDojoClient {
     });
 
     return severity;
+  }
+
+  // CSV-экспорт findings средствами DefectDojo v3: тот же набор фильтров,
+  // что и у списка, но без пагинации (стриминг всего результата).
+  async getFindingsCsv(filter: {
+    organization?: number;
+    asset?: number;
+  }): Promise<Buffer> {
+    const client = await this.getClient();
+
+    const params: Record<string, unknown> = {
+      // Как и в списке уязвимостей, выгружаем только активные findings.
+      active: true,
+    };
+    if (filter.organization) {
+      params.organization = filter.organization;
+    }
+    if (filter.asset) {
+      params.asset = filter.asset;
+    }
+
+    this.logger.log(
+      `Exporting DefectDojo findings CSV: ${JSON.stringify(filter)}`,
+    );
+
+    try {
+      const { data } = await client.get<ArrayBuffer>(
+        '/api/v3/findings/export.csv',
+        { params, responseType: 'arraybuffer' },
+      );
+
+      return Buffer.from(data);
+    } catch (error) {
+      throw this.logAxiosError('Failed to export findings CSV', error);
+    }
+  }
+
+  // История импортов скана для конкретного finding:
+  // test_imports, содержащие действие (N/C/R/U) по этому finding.
+  async getTestImportsForFinding(
+    findingId: number,
+  ): Promise<DefectDojoTestImport[]> {
+    const client = await this.getClient();
+
+    this.logger.log(
+      `Fetching DefectDojo test imports: findingId=${findingId}`,
+    );
+
+    try {
+      const { data } = await client.get<{ results?: DefectDojoTestImport[] }>(
+        '/api/v2/test_imports/',
+        {
+          params: {
+            test_import_finding_action__finding: findingId,
+            o: '-id',
+            limit: 100,
+          },
+        },
+      );
+
+      return Array.isArray(data?.results) ? data.results : [];
+    } catch (error) {
+      throw this.logAxiosError(
+        `Failed to fetch test imports (findingId=${findingId})`,
+        error,
+      );
+    }
   }
 
   // Количество продуктов (assets) — лёгкий count-запрос

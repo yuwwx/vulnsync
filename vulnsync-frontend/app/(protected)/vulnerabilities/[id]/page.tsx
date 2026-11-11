@@ -9,10 +9,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AiChatDialog } from "@/components/vulnerabilities/AiChatDialog";
+import { DescriptionDialog } from "@/components/vulnerabilities/DescriptionDialog";
+import { JiraLinkDialog } from "@/components/vulnerabilities/JiraLinkDialog";
+import { SeverityDialog } from "@/components/vulnerabilities/SeverityDialog";
+import { useAuth } from "@/lib/useAuth";
+import { VulnerabilitySyncService } from "@/services/vulnerability-sync.service";
+import {
   VulnerabilitiesService,
+  type ImportHistoryEntry,
   type VulnerabilityDetail,
 } from "@/services/vulnerabilities.service";
-import { ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -33,6 +48,14 @@ const FLAG_STYLES: Record<string, string> = {
   "Out of scope": "bg-neutral-200 text-neutral-800",
   "Risk accepted": "bg-yellow-200 text-yellow-800",
   Mitigated: "bg-neutral-200 text-neutral-800",
+};
+
+// Коды действий импорта DefectDojo (test_import_finding_action.action)
+const IMPORT_ACTION_LABELS: Record<string, string> = {
+  N: "Создана",
+  C: "Закрыта",
+  R: "Переоткрыта",
+  U: "Без изменений",
 };
 
 type LoadState =
@@ -88,10 +111,26 @@ function vulnerabilityIdHref(id?: string | null): string | null {
 export default function VulnerabilityPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const id = Number(params.id);
   const invalid = !Number.isFinite(id);
 
   const [state, setState] = useState<LoadState | null>(null);
+  // История импортов грузится лениво — при первом раскрытии блока.
+  const [openHistoryId, setOpenHistoryId] = useState<number | null>(null);
+  const [historyState, setHistoryState] = useState<
+    | { id: number; status: "loading" }
+    | { id: number; status: "loaded"; items: ImportHistoryEntry[] }
+    | { id: number; status: "error" }
+    | null
+  >(null);
+
+  // Действия над уязвимостью — те же, что в меню строки таблицы.
+  const [openAiChat, setOpenAiChat] = useState(false);
+  const [openDescription, setOpenDescription] = useState(false);
+  const [openJiraLink, setOpenJiraLink] = useState(false);
+  const [openSeverity, setOpenSeverity] = useState(false);
+  const [actionSaving, setActionSaving] = useState(false);
 
   useEffect(() => {
     if (!Number.isFinite(id)) {
@@ -145,6 +184,139 @@ export default function VulnerabilityPage() {
     { label: "Mitigated", on: finding?.is_mitigated },
   ];
 
+  const historyOpen = openHistoryId === id;
+  const currentHistory = historyState?.id === id ? historyState : null;
+
+  const toggleHistory = () => {
+    if (historyOpen) {
+      setOpenHistoryId(null);
+      return;
+    }
+
+    setOpenHistoryId(id);
+
+    if (currentHistory && currentHistory.status !== "error") {
+      return;
+    }
+
+    setHistoryState({ id, status: "loading" });
+    VulnerabilitiesService.getImportHistory(id)
+      .then((items) => setHistoryState({ id, status: "loaded", items }))
+      .catch(() => setHistoryState({ id, status: "error" }));
+  };
+
+  const reloadDetail = () => {
+    VulnerabilitiesService.getVulnerability(id)
+      .then((detail) => setState({ id, detail }))
+      .catch(() => undefined);
+  };
+
+  const ddProductTypeId =
+    finding?.related_fields?.test?.engagement?.product?.prod_type?.id;
+
+  const handleSendToJira = async () => {
+    if (!ddProductTypeId) {
+      toast.error("Не удалось определить группу продукта");
+      return;
+    }
+
+    setActionSaving(true);
+    try {
+      await VulnerabilitySyncService.createJiraIssue({
+        findingId: id,
+        ddProductTypeId,
+      });
+      toast.success("Jira issue создан");
+      reloadDetail();
+    } catch {
+      toast.error("Не удалось создать Jira issue");
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
+  const handleSaveJiraLink = async (jiraKey: string) => {
+    setActionSaving(true);
+    try {
+      const response = await VulnerabilitySyncService.executeCommand({
+        action: "link",
+        findingIds: [id],
+        jiraIssueKey: jiraKey,
+      });
+
+      if (response.results[0]?.status !== "success") {
+        throw new Error("Не удалось связать с Jira");
+      }
+
+      toast.success("Связано с Jira");
+      setOpenJiraLink(false);
+      reloadDetail();
+    } catch {
+      toast.error("Не удалось связать с Jira");
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
+  const handleSyncJira = async () => {
+    try {
+      const response = await VulnerabilitySyncService.executeCommand({
+        action: "sync",
+        findingIds: [id],
+      });
+
+      if (response.results[0]?.status !== "success") {
+        throw new Error("Не удалось синхронизировать статус");
+      }
+
+      toast.success("Статус синхронизирован");
+      reloadDetail();
+    } catch {
+      toast.error("Не удалось синхронизировать статус");
+    }
+  };
+
+  const handleUnsyncJira = async () => {
+    try {
+      const response = await VulnerabilitySyncService.executeCommand({
+        action: "unsync",
+        findingIds: [id],
+      });
+
+      if (response.results[0]?.status !== "success") {
+        throw new Error("Не удалось отвязать от Jira");
+      }
+
+      toast.success("Успешно отвязана");
+      reloadDetail();
+    } catch {
+      toast.error("Не удалось отвязать от Jira");
+    }
+  };
+
+  const handleSaveSeverity = async (severity: string) => {
+    setActionSaving(true);
+    try {
+      const response = await VulnerabilitySyncService.executeCommand({
+        action: "severity",
+        findingIds: [id],
+        severity,
+      });
+
+      if (response.results[0]?.status !== "success") {
+        throw new Error("Не удалось изменить критичность");
+      }
+
+      toast.success("Критичность изменена, finding отмечен как Verified");
+      setOpenSeverity(false);
+      reloadDetail();
+    } catch {
+      toast.error("Не удалось изменить критичность");
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Button
@@ -167,7 +339,48 @@ export default function VulnerabilityPage() {
         <div className="rounded-md bg-red-100 p-4 text-red-700">{error}</div>
       ) : finding ? (
         <div className="space-y-4">
-          <h1 className="text-xl font-semibold">{finding.title}</h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-xl font-semibold">{finding.title}</h1>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={actionSaving}>
+                  Действия <ChevronDown />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[230px]">
+                {isAdmin && (
+                  <>
+                    <DropdownMenuItem
+                      disabled={status !== "Не отправлена"}
+                      onClick={() => void handleSendToJira()}
+                    >
+                      Отправить в Jira
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setOpenJiraLink(true)}>
+                      Связать с Jira
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void handleSyncJira()}>
+                      Синхронизировать с Jira
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void handleUnsyncJira()}>
+                      Отвязать от Jira
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setOpenSeverity(true)}>
+                      Изменить критичность
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                <DropdownMenuItem onClick={() => setOpenDescription(true)}>
+                  Сгенерировать описание для Jira
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setOpenAiChat(true)}>
+                  Спросить у AI
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           <Card>
             <CardHeader>
@@ -274,6 +487,117 @@ export default function VulnerabilityPage() {
             text={finding.severity_justification}
           />
           <Section title="Ссылки" text={finding.references} />
+
+          <Card>
+            <CardHeader>
+              <button
+                type="button"
+                onClick={toggleHistory}
+                className="flex w-full items-center justify-between text-left"
+              >
+                <CardTitle>История импортов</CardTitle>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 transition-transform",
+                    historyOpen && "rotate-180",
+                  )}
+                />
+              </button>
+            </CardHeader>
+            {historyOpen && (
+              <CardContent className="text-sm">
+                {currentHistory?.status === "loading" && (
+                  <div className="text-muted-foreground">Загрузка…</div>
+                )}
+                {currentHistory?.status === "error" && (
+                  <div className="text-red-700">
+                    Не удалось загрузить историю импортов
+                  </div>
+                )}
+                {currentHistory?.status === "loaded" &&
+                  (currentHistory.items.length === 0 ? (
+                    <div className="text-muted-foreground">
+                      Импортов для этой уязвимости не найдено
+                    </div>
+                  ) : (
+                    <ul className="space-y-3">
+                      {currentHistory.items.map((item) => (
+                        <li
+                          key={item.id}
+                          className="border-b pb-3 last:border-b-0 last:pb-0"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">
+                              Импорт #{item.id}
+                            </span>
+                            {item.created && (
+                              <span className="text-xs text-muted-foreground">
+                                {item.created}
+                              </span>
+                            )}
+                            {item.actions.map((action, index) => (
+                              <span
+                                key={index}
+                                className="rounded bg-muted px-2 py-0.5 text-xs"
+                              >
+                                {IMPORT_ACTION_LABELS[action.action ?? ""] ??
+                                  action.action ??
+                                  "—"}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                            {item.buildId && <span>Build: {item.buildId}</span>}
+                            {item.version && <span>Версия: {item.version}</span>}
+                            {item.branchTag && (
+                              <span>Ветка/тег: {item.branchTag}</span>
+                            )}
+                            {item.commitHash && (
+                              <span>Коммит: {item.commitHash}</span>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ))}
+              </CardContent>
+            )}
+          </Card>
+
+          <AiChatDialog
+            open={openAiChat}
+            onOpenChange={setOpenAiChat}
+            findingIds={[id]}
+          />
+
+          <DescriptionDialog
+            open={openDescription}
+            onOpenChange={setOpenDescription}
+            findingIds={[id]}
+            isBulk={false}
+          />
+
+          <JiraLinkDialog
+            open={openJiraLink}
+            onOpenChange={setOpenJiraLink}
+            isBulk={false}
+            selectedCount={1}
+            saving={actionSaving}
+            canSave
+            onSave={handleSaveJiraLink}
+          />
+
+          <SeverityDialog
+            key={`${openSeverity}-${id}`}
+            open={openSeverity}
+            onOpenChange={setOpenSeverity}
+            isBulk={false}
+            selectedCount={1}
+            currentSeverity={finding.severity}
+            saving={actionSaving}
+            canSave
+            onSave={handleSaveSeverity}
+          />
         </div>
       ) : null}
     </div>
