@@ -81,17 +81,28 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
 
     const memberOf = user.memberOf || [];
 
-    let assignedRole: 'USER' | 'VIEWER' | 'ADMIN' = 'USER'; // по умолчанию
+    // DN из AD сравниваем без учёта регистра и лишних пробелов.
+    const normalizeDn = (dn: string) => dn.trim().toLowerCase();
+    const groups = new Set(
+      (Array.isArray(memberOf) ? memberOf : [memberOf]).map(normalizeDn),
+    );
 
-    const groups = Array.isArray(memberOf) ? memberOf : [memberOf];
+    // Явный приоритет: если пользователь в нескольких группах,
+    // выбираем самую старшую роль.
+    const roleByPriority: Array<{
+      role: 'USER' | 'VIEWER' | 'ADMIN';
+      groupDn?: string;
+    }> = [
+      { role: 'ADMIN', groupDn: this.adminGroupDn },
+      { role: 'VIEWER', groupDn: this.viewerGroupDn },
+      { role: 'USER', groupDn: this.userGroupDn },
+    ];
 
-    if (this.adminGroupDn && groups.includes(this.adminGroupDn)) {
-      assignedRole = 'ADMIN';
-    } else if (this.viewerGroupDn && groups.includes(this.viewerGroupDn)) {
-      assignedRole = 'VIEWER';
-    } else if (this.userGroupDn && groups.includes(this.userGroupDn)) {
-      assignedRole = 'USER';
-    } else {
+    const matchedRole = roleByPriority.find(
+      ({ groupDn }) => groupDn && groups.has(normalizeDn(groupDn)),
+    );
+
+    if (!matchedRole) {
       await this.logsService.log('LOGIN_FAILED', requestIp, user.id, {
         result: 'FAIL',
         username: user.sAMAccountName,
@@ -99,6 +110,8 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
       });
       throw new UnauthorizedException('User not in allowed LDAP groups');
     }
+
+    const assignedRole = matchedRole.role;
 
     await this.logsService.log('LOGIN', requestIp, user.id, {
       result: 'SUCCESS',
