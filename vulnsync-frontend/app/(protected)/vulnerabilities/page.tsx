@@ -22,6 +22,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   DefectDojoEngagement,
   DefectDojoProduct,
   DefectDojoProductType,
@@ -31,7 +39,9 @@ import { ReportsService } from "@/services/reports.service";
 import { Vulnerability, VulnerabilitiesService } from "@/services/vulnerabilities.service";
 import { VulnerabilitySyncService } from "@/services/vulnerability-sync.service";
 import dayjs from "dayjs";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const SEVERITY_ORDER = ["Critical", "High", "Medium", "Low", "Info"] as const;
@@ -44,7 +54,35 @@ const SEVERITY_STYLES: Record<string, string> = {
   Info: "bg-neutral-100 text-neutral-600",
 };
 
+function SeverityBadges({
+  counts,
+}: {
+  counts: Record<string, number> | null;
+}) {
+  if (!counts) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2 text-xs">
+      {SEVERITY_ORDER.map((severity) => (
+        <span
+          key={severity}
+          className={`rounded px-2 py-0.5 font-medium ${SEVERITY_STYLES[severity]}`}
+        >
+          {severity}: {counts[severity] ?? 0}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function VulnerabilitiesPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  // Флаг: восстановление раздела из URL завершено — до этого не затираем URL
+  const restoredRef = useRef(false);
+
   const [productTypes, setProductTypes] = useState<DefectDojoProductType[]>([]);
   const [selectedProductTypeId, setSelectedProductTypeId] = useState<
     number | null
@@ -64,8 +102,8 @@ export default function VulnerabilitiesPage() {
     productId?: number;
     testId?: number;
   } | null>(null);
-  // Подпись выбранного скоупа для «хлебных крошек» над таблицей
-  const [scopeLabel, setScopeLabel] = useState<string | null>(null);
+  // Заголовок выбранного теста (для подписи скоупа)
+  const [scopeTestTitle, setScopeTestTitle] = useState<string | null>(null);
   // Сканирования выбранного продукта: engagements, внутри каждого — тесты
   const [scans, setScans] = useState<DefectDojoEngagement[]>([]);
   const [scansLoading, setScansLoading] = useState(false);
@@ -86,6 +124,8 @@ export default function VulnerabilitiesPage() {
   const [vulnsSearch, setVulnsSearch] = useState("");
   // Серверная сортировка: "severity" | "-id" ... (null = дефолт DD API: по id)
   const [sort, setSort] = useState<string | null>(null);
+  // Фильтр по критичности (пусто = все); серверный, можно несколько
+  const [severity, setSeverity] = useState<string[]>([]);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -122,6 +162,146 @@ export default function VulnerabilitiesPage() {
       );
   }, []);
 
+  // Восстанавливаем раздел из query-параметров при заходе (F5, возврат из
+  // карточки уязвимости). Только асинхронные setState — иначе линтер
+  // react-hooks/set-state-in-effect ругается.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const type = Number(params.get("type")) || null;
+    const product = Number(params.get("product")) || null;
+    const test = Number(params.get("test")) || null;
+    const view = params.get("view");
+    const page = Number(params.get("page")) || 1;
+    const sortParam = params.get("sort");
+    const title = params.get("title") ?? "";
+    const severityParam = (params.get("severity") ?? "")
+      .split(",")
+      .filter(Boolean);
+
+    if (!type) {
+      restoredRef.current = true;
+      return;
+    }
+
+    DefectDojoReferenceService.getProducts(type)
+      .then(setProducts)
+      .catch(() => undefined);
+
+    if (product) {
+      DefectDojoReferenceService.getProductScans(product)
+        .then((tree) => {
+          setScans(tree);
+          setOpenEngagements(tree.map((engagement) => String(engagement.id)));
+        })
+        .catch(() => undefined);
+    }
+
+    const scope = test
+      ? { testId: test }
+      : view === "product" && product
+        ? { productId: product }
+        : view === "type"
+          ? { productTypeId: type }
+          : null;
+
+    const apply = () => {
+      setSelectedProductTypeId(type);
+      setSelectedProductId(product);
+      setIsAllProductsSelected(view === "type");
+      setSelectedScope(scope);
+      restoredRef.current = true;
+    };
+
+    if (scope) {
+      VulnerabilitiesService.getVulnerabilities(
+        scope,
+        page,
+        10,
+        title,
+        sortParam,
+        severityParam.join(","),
+      )
+        .then((resp) => {
+          setVulns(resp.data);
+          setPagination({
+            page: resp.pagination.page,
+            limit: resp.pagination.limit,
+            total: resp.pagination.total,
+            pages: resp.pagination.pages,
+          });
+          setSort(sortParam);
+          setVulnsSearch(title);
+          setSeverity(severityParam);
+          apply();
+        })
+        .catch(() => apply());
+    } else {
+      DefectDojoReferenceService.getProductTypeSeverityCounts(type)
+        .then(setSeverityCounts)
+        .catch(() => undefined);
+      void Promise.resolve().then(apply);
+    }
+  }, []);
+
+  // Отражаем раздел в URL, чтобы возврат из карточки и F5 восстанавливали его
+  useEffect(() => {
+    if (!restoredRef.current) {
+      return;
+    }
+
+    const params = new URLSearchParams();
+
+    if (selectedProductTypeId) {
+      params.set("type", String(selectedProductTypeId));
+    }
+    if (selectedProductId) {
+      params.set("product", String(selectedProductId));
+    }
+    if (selectedScope?.testId) {
+      params.set("test", String(selectedScope.testId));
+    }
+
+    const view = selectedScope
+      ? selectedScope.testId
+        ? "test"
+        : selectedScope.productId
+          ? "product"
+          : "type"
+      : selectedProductId
+        ? "scans"
+        : null;
+    if (view) {
+      params.set("view", view);
+    }
+    if (pagination.page > 1) {
+      params.set("page", String(pagination.page));
+    }
+    if (sort) {
+      params.set("sort", sort);
+    }
+    if (vulnsSearch) {
+      params.set("title", vulnsSearch);
+    }
+    if (severity.length) {
+      params.set("severity", severity.join(","));
+    }
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }, [
+    selectedProductTypeId,
+    selectedProductId,
+    selectedScope,
+    pagination.page,
+    sort,
+    vulnsSearch,
+    severity,
+    router,
+    pathname,
+  ]);
+
   // Серверная пагинация, поиск и сортировка: грузим одну страницу за раз.
   // Выделения живут в selectedById и от запросов не зависят.
   const loadVulnerabilities = useCallback(
@@ -130,11 +310,19 @@ export default function VulnerabilitiesPage() {
       page = 1,
       search = "",
       sort: string | null = null,
+      severityFilter = "",
     ) => {
       setLoadingVulns(true);
       setError(null);
 
-      VulnerabilitiesService.getVulnerabilities(scope, page, pagination.limit, search, sort)
+      VulnerabilitiesService.getVulnerabilities(
+        scope,
+        page,
+        pagination.limit,
+        search,
+        sort,
+        severityFilter,
+      )
         .then((resp) => {
           setVulns(resp.data);
           setPagination({
@@ -176,12 +364,18 @@ export default function VulnerabilitiesPage() {
       .catch(() => toast.error("Не удалось получить сканирования"))
       .finally(() => setScansLoading(false));
 
-    // Временно отключено: 5 доп. запросов к DD за разбивкой по критичности.
-    // Эндпоинт (defectdojo service/controller) и UI-блок бейджей оставлены —
-    // чтобы вернуть, раскомментируй вызов ниже.
-    // DefectDojoReferenceService.getProductSeverityCounts(productId)
-    //   .then(setSeverityCounts)
-    //   .catch(() => setSeverityCounts(null));
+    // Разбивка по критичности — один запрос к v3 (include=counts)
+    DefectDojoReferenceService.getProductSeverityCounts(productId)
+      .then(setSeverityCounts)
+      .catch(() => setSeverityCounts(null));
+  };
+
+  // Разбивка по критичности для группы продуктов (один запрос к v3)
+  const loadTypeSeverityCounts = (typeId: number) => {
+    setSeverityCounts(null);
+    DefectDojoReferenceService.getProductTypeSeverityCounts(typeId)
+      .then(setSeverityCounts)
+      .catch(() => setSeverityCounts(null));
   };
 
   // Выбор типа продуктов: список уязвимостей НЕ грузим автоматически —
@@ -192,13 +386,14 @@ export default function VulnerabilitiesPage() {
     setIsAllProductsSelected(false);
     setSelectedById(new Map());
     setSelectedScope(null);
-    setScopeLabel(null);
+    setScopeTestTitle(null);
     setScans([]);
     setOpenEngagements([]);
-    setSeverityCounts(null);
     setVulnsSearch("");
+    setSeverity([]);
     setPagination((prev) => ({ ...prev, page: 1 }));
     loadProducts(type.id);
+    loadTypeSeverityCounts(type.id);
   };
 
   const handleSelectAllProducts = (type: DefectDojoProductType) => {
@@ -206,9 +401,9 @@ export default function VulnerabilitiesPage() {
     setIsAllProductsSelected(true);
     setSelectedById(new Map());
     setVulnsSearch("");
+    setSeverity([]);
     const scope = { productTypeId: type.id };
     setSelectedScope(scope);
-    setScopeLabel(`Все уязвимости группы продуктов «${type.name}»`);
     loadVulnerabilities(scope);
   };
 
@@ -218,8 +413,9 @@ export default function VulnerabilitiesPage() {
     setIsAllProductsSelected(false);
     setSelectedById(new Map());
     setVulnsSearch("");
+    setSeverity([]);
     setSelectedScope(null);
-    setScopeLabel(null);
+    setScopeTestTitle(null);
     setPagination((prev) => ({ ...prev, page: 1 }));
     loadScans(product.id);
   };
@@ -227,16 +423,11 @@ export default function VulnerabilitiesPage() {
   // Уязвимости всего продукта
   const handleSelectWholeProduct = () => {
     if (!selectedProductId) return;
-    const product = products.find((p) => p.id === selectedProductId);
     setSelectedById(new Map());
     setVulnsSearch("");
+    setSeverity([]);
     const scope = { productId: selectedProductId };
     setSelectedScope(scope);
-    setScopeLabel(
-      product
-        ? `Все уязвимости продукта: ${product.name}`
-        : "Все уязвимости продукта",
-    );
     loadVulnerabilities(scope);
   };
 
@@ -244,16 +435,17 @@ export default function VulnerabilitiesPage() {
   const handleSelectTest = (testId: number, title: string) => {
     setSelectedById(new Map());
     setVulnsSearch("");
+    setSeverity([]);
     const scope = { testId };
     setSelectedScope(scope);
-    setScopeLabel(`Тест: ${title}`);
+    setScopeTestTitle(title);
     loadVulnerabilities(scope);
   };
 
   // Назад к списку сканирований продукта
   const handleBackToScans = () => {
     setSelectedScope(null);
-    setScopeLabel(null);
+    setScopeTestTitle(null);
   };
 
   // Полный отчёт по активным уязвимостям: продукт или весь тип.
@@ -316,9 +508,9 @@ export default function VulnerabilitiesPage() {
       if (!selectedScope) return;
 
       setPagination((prev) => ({ ...prev, page }));
-      loadVulnerabilities(selectedScope, page, vulnsSearch, sort);
+      loadVulnerabilities(selectedScope, page, vulnsSearch, sort, severity.join(","));
     },
-    [selectedScope, loadVulnerabilities, vulnsSearch, sort],
+    [selectedScope, loadVulnerabilities, vulnsSearch, sort, severity],
   );
 
   // Поиск по названию: серверный icontains; сбрасываем на первую страницу.
@@ -329,10 +521,35 @@ export default function VulnerabilitiesPage() {
 
       setVulnsSearch(search);
       setPagination((prev) => ({ ...prev, page: 1 }));
-      loadVulnerabilities(selectedScope, 1, search, sort);
+      loadVulnerabilities(selectedScope, 1, search, sort, severity.join(","));
     },
-    [selectedScope, loadVulnerabilities, sort],
+    [selectedScope, loadVulnerabilities, sort, severity],
   );
+
+  // Фильтр по критичности (серверный, мультивыбор)
+  const handleSeverityToggle = useCallback(
+    (value: string) => {
+      const next = severity.includes(value)
+        ? severity.filter((item) => item !== value)
+        : [...severity, value];
+      setSeverity(next);
+
+      if (selectedScope) {
+        setPagination((prev) => ({ ...prev, page: 1 }));
+        loadVulnerabilities(selectedScope, 1, vulnsSearch, sort, next.join(","));
+      }
+    },
+    [severity, selectedScope, loadVulnerabilities, vulnsSearch, sort],
+  );
+
+  const handleSeverityClear = useCallback(() => {
+    setSeverity([]);
+
+    if (selectedScope) {
+      setPagination((prev) => ({ ...prev, page: 1 }));
+      loadVulnerabilities(selectedScope, 1, vulnsSearch, sort, "");
+    }
+  }, [selectedScope, loadVulnerabilities, vulnsSearch, sort]);
 
   // Серверная сортировка: клик по заголовку — null → asc → desc → null.
   // Выделения не трогаем.
@@ -349,10 +566,10 @@ export default function VulnerabilitiesPage() {
 
       if (selectedScope) {
         setPagination((prev) => ({ ...prev, page: 1 }));
-        loadVulnerabilities(selectedScope, 1, vulnsSearch, next);
+        loadVulnerabilities(selectedScope, 1, vulnsSearch, next, severity.join(","));
       }
     },
-    [sort, selectedScope, loadVulnerabilities, vulnsSearch],
+    [sort, selectedScope, loadVulnerabilities, vulnsSearch, severity],
   );
 
   // --- Спросить у AI ---
@@ -761,6 +978,31 @@ export default function VulnerabilitiesPage() {
     [products, selectedProductId],
   );
 
+  // Подпись текущего скоупа для «хлебных крошек» над таблицей.
+  // Выводим из состояния, а не храним: тогда корректна и после восстановления
+  // раздела из URL.
+  const scopeLabel = useMemo(() => {
+    if (!selectedScope) {
+      return null;
+    }
+    if (selectedScope.testId) {
+      return scopeTestTitle
+        ? `Тест: ${scopeTestTitle}`
+        : "Уязвимости теста";
+    }
+    if (selectedScope.productId) {
+      return selectedProduct
+        ? `Все уязвимости продукта: ${selectedProduct.name}`
+        : "Все уязвимости продукта";
+    }
+    if (selectedScope.productTypeId) {
+      return selectedType
+        ? `Все уязвимости группы продуктов: ${selectedType.name}`
+        : "Все уязвимости группы продуктов";
+    }
+    return null;
+  }, [selectedScope, scopeTestTitle, selectedProduct, selectedType]);
+
   return (
     <>
       <div className="flex gap-6">
@@ -834,18 +1076,7 @@ export default function VulnerabilitiesPage() {
                     Отчёт по продукту (на почту)
                   </Button>
                 </div>
-                {severityCounts && (
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    {SEVERITY_ORDER.map((severity) => (
-                      <span
-                        key={severity}
-                        className={`rounded px-2 py-0.5 font-medium ${SEVERITY_STYLES[severity]}`}
-                      >
-                        {severity}: {severityCounts[severity] ?? 0}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <SeverityBadges counts={severityCounts} />
                 {scansLoading ? (
                   <div className="text-neutral-500">
                     Загрузка сканирований…
@@ -956,6 +1187,7 @@ export default function VulnerabilitiesPage() {
                 <h2 className="text-lg font-medium">
                   Группа продуктов{selectedType ? `: ${selectedType.name}` : ""}
                 </h2>
+                <SeverityBadges counts={severityCounts} />
               {productsLoading ? (
                 <div className="text-neutral-500">Загрузка продуктов…</div>
               ) : products.length === 0 ? (
@@ -1036,6 +1268,38 @@ export default function VulnerabilitiesPage() {
                 total={pagination.total}
                 onPageChange={handlePageChange}
                 onSearch={handleSearch}
+                initialSearch={vulnsSearch}
+                toolbar={
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline">
+                        Критичность
+                        {severity.length > 0 && `: ${severity.length}`}
+                        <ChevronDown />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {SEVERITY_ORDER.map((item) => (
+                        <DropdownMenuCheckboxItem
+                          key={item}
+                          checked={severity.includes(item)}
+                          onSelect={(event) => event.preventDefault()}
+                          onCheckedChange={() => handleSeverityToggle(item)}
+                        >
+                          {item}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                      {severity.length > 0 && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={handleSeverityClear}>
+                            Сбросить
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                }
                 sort={sort}
                 onSortToggle={handleSortToggle}
                 fullReportAction={{

@@ -49,6 +49,7 @@ export class VulnerabilitiesService {
     limit = 10000,
     title?: string,
     sort?: string,
+    severity?: string,
   ): Promise<VulnerabilityListResponseDto> {
     const scopeKeys = [
       scope.productTypeId,
@@ -64,11 +65,13 @@ export class VulnerabilitiesService {
 
     const offset = (page - 1) * limit;
 
-    const filters = scope.testId
+    const scopeFilter = scope.testId
       ? { test: scope.testId }
       : scope.productId
         ? { test__engagement__product: scope.productId }
         : { test__engagement__product__prod_type: scope.productTypeId };
+
+    const filters = severity ? { ...scopeFilter, severity } : scopeFilter;
 
     // Формат FE: 'severity' | '-severity' ... (минус = по убыванию)
     const ddField = sort ? SORT_FIELDS[sort.replace(/^-/, '')] : undefined;
@@ -119,6 +122,23 @@ export class VulnerabilitiesService {
         pages: Math.ceil(findingsResponse.count / limit),
       },
     });
+  }
+
+  // Детали одной уязвимости: полный finding из DefectDojo + статус Jira
+  async getVulnerability(id: number) {
+    const finding = await this.defectDojo.getFinding(id);
+
+    const sync = await this.prisma.vulnerabilitySync.findUnique({
+      where: {
+        externalId_source: { externalId: String(id), source: 'DEFECTDOJO' },
+      },
+    });
+
+    return {
+      finding,
+      status: sync?.status ?? 'Не отправлена',
+      jiraIssueKey: sync?.jiraIssueKey ?? null,
+    };
   }
 
   async getJiraDescriptionPreview(findingIds: number[]) {

@@ -51,6 +51,10 @@ interface Props {
   total: number;
   onPageChange: (page: number) => void;
   onSearch: (search: string) => void;
+  // Начальное значение поиска (восстановление из URL)
+  initialSearch?: string;
+  // Доп. элементы тулбара (например, фильтр по критичности)
+  toolbar?: React.ReactNode;
   // Серверная сортировка: "severity" | "-id" ... (null = дефолт DD API: по id)
   sort?: string | null;
   onSortToggle?: (columnId: string) => void;
@@ -74,6 +78,8 @@ export function VulnerabilitiesTable({
   total,
   onPageChange,
   onSearch,
+  initialSearch,
+  toolbar,
   sort,
   onSortToggle,
 }: Props) {
@@ -110,11 +116,12 @@ export function VulnerabilitiesTable({
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
-        <DebouncedSearchInput onSearch={onSearch} />
+        <DebouncedSearchInput onSearch={onSearch} initialValue={initialSearch} />
+        {toolbar && <div className="ml-2 flex items-center">{toolbar}</div>}
         {bulkActions && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="ml-2">
+              <Button variant="outline" className="ml-2">
                 Групповые действия ({selectedRows}) <ListFilter />
               </Button>
             </DropdownMenuTrigger>
@@ -134,7 +141,6 @@ export function VulnerabilitiesTable({
         {fullReportAction && (
           <Button
             variant="outline"
-            size="sm"
             className="ml-2"
             disabled={fullReportAction.disabled}
             onClick={fullReportAction.onClick}
@@ -254,10 +260,16 @@ export function VulnerabilitiesTable({
 // Поиск с задержкой: не дёргаем тяжёлый запрос на каждый символ.
 // Отправляем только изменившееся значение: запуск эффекта на монтировании
 // (или после ремонтинга) пустой строкой запрос не инициирует.
-function DebouncedSearchInput({ onSearch }: { onSearch: (search: string) => void }) {
-  const [value, setValue] = React.useState("");
+function DebouncedSearchInput({
+  onSearch,
+  initialValue = "",
+}: {
+  onSearch: (search: string) => void;
+  initialValue?: string;
+}) {
+  const [value, setValue] = React.useState(initialValue);
   const onSearchRef = React.useRef(onSearch);
-  const lastFiredRef = React.useRef(value);
+  const lastFiredRef = React.useRef(initialValue);
 
   React.useEffect(() => {
     onSearchRef.current = onSearch;

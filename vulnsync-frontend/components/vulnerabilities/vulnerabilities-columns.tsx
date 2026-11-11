@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/useAuth";
 import { Vulnerability } from "@/services/vulnerabilities.service";
 import { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
@@ -186,12 +187,12 @@ export const vulnerabilityColumns = ({
       const vuln = row.original;
 
       return (
-        <span
-          className="cursor-pointer hover:underline"
-          onClick={() => actions.onGenerateDescription(vuln)}
+        <Link
+          href={`/vulnerabilities/${vuln.id}`}
+          className="hover:underline"
         >
           {row.getValue("title")}
-        </span>
+        </Link>
       );
     },
   },
