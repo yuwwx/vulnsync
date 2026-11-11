@@ -194,6 +194,12 @@ export default function VulnerabilitiesPage() {
           setOpenEngagements(tree.map((engagement) => String(engagement.id)));
         })
         .catch(() => undefined);
+
+      // Severity продукта нужен и при возврате сразу в список уязвимостей,
+      // и после перехода обратно в «Сканирования».
+      DefectDojoReferenceService.getProductSeverityCounts(product)
+        .then(setSeverityCounts)
+        .catch(() => undefined);
     }
 
     const scope = test
