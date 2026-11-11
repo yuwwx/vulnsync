@@ -32,6 +32,7 @@ export class DefectDojoService {
 
   async getProducts(
     productTypeId?: number,
+    allowedProductTypeIds: number[] | null = null,
   ): Promise<DefectDojoProductTypeDto[]> {
     const products = await this.client.getProducts(productTypeId);
 
@@ -41,9 +42,53 @@ export class DefectDojoService {
         ? [products]
         : [];
 
-    return plainToInstance(DefectDojoProductTypeDto, productsArray, {
+    // Для ограниченного пользователя при запросе всех продуктов
+    // оставляем только продукты из разрешённых групп.
+    const scopedProducts =
+      allowedProductTypeIds === null
+        ? productsArray
+        : productsArray.filter((product) =>
+            allowedProductTypeIds.includes(Number(product.prod_type)),
+          );
+
+    return plainToInstance(DefectDojoProductTypeDto, scopedProducts, {
       excludeExtraneousValues: true,
     });
+  }
+
+  // Тип продукта по finding: related_fields приходит при
+  // related_fields=true и содержит product.prod_type = { id, name }.
+  getFindingProductTypeId(finding: unknown): number | undefined {
+    return this.toId(
+      this.getNested(
+        finding,
+        'related_fields.test.engagement.product.prod_type',
+      ),
+    );
+  }
+
+  private getNested(value: unknown, path: string): unknown {
+    let current = value;
+
+    for (const key of path.split('.')) {
+      if (current == null || typeof current !== 'object') {
+        return undefined;
+      }
+
+      current = (current as Record<string, unknown>)[key];
+    }
+
+    return current;
+  }
+
+  private toId(value: unknown): number | undefined {
+    if (value && typeof value === 'object') {
+      return this.toId((value as Record<string, unknown>).id);
+    }
+
+    const id = Number(value);
+
+    return Number.isFinite(id) && id > 0 ? id : undefined;
   }
 
   async getProduct(productId: number): Promise<DefectDojoProduct> {
@@ -162,7 +207,10 @@ export class DefectDojoService {
     }
   }
 
-  async changeFindingSeverity(findingId: number, severity: string) {
+  async changeFindingSeverity(
+    findingId: number,
+    severity: string,
+  ): Promise<unknown> {
     const finding = await this.client.updateFinding(findingId, {
       severity,
       verified: true,

@@ -5,10 +5,12 @@ import DefectDojoJiraTab from "@/components/products/DefectDojoJiraTab";
 import DependencyTrackTab from "@/components/products/DependencyTrackTab";
 import EngagementNotificationsTab from "@/components/products/EngagementNotificationsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/lib/useAuth";
 import {
   DefectDojoProductType,
   DefectDojoReferenceService,
 } from "@/services/reference/defectdojo.service";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type ProductTab =
@@ -17,6 +19,8 @@ type ProductTab =
   | "engagementNotifications";
 
 export default function ProductsPage() {
+  const router = useRouter();
+  const { isUser } = useAuth();
   const [products, setProducts] = useState<DefectDojoProductType[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] =
@@ -24,15 +28,29 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isUser) {
+      router.replace("/vulnerabilities");
+    }
+  }, [isUser, router]);
+
   // Загружаем список продуктов
   useEffect(() => {
+    if (isUser) {
+      return;
+    }
+
     DefectDojoReferenceService.getProductTypes()
       .then(setProducts)
       .catch((err) =>
         setError(`Не удалось получить типы продуктов из DefectDojo: ${err}`),
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [isUser]);
+
+  if (isUser) {
+    return null;
+  }
 
   return (
     <div className="flex gap-6">

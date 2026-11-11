@@ -1,4 +1,6 @@
 // vulnerabilities.controller.ts
+import type { RequestUser } from '@/access/product-access.service';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { LogAction } from '@/common/decorators/logAction.decorator';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { AiMessage, VulnerabilitiesService } from './vulnerabilities.service';
@@ -10,6 +12,7 @@ export class VulnerabilitiesController {
   @LogAction('GET_VULNERABILITIES')
   @Get()
   getVulnerabilities(
+    @CurrentUser() user: RequestUser,
     @Query('productTypeId') productTypeId?: string,
     @Query('productId') productId?: string,
     @Query('testId') testId?: string,
@@ -20,6 +23,7 @@ export class VulnerabilitiesController {
     @Query('severity') severity?: string,
   ) {
     return this.vulnerabilitiesService.getVulnerabilities(
+      user,
       {
         productTypeId: productTypeId ? Number(productTypeId) : undefined,
         productId: productId ? Number(productId) : undefined,
@@ -35,21 +39,28 @@ export class VulnerabilitiesController {
 
   @LogAction('GET_VULNERABILITY')
   @Get(':id')
-  getVulnerability(@Param('id') id: string) {
-    return this.vulnerabilitiesService.getVulnerability(Number(id));
+  getVulnerability(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.vulnerabilitiesService.getVulnerability(user, Number(id));
   }
 
   @LogAction('VULNERABILITY_GET_DESCRIPTION')
   @Post('description')
-  previewJiraDescription(@Body() body: { findingIds: number[] }) {
+  previewJiraDescription(
+    @CurrentUser() user: RequestUser,
+    @Body() body: { findingIds: number[] },
+  ) {
     return this.vulnerabilitiesService.getJiraDescriptionPreview(
+      user,
       body.findingIds,
     );
   }
 
   @LogAction('VULNERABILITY_ASK_AI')
   @Post('ai')
-  askAi(@Body() body: { findingIds: number[]; messages?: AiMessage[] }) {
+  askAi(
+    @CurrentUser() user: RequestUser,
+    @Body() body: { findingIds: number[]; messages?: AiMessage[] },
+  ) {
     if (
       !Array.isArray(body.findingIds) ||
       body.findingIds.length === 0 ||
@@ -68,6 +79,10 @@ export class VulnerabilitiesController {
       throw new Error('Некорректные данные для AI-диалога');
     }
 
-    return this.vulnerabilitiesService.askAi(body.findingIds, body.messages);
+    return this.vulnerabilitiesService.askAi(
+      user,
+      body.findingIds,
+      body.messages,
+    );
   }
 }

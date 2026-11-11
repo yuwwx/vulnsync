@@ -3,8 +3,13 @@ import { DefectDojoService } from '@/integrations/defectdojo/defectdojo.service'
 import { JiraDescriptionService } from '@/integrations/jira/jira-description.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
+  ProductAccessService,
+  RequestUser,
+} from '@/access/product-access.service';
+import {
   BadGatewayException,
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   ServiceUnavailableException,
@@ -36,14 +41,21 @@ export class VulnerabilitiesService {
     private defectDojo: DefectDojoService,
     private jiraDescriptionService: JiraDescriptionService,
     private settingsService: SettingsService,
+    private access: ProductAccessService,
   ) {}
 
-  async getProductTypes() {
-    return this.defectDojo.getProductTypes();
+  async getProductTypes(user?: RequestUser) {
+    const scope = await this.access.getScope(user);
+
+    return this.access.filterProductTypeIds(
+      scope,
+      await this.defectDojo.getProductTypes(),
+    );
   }
 
   // Список уязвимостей: по типу продуктов, по конкретному продукту или по тесту
   async getVulnerabilities(
+    user: RequestUser | undefined,
     scope: { productTypeId?: number; productId?: number; testId?: number },
     page = 1,
     limit = 10000,
@@ -63,6 +75,20 @@ export class VulnerabilitiesService {
       );
     }
 
+    // Для ограниченного пользователя доступ накладывается фильтром самого
+    // DefectDojo: чужие productId/testId просто вернут пустой результат.
+    const allowed = await this.access.getScope(user);
+
+    if (allowed !== null) {
+      if (allowed.length === 0) {
+        throw new ForbiddenException('Нет доступа к группам продуктов');
+      }
+
+      if (scope.productTypeId !== undefined) {
+        this.access.assertIdInScope(allowed, scope.productTypeId);
+      }
+    }
+
     const offset = (page - 1) * limit;
 
     const scopeFilter = scope.testId
@@ -71,7 +97,16 @@ export class VulnerabilitiesService {
         ? { test__engagement__product: scope.productId }
         : { test__engagement__product__prod_type: scope.productTypeId };
 
-    const filters = severity ? { ...scopeFilter, severity } : scopeFilter;
+    const accessFilter =
+      allowed === null
+        ? {}
+        : { test__engagement__product__prod_type: allowed.join(',') };
+
+    const filters = {
+      ...scopeFilter,
+      ...accessFilter,
+      ...(severity ? { severity } : {}),
+    };
 
     // Формат FE: 'severity' | '-severity' ... (минус = по убыванию)
     const ddField = sort ? SORT_FIELDS[sort.replace(/^-/, '')] : undefined;
@@ -125,8 +160,10 @@ export class VulnerabilitiesService {
   }
 
   // Детали одной уязвимости: полный finding из DefectDojo + статус Jira
-  async getVulnerability(id: number) {
+  async getVulnerability(user: RequestUser | undefined, id: number) {
     const finding = await this.defectDojo.getFinding(id);
+
+    await this.assertFindingsAccess(user, [finding]);
 
     const sync = await this.prisma.vulnerabilitySync.findUnique({
       where: {
@@ -141,10 +178,16 @@ export class VulnerabilitiesService {
     };
   }
 
-  async getJiraDescriptionPreview(findingIds: number[]) {
+  async getJiraDescriptionPreview(
+    user: RequestUser | undefined,
+    findingIds: number[],
+  ) {
     const findings = await Promise.all(
       findingIds.map((id) => this.defectDojo.getFinding(id)),
     );
+
+    await this.assertFindingsAccess(user, findings);
+
     if (findings.length === 1) {
       return {
         description:
@@ -159,7 +202,11 @@ export class VulnerabilitiesService {
     };
   }
 
-  async askAi(findingIds: number[], messages: AiMessage[] = []) {
+  async askAi(
+    user: RequestUser | undefined,
+    findingIds: number[],
+    messages: AiMessage[] = [],
+  ) {
     const requestId = Math.random().toString(36).slice(2, 10);
     this.logger.log(
       `[AI:${requestId}] request started: findings=${findingIds.length}, messages=${messages.length}`,
@@ -196,6 +243,7 @@ export class VulnerabilitiesService {
       );
     }
     this.logger.log(`[AI:${requestId}] findings loaded: ${findings.length}`);
+    await this.assertFindingsAccess(user, findings);
     const vulnerabilityDescription = findings
       .map((finding) =>
         this.jiraDescriptionService.renderSingleFindingJiraDescription(finding),
@@ -256,6 +304,27 @@ export class VulnerabilitiesService {
 
     this.logger.log(`[AI:${requestId}] request completed successfully`);
     return { message: { role: 'assistant' as const, content } };
+  }
+
+  // Проверка, что finding относится к разрешённой группе продуктов
+  // (related_fields.test.engagement.product.prod_type.id).
+  private async assertFindingsAccess(
+    user: RequestUser | undefined,
+    findings: unknown[],
+  ) {
+    const allowed = await this.access.getScope(user);
+
+    if (allowed === null) {
+      return;
+    }
+
+    for (const finding of findings) {
+      const productTypeId = this.defectDojo.getFindingProductTypeId(
+        finding ?? {},
+      );
+
+      this.access.assertIdInScope(allowed, productTypeId);
+    }
   }
 }
 

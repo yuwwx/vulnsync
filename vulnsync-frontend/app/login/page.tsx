@@ -18,8 +18,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await AuthService.login({ username, password });
-      window.location.href = "/dashboard";
+      const auth = await AuthService.login({ username, password });
+      window.location.href =
+        auth.role === "USER" ? "/vulnerabilities" : "/dashboard";
     } catch (e) {
       if (e instanceof AuthError) {
         setError(e.message);

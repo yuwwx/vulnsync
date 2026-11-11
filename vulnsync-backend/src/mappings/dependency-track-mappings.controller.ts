@@ -14,11 +14,13 @@ import { DependencyTrackMappingsService } from './dependency-track-mappings.serv
 import { CreateDependencyTrackMappingDto } from './dto/create-dependency-track-mapping.dto';
 import { UpdateDependencyTrackMappingDto } from './dto/update-dependency-track-mapping.dto';
 
+// Маппинги - настройка интеграции, недоступная обычным пользователям.
 @Controller('mappings/dependency-track')
 export class DependencyTrackMappingsController {
   constructor(private service: DependencyTrackMappingsService) {}
 
   @LogAction('DT_MAPPINGS_GET')
+  @Roles('ADMIN', 'VIEWER')
   @Get()
   get(@Query('ddProductId') ddProductId?: number) {
     if (ddProductId) {
@@ -28,6 +30,7 @@ export class DependencyTrackMappingsController {
   }
 
   @LogAction('DT_MAPPINGS_GET_ONE')
+  @Roles('ADMIN', 'VIEWER')
   @Get(':id')
   getOne(@Param('id') id: string) {
     return this.service.getById(id);

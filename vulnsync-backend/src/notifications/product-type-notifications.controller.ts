@@ -4,11 +4,13 @@ import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { SaveProductTypeNotificationDto } from './dto/save-product-type-notification.dto';
 import { ProductTypeNotificationsService } from './product-type-notifications.service';
 
+// Настройка уведомлений - административная функция.
 @Controller('notifications/product-type')
 export class ProductTypeNotificationsController {
   constructor(private service: ProductTypeNotificationsService) {}
 
   @LogAction('PRODUCT_TYPE_NOTIFICATIONS_GET')
+  @Roles('ADMIN', 'VIEWER')
   @Get()
   get(@Query('ddProductTypeId') ddProductTypeId?: number) {
     if (ddProductTypeId) {

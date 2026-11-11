@@ -14,11 +14,14 @@ import { CreateJiraMappingDto } from './dto/create-jira-mapping.dto';
 import { UpdateJiraMappingDto } from './dto/update-jira-mapping.dto';
 import { JiraMappingsService } from './jira-mappings.service';
 
+// Маппинги - настройка интеграции, недоступная обычным пользователям.
+// Читать могут администраторы и технические учётки (VIEWER).
 @Controller('mappings/jira')
 export class JiraMappingsController {
   constructor(private service: JiraMappingsService) {}
 
   @LogAction('JIRA_MAPPINGS_GET')
+  @Roles('ADMIN', 'VIEWER')
   @Get()
   get(@Query('ddProductTypeId') ddProductTypeId?: number) {
     if (ddProductTypeId) {
@@ -28,6 +31,7 @@ export class JiraMappingsController {
   }
 
   @LogAction('JIRA_MAPPINGS_GET_ONE')
+  @Roles('ADMIN', 'VIEWER')
   @Get(':id')
   getOne(@Param('id') id: string) {
     return this.service.getById(id);

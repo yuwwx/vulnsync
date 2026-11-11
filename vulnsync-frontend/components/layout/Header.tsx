@@ -9,17 +9,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/dashboard", label: "Дашборд" },
+  { href: "/dashboard", label: "Дашборд", hideForUser: true },
   { href: "/vulnerabilities", label: "Уязвимости" },
-  { href: "/products", label: "Продукты" },
+  { href: "/products", label: "Продукты", hideForUser: true },
   { href: "/integrations", label: "Интреграции", adminOnly: true },
+  { href: "/users", label: "Доступы", adminOnly: true },
   { href: "/logs", label: "События", adminOnly: true },
   { href: "/reference", label: "Справочники" },
 ];
 
 export function Header() {
   const pathname = usePathname();
-  const { isAdmin, isAuthenticated, username, displayName } = useAuth();
+  const { isAdmin, isUser, isAuthenticated, username, displayName } = useAuth();
   const mounted = useMounted();
 
   function logout() {
@@ -28,7 +29,8 @@ export function Header() {
   }
 
   const filteredNavItems = navItems.filter(
-    (item) => !item.adminOnly || isAdmin,
+    (item) =>
+      (!item.adminOnly || isAdmin) && (!item.hideForUser || !isUser),
   );
 
   return (

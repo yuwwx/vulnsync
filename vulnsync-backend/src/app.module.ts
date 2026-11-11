@@ -18,10 +18,12 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import path from 'node:path';
 import { RolesGuard } from './common/guards/roles.guard';
+import { AccessModule } from './access/access.module';
 import { MappingsModule } from './mappings/mappings.module';
 import { VulnerabilitySyncModule } from './vulnerability-sync/vulnerability-sync.module';
 import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { UsersModule } from './users/users.module';
 
 const envFile =
   process.env.NODE_ENV === 'development'
@@ -37,6 +39,7 @@ const envFile =
     ScheduleModule.forRoot(),
     LogsModule,
     PrismaModule,
+    AccessModule,
     AuthModule,
     SettingsModule,
     VulnerabilitiesModule,
@@ -47,6 +50,7 @@ const envFile =
     NotificationsModule,
     VulnerabilitySyncModule,
     ReportsModule,
+    UsersModule,
   ],
   providers: [
     {
