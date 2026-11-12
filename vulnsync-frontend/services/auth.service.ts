@@ -40,6 +40,12 @@ export const AuthService = {
       if (axios.isAxiosError(e) && e.response?.status === 401) {
         throw new AuthError("Неверный логин или пароль");
       }
+      if (axios.isAxiosError(e) && e.response?.status === 403) {
+        throw new AuthError(
+          (e.response.data as { message?: string } | undefined)?.message ??
+            "Недостаточно прав для входа в приложение",
+        );
+      }
       throw e;
     }
   },

@@ -1,6 +1,10 @@
 // strategies/ldap.strategy.ts
 import { LogsService } from '@/logs/logs.service';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import LdapStrategy from 'passport-ldapauth';
@@ -108,7 +112,9 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
         username: user.sAMAccountName,
         userAgent: req.headers['user-agent'],
       });
-      throw new UnauthorizedException('User not in allowed LDAP groups');
+      // Логин/пароль верны, но пользователь не в разрешённой группе —
+      // это не ошибка аутентификации, а отсутствие прав.
+      throw new ForbiddenException('Недостаточно прав для входа в приложение');
     }
 
     const assignedRole = matchedRole.role;
