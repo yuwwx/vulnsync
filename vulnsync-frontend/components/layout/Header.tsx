@@ -23,8 +23,8 @@ export function Header() {
   const { isAdmin, isUser, isAuthenticated, username, displayName } = useAuth();
   const mounted = useMounted();
 
-  function logout() {
-    AuthService.logout();
+  async function logout() {
+    await AuthService.logout();
     window.location.href = "/login";
   }
 
@@ -68,7 +68,11 @@ export function Header() {
           )}
 
           {mounted && isAuthenticated ? (
-            <Button variant="outline" size="sm" onClick={logout}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void logout()}
+            >
               Выйти
             </Button>
           ) : (

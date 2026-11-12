@@ -16,6 +16,7 @@ type LdapRequest = {
     'user-agent'?: string;
   };
   ip?: string;
+  socket?: { localAddress?: string };
 };
 
 type LdapUser = {
@@ -74,12 +75,9 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
       typeof req.headers['x-real-ip'] === 'string'
         ? req.headers['x-real-ip']
         : req.ip;
-    if (!user) {
-      await this.logsService.log('LOGIN_FAILED', requestIp, undefined, {
-        username: undefined,
-        userAgent: req.headers['user-agent'],
-      });
 
+    if (!user) {
+      // Неуспешная аутентификация журналируется в LdapAuthGuard.
       throw new UnauthorizedException();
     }
 
@@ -107,26 +105,19 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
     );
 
     if (!matchedRole) {
-      await this.logsService.log('LOGIN_FAILED', requestIp, user.id, {
-        result: 'FAIL',
-        username: user.sAMAccountName,
-        userAgent: req.headers['user-agent'],
-      });
       // Логин/пароль верны, но пользователь не в разрешённой группе —
       // это не ошибка аутентификации, а отсутствие прав.
+      // Событие неуспеха запишет LdapAuthGuard.
       throw new ForbiddenException('Недостаточно прав для входа в приложение');
     }
 
     const assignedRole = matchedRole.role;
 
-    await this.logsService.log('LOGIN', requestIp, user.id, {
-      result: 'SUCCESS',
-      username: user.sAMAccountName,
-      userAgent: req.headers['user-agent'],
-      assignedRole,
-    });
-
-    return this.authService.validateLdapUser(
+    const {
+      user: dbUser,
+      created,
+      changed,
+    } = await this.authService.validateLdapUser(
       user.sAMAccountName,
       user.dn,
       user.mail,
@@ -134,5 +125,40 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
       user.title,
       assignedRole,
     );
+
+    const common = {
+      service: 'auth',
+      ip: requestIp,
+      destinationIp: req.socket?.localAddress,
+      userId: dbUser.id,
+      username: dbUser.username,
+      meta: {
+        result: 'SUCCESS' as const,
+        role: assignedRole,
+        userAgent: req.headers['user-agent'],
+      },
+    };
+
+    if (created) {
+      await this.logsService.log({
+        ...common,
+        action: 'ACCOUNT_CREATE',
+        description: `LDAP account created: ${user.sAMAccountName}`,
+      });
+    } else if (changed) {
+      await this.logsService.log({
+        ...common,
+        action: 'ACCOUNT_UPDATE',
+        description: `LDAP account updated: ${user.sAMAccountName}`,
+      });
+    }
+
+    await this.logsService.log({
+      ...common,
+      action: 'LOGIN',
+      description: 'LDAP authentication',
+    });
+
+    return dbUser;
   }
 }

@@ -2,10 +2,11 @@
 import { Global, Module } from '@nestjs/common';
 import { LogsController } from './logs.controller';
 import { LogsService } from './logs.service';
+import { SyslogService } from './syslog.service';
 
 @Global()
 @Module({
-  providers: [LogsService],
+  providers: [LogsService, SyslogService],
   controllers: [LogsController],
   exports: [LogsService],
 })

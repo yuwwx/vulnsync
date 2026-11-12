@@ -61,6 +61,10 @@ export class AuthService {
     jobTitle: string,
     role: Role = 'USER',
   ) {
+    const existing = await this.prisma.user.findUnique({
+      where: { username },
+    });
+
     const user = await this.prisma.user.upsert({
       where: { username },
       update: {
@@ -81,6 +85,15 @@ export class AuthService {
       },
     });
 
-    return user;
+    // Нужно для событий ACCOUNT_CREATE/ACCOUNT_UPDATE в журнале.
+    const created = !existing;
+    const changed =
+      existing !== null &&
+      (existing.role !== user.role ||
+        existing.email !== user.email ||
+        existing.displayName !== user.displayName ||
+        existing.jobTitle !== user.jobTitle);
+
+    return { user, created, changed };
   }
 }

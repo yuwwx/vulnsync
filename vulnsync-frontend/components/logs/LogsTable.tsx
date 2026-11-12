@@ -36,11 +36,13 @@ export function LogsTable({ logs, pageSize = 15 }: Props) {
         <TableHeader>
           <TableRow>
             <TableHead>Time</TableHead>
+            <TableHead>Service</TableHead>
             <TableHead>Action</TableHead>
             <TableHead>User</TableHead>
-            <TableHead>IP</TableHead>
+            <TableHead>Source IP</TableHead>
+            <TableHead>Destination IP</TableHead>
             <TableHead>Result</TableHead>
-            <TableHead>User Agent</TableHead>
+            <TableHead>Description</TableHead>
           </TableRow>
         </TableHeader>
 
@@ -50,12 +52,19 @@ export function LogsTable({ logs, pageSize = 15 }: Props) {
               <TableCell>
                 {dayjs(log.createdAt).format("YYYY-MM-DD HH:mm:ss")}
               </TableCell>
+              <TableCell>{log.service ?? "—"}</TableCell>
               <TableCell>{log.action}</TableCell>
-              <TableCell>{log.meta?.username ?? "—"}</TableCell>
+              <TableCell>
+                {log.username ?? log.meta?.username ?? "—"}
+              </TableCell>
               <TableCell>{log.ip ?? "—"}</TableCell>
+              <TableCell>{log.destinationIp ?? "—"}</TableCell>
               <TableCell>{log.meta?.result ?? "—"}</TableCell>
-              <TableCell className="truncate max-w-xs">
-                {log.meta?.userAgent ?? "—"}
+              <TableCell
+                className="truncate max-w-xs"
+                title={log.meta?.userAgent ?? undefined}
+              >
+                {log.description ?? log.meta?.reason ?? "—"}
               </TableCell>
             </TableRow>
           ))}

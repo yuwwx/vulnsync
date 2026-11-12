@@ -7,13 +7,15 @@ import { JiraService } from './jira.service';
 export class JiraController {
   constructor(private jiraService: JiraService) {}
 
+  @LogAction('JIRA_GET_PROJECTS')
   @Get('projects')
-  async getProjects() {
+  async getProjects(): Promise<unknown> {
     return this.jiraService.getProjects();
   }
 
+  @LogAction('JIRA_GET_CUSTOM_FIELDS')
   @Get('custom-fields')
-  async getCustomFields() {
+  async getCustomFields(): Promise<unknown> {
     return this.jiraService.getCustomFields();
   }
 }

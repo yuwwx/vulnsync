@@ -1,4 +1,5 @@
 // auth.service.ts
+import { api } from "./api";
 import { authApi } from "./authApi";
 import axios from "axios";
 
@@ -50,7 +51,14 @@ export const AuthService = {
     }
   },
 
-  logout() {
+  async logout() {
+    try {
+      // Фиксируем событие выхода в журнале; ошибка не блокирует выход.
+      await api.post("/auth/logout");
+    } catch {
+      // ignore
+    }
+
     localStorage.removeItem("access_token");
     localStorage.removeItem("username");
     localStorage.removeItem("displayName");

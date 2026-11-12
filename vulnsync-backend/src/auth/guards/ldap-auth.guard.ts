@@ -8,12 +8,15 @@ import { AuthGuard } from '@nestjs/passport';
 import { LogsService } from '@/logs/logs.service';
 
 type AuthRequest = {
+  method?: string;
+  url?: string;
   headers: Record<string, string | string[] | undefined> & {
     'x-real-ip'?: string;
     'user-agent'?: string;
   };
   body?: { username?: string };
   ip?: string;
+  socket?: { localAddress?: string };
 };
 
 type PassportError = {
@@ -27,11 +30,10 @@ export class LdapAuthGuard extends AuthGuard('ldap') {
   }
 
   handleRequest<TUser = unknown>(
-    err: PassportError | null,
+    err: { message?: string } | null,
     user: TUser,
     info: PassportError | null,
     context: ExecutionContext,
-    status?: number,
   ): TUser {
     const req = context.switchToHttp().getRequest<AuthRequest>();
     const requestIp =
@@ -41,15 +43,26 @@ export class LdapAuthGuard extends AuthGuard('ldap') {
 
     if (err || !user) {
       this.logsService
-        .log('LOGIN_FAILED', requestIp, undefined, {
-          result: 'FAIL',
+        .log({
+          action: 'LOGIN_FAILED',
+          service: 'auth',
+          description: `${req.method ?? 'POST'} ${req.url ?? '/api/auth/ldap/login'}`,
+          ip: requestIp,
+          destinationIp: req.socket?.localAddress,
           username: req.body?.username,
-          userAgent: req.headers['user-agent'],
-          reason: info?.message || err?.message,
+          meta: {
+            result: 'FAIL',
+            userAgent: req.headers['user-agent'],
+            reason: info?.message || err?.message,
+          },
         })
         .catch(() => {});
 
-      throw err || new UnauthorizedException();
+      if (err instanceof Error) {
+        throw err;
+      }
+
+      throw new UnauthorizedException(err?.message);
     }
 
     return user;

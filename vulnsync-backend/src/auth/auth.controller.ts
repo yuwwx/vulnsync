@@ -1,5 +1,6 @@
 // auth.controller.ts
 import { Public } from '@/common/decorators/public.decorator';
+import { LogsService } from '@/logs/logs.service';
 import {
   Controller,
   ForbiddenException,
@@ -12,13 +13,22 @@ import { AuthService } from './auth.service';
 import { LdapAuthGuard } from './guards/ldap-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 
-type AuthRequest = { user: { id: string; username: string; role: string } };
+type AuthRequest = {
+  user?: { id: string; username: string; role: string };
+  headers?: Record<string, string | string[] | undefined> & {
+    'x-real-ip'?: string;
+    'user-agent'?: string;
+  };
+  ip?: string;
+  socket?: { localAddress?: string };
+};
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private authService: AuthService,
     private config: ConfigService,
+    private logsService: LogsService,
   ) {}
 
   // Локальный вход - только для dev: включается AUTH_LOCAL_LOGIN=true.
@@ -30,13 +40,39 @@ export class AuthController {
     if (this.config.get<string>('AUTH_LOCAL_LOGIN') !== 'true') {
       throw new ForbiddenException('Local login is disabled');
     }
-    return this.authService.login(req.user);
+    return this.authService.login(req.user!);
   }
 
   @Post('ldap/login')
   @Public()
   @UseGuards(LdapAuthGuard)
   ldapLogin(@Req() req: AuthRequest) {
-    return this.authService.login(req.user);
+    return this.authService.login(req.user!);
+  }
+
+  // Выход журналируется отдельным событием: токен stateless, но факт
+  // завершения сессии должен попасть в журнал кибербезопасности.
+  @Post('logout')
+  async logout(@Req() req: AuthRequest) {
+    const ip =
+      typeof req.headers?.['x-real-ip'] === 'string'
+        ? req.headers['x-real-ip']
+        : req.ip;
+
+    await this.logsService.log({
+      action: 'LOGOUT',
+      service: 'auth',
+      description: 'POST /api/auth/logout',
+      ip,
+      destinationIp: req.socket?.localAddress,
+      userId: req.user?.id,
+      username: req.user?.username,
+      meta: {
+        result: 'SUCCESS',
+        userAgent: req.headers?.['user-agent'],
+      },
+    });
+
+    return { ok: true };
   }
 }

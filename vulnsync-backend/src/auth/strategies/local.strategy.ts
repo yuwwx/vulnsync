@@ -11,6 +11,7 @@ type RequestWithHeaders = {
     'user-agent'?: string;
   };
   ip?: string;
+  socket?: { localAddress?: string };
 };
 
 @Injectable()
@@ -31,24 +32,34 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     const user = await this.authService.validateLocalUser(username, password);
 
     if (!user) {
-      await this.logsService.log(
-        'LOGIN_FAILED',
-        this.getRequestIp(req),
-        undefined,
-        {
+      await this.logsService.log({
+        action: 'LOGIN_FAILED',
+        service: 'auth',
+        description: 'Local authentication',
+        ip: this.getRequestIp(req),
+        destinationIp: req.socket?.localAddress,
+        username,
+        meta: {
           result: 'FAIL',
-          username: username,
           userAgent: req.headers['user-agent'],
         },
-      );
+      });
 
       throw new UnauthorizedException();
     }
 
-    await this.logsService.log('LOGIN', this.getRequestIp(req), user.id, {
-      result: 'SUCCESS',
-      username: username,
-      userAgent: req.headers['user-agent'],
+    await this.logsService.log({
+      action: 'LOGIN',
+      service: 'auth',
+      description: 'Local authentication',
+      ip: this.getRequestIp(req),
+      destinationIp: req.socket?.localAddress,
+      userId: user.id,
+      username: user.username,
+      meta: {
+        result: 'SUCCESS',
+        userAgent: req.headers['user-agent'],
+      },
     });
 
     return user;

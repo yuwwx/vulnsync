@@ -93,14 +93,22 @@ model VulnerabilitySync {
 }
 
 model Log {
-  id        String   @id @default(uuid())
-  action    String
-  ip        String?
-  userId    String?
-  meta      Json?
-  createdAt DateTime @default(now())
+  id    String @id @default(uuid())
+  action String
+  // Источник события (сервис/контроллер) и описание операции
+  service     String?
+  description String?
+  userId      String?
+  username    String?
+  // Source IP (клиент) и Destination IP (хост приложения)
+  ip            String?
+  destinationIp String?
+  meta          Json?
+  createdAt     DateTime @default(now())
 
   @@index([createdAt])
+  @@index([action])
+  @@index([username])
 }
 
 // Очередь отправки отчётов: разгружает DefectDojo и SMTP при массовых

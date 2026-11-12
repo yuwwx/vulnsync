@@ -7,10 +7,16 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { Request } from 'express';
 import { catchError, Observable, tap } from 'rxjs';
 import { LOG_ACTION_KEY } from '../decorators/logAction.decorator';
 
-type AuthedUser = { id: string; username: string };
+type AuthedUser = { id?: string; username?: string };
+
+type LoggedRequest = Request & {
+  user?: AuthedUser;
+  socket?: { localAddress?: string };
+};
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -21,24 +27,37 @@ export class LoggingInterceptor implements NestInterceptor {
     private reflector: Reflector,
   ) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const req = context.switchToHttp().getRequest();
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const req = context.switchToHttp().getRequest<LoggedRequest>();
     // На @Public-роутах (логин, ручной запуск отчётов) req.user отсутствует
-    const user = req.user as AuthedUser | undefined;
-    const ip = req.headers['x-real-ip'] || req.ip;
+    const user = req.user;
+    const realIp = req.headers['x-real-ip'];
+    const ip = typeof realIp === 'string' ? realIp : req.ip;
+    const destinationIp = req.socket?.localAddress;
+    const description = `${req.method} ${req.originalUrl ?? req.url}`;
+    // Источник события — контроллер (сервис/служба) без суффикса Controller
+    const service = context.getClass().name.replace(/Controller$/, '');
     const action =
       this.reflector.get<string>(LOG_ACTION_KEY, context.getHandler()) ||
-      `${req.method} ${req.url}`;
+      description;
 
     // Запись в журнал не должна влиять на ответ запроса: в т.ч. на @Public-роутах,
     // где пользователя нет, и при недоступности БД (иначе процесс падает
     // из-за необработанного rejection внутри tap)
     const writeLog = (result: 'SUCCESS' | 'FAIL') => {
       this.logsService
-        .log(action, ip, user?.id, {
-          result,
+        .log({
+          action,
+          service,
+          description,
+          ip,
+          destinationIp,
+          userId: user?.id,
           username: user?.username ?? 'anonymous',
-          userAgent: req.headers['user-agent'],
+          meta: {
+            result,
+            userAgent: req.headers['user-agent'],
+          },
         })
         .catch((error: unknown) =>
           this.logger.error(
