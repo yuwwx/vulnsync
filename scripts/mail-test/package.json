@@ -1,0 +1,15 @@
+{
+  "name": "vulnsync-mail-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Автономная проверка отправки письма через SMTP",
+  "type": "module",
+  "main": "test-send-mail.mjs",
+  "scripts": {
+    "start": "node test-send-mail.mjs"
+  },
+  "dependencies": {
+    "dotenv": "17.4.2",
+    "nodemailer": "10.0.14"
+  }
+}

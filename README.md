@@ -109,4 +109,4 @@ docker compose up -d --build
 | `npm run prisma:migrate:dev` | Миграции Prisma (использует `.env.dev`) |
 | `npm run prisma:generate` | Генерация Prisma-клиента |
 | `npm run mock:ml` | Мок-сервер для локальной разработки |
-| `npm run test:mail` | Тестовая отправка письма (спросит отправителя и получателя) |
+| `npm run test:mail` | Тестовая отправка письма (папка `scripts/mail-test`, автономна) |

@@ -1,9 +1,11 @@
-// Тестовая отправка письма через SMTP из .env.dev/.env.
+// Автономный скрипт тестовой отправки письма через SMTP.
 // Интерактивно спросит отправителя и получателя (или примет их аргументами).
 //
-//   npm run test:mail
-//   npm run test:mail -- --from=report@example.com --to=user@example.com
-//   node scripts/test-send-mail.mjs --env=.env
+// Папка самодостаточна: скопируйте её целиком на сервер/в другой проект, затем
+//   npm install
+//   npm start
+//   node test-send-mail.mjs --from=report@example.com --to=user@example.com
+//   node test-send-mail.mjs --env=/etc/vulnsync/mail.env
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -27,18 +29,25 @@ function parseArgs(argv) {
 
 const flags = parseArgs(process.argv.slice(2));
 
-const envFile = path.resolve(
-  rootDir,
-  String(flags.env ?? "").trim() || ".env.dev",
+const envCandidates = [];
+if (typeof flags.env === "string" && flags.env.trim()) {
+  envCandidates.push(path.resolve(process.cwd(), flags.env.trim()));
+}
+envCandidates.push(
+  path.resolve(process.cwd(), ".env.dev"),
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(rootDir, ".env.dev"),
+  path.resolve(rootDir, ".env"),
 );
-const fallbackEnvFile = path.resolve(rootDir, ".env");
 
-for (const file of [envFile, fallbackEnvFile]) {
-  if (!fs.existsSync(file)) {
+const seen = new Set();
+for (const file of envCandidates) {
+  if (seen.has(file) || !fs.existsSync(file)) {
     continue;
   }
+  seen.add(file);
   dotenv.config({ path: file, quiet: true });
-  console.log(`Загружены переменные из ${path.relative(rootDir, file)}`);
+  console.log(`Загружены переменные из ${path.relative(process.cwd(), file) || file}`);
 }
 
 const host = (process.env.SMTP_HOST ?? "").trim();
@@ -47,7 +56,7 @@ const user = process.env.SMTP_USER;
 const pass = process.env.SMTP_PASS;
 
 if (!host) {
-  console.error("SMTP_HOST не задан. Проверьте .env.dev или укажите --env=<файл>.");
+  console.error("SMTP_HOST не задан. Проверьте .env или укажите --env=<файл>.");
   process.exit(1);
 }
 
