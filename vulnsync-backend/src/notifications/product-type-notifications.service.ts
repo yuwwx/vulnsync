@@ -3,11 +3,7 @@
 // в дополнение к DD_REPORT_MAIL_TO - отдельно для каждого типа продукта DefectDojo.
 import { parseEmailList } from '@/common/email';
 import { PrismaService } from '@/prisma/prisma.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class ProductTypeNotificationsService {
@@ -33,10 +29,6 @@ export class ProductTypeNotificationsService {
 
   async save(ddProductTypeId: number, emails: string) {
     const normalized = parseEmailList(emails).join(', ');
-
-    if (!normalized) {
-      throw new BadRequestException('Список адресов пуст');
-    }
 
     return this.prisma.productTypeNotification.upsert({
       where: { ddProductTypeId },

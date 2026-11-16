@@ -5,8 +5,8 @@ export class SaveProductTypeNotificationDto {
   @IsNotEmpty()
   ddProductTypeId: number;
 
-  // Список адресов через запятую, точку с запятой или с новой строки
+  // Список адресов через запятую, точку с запятой или с новой строки.
+  // Пустая строка допустима: дополнительных получателей нет.
   @IsString()
-  @IsNotEmpty()
   emails: string;
 }
