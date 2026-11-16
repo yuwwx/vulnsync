@@ -1,4 +1,5 @@
 // strategies/ldap.strategy.ts
+import { getDestinationIp, getSourceIp } from '@/common/network/request-ip';
 import { LogsService } from '@/logs/logs.service';
 import {
   ForbiddenException,
@@ -71,10 +72,7 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
   }
 
   async validate(req: LdapRequest, user: LdapUser | undefined) {
-    const requestIp =
-      typeof req.headers['x-real-ip'] === 'string'
-        ? req.headers['x-real-ip']
-        : req.ip;
+    const requestIp = getSourceIp(req);
 
     if (!user) {
       // Неуспешная аутентификация журналируется в LdapAuthGuard.
@@ -129,7 +127,7 @@ export class LdapAuthStrategy extends PassportStrategy(LdapStrategy, 'ldap') {
     const common = {
       service: 'auth',
       ip: requestIp,
-      destinationIp: req.socket?.localAddress,
+      destinationIp: getDestinationIp(req),
       userId: dbUser.id,
       username: dbUser.username,
       meta: {

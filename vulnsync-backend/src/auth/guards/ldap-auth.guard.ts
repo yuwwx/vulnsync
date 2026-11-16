@@ -1,4 +1,5 @@
 // guards/ldap-auth.guard.ts
+import { getDestinationIp, getSourceIp } from '@/common/network/request-ip';
 import {
   ExecutionContext,
   Injectable,
@@ -36,10 +37,6 @@ export class LdapAuthGuard extends AuthGuard('ldap') {
     context: ExecutionContext,
   ): TUser {
     const req = context.switchToHttp().getRequest<AuthRequest>();
-    const requestIp =
-      typeof req.headers['x-real-ip'] === 'string'
-        ? req.headers['x-real-ip']
-        : req.ip;
 
     if (err || !user) {
       this.logsService
@@ -47,8 +44,8 @@ export class LdapAuthGuard extends AuthGuard('ldap') {
           action: 'LOGIN_FAILED',
           service: 'auth',
           description: `${req.method ?? 'POST'} ${req.url ?? '/api/auth/ldap/login'}`,
-          ip: requestIp,
-          destinationIp: req.socket?.localAddress,
+          ip: getSourceIp(req),
+          destinationIp: getDestinationIp(req),
           username: req.body?.username,
           meta: {
             result: 'FAIL',

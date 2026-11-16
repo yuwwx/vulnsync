@@ -1,5 +1,6 @@
 import { LogsService } from '@/logs/logs.service';
 import type { Request } from 'express';
+import { getDestinationIp, getSourceIp } from '../network/request-ip';
 
 type AuthedUser = { id?: string; username?: string; role?: string };
 
@@ -19,8 +20,8 @@ export function logAccessDenied(
   req: GuardedRequest,
   details: AccessDeniedDetails,
 ) {
-  const realIp = req.headers['x-real-ip'];
-  const ip = typeof realIp === 'string' ? realIp : req.ip;
+  const ip = getSourceIp(req);
+  const destinationIp = getDestinationIp(req);
 
   logsService
     .log({
@@ -28,7 +29,7 @@ export function logAccessDenied(
       service: 'auth',
       description: `${req.method} ${req.originalUrl ?? req.url}`,
       ip,
-      destinationIp: req.socket?.localAddress,
+      destinationIp,
       userId: details.user?.id,
       username: details.user?.username,
       meta: {

@@ -1,4 +1,5 @@
 // auth.controller.ts
+import { getDestinationIp, getSourceIp } from '@/common/network/request-ip';
 import { Public } from '@/common/decorators/public.decorator';
 import { LogsService } from '@/logs/logs.service';
 import {
@@ -54,17 +55,12 @@ export class AuthController {
   // завершения сессии должен попасть в журнал кибербезопасности.
   @Post('logout')
   async logout(@Req() req: AuthRequest) {
-    const ip =
-      typeof req.headers?.['x-real-ip'] === 'string'
-        ? req.headers['x-real-ip']
-        : req.ip;
-
     await this.logsService.log({
       action: 'LOGOUT',
       service: 'auth',
       description: 'POST /api/auth/logout',
-      ip,
-      destinationIp: req.socket?.localAddress,
+      ip: getSourceIp(req),
+      destinationIp: getDestinationIp(req),
       userId: req.user?.id,
       username: req.user?.username,
       meta: {

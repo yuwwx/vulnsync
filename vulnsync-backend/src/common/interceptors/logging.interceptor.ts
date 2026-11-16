@@ -10,6 +10,7 @@ import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { catchError, Observable, tap } from 'rxjs';
 import { LOG_ACTION_KEY } from '../decorators/logAction.decorator';
+import { getDestinationIp, getSourceIp } from '../network/request-ip';
 
 type AuthedUser = { id?: string; username?: string };
 
@@ -31,9 +32,8 @@ export class LoggingInterceptor implements NestInterceptor {
     const req = context.switchToHttp().getRequest<LoggedRequest>();
     // На @Public-роутах (логин, ручной запуск отчётов) req.user отсутствует
     const user = req.user;
-    const realIp = req.headers['x-real-ip'];
-    const ip = typeof realIp === 'string' ? realIp : req.ip;
-    const destinationIp = req.socket?.localAddress;
+    const ip = getSourceIp(req);
+    const destinationIp = getDestinationIp(req);
     const description = `${req.method} ${req.originalUrl ?? req.url}`;
     // Источник события — контроллер (сервис/служба) без суффикса Controller
     const service = context.getClass().name.replace(/Controller$/, '');

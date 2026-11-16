@@ -1,4 +1,5 @@
 // strategies/local.strategy.ts
+import { getDestinationIp, getSourceIp } from '@/common/network/request-ip';
 import { LogsService } from '@/logs/logs.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
@@ -23,11 +24,6 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     super({ passReqToCallback: true });
   }
 
-  private getRequestIp(req: RequestWithHeaders): string | undefined {
-    const realIp = req.headers['x-real-ip'];
-    return typeof realIp === 'string' ? realIp : req.ip;
-  }
-
   async validate(req: RequestWithHeaders, username: string, password: string) {
     const user = await this.authService.validateLocalUser(username, password);
 
@@ -36,8 +32,8 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
         action: 'LOGIN_FAILED',
         service: 'auth',
         description: 'Local authentication',
-        ip: this.getRequestIp(req),
-        destinationIp: req.socket?.localAddress,
+        ip: getSourceIp(req),
+        destinationIp: getDestinationIp(req),
         username,
         meta: {
           result: 'FAIL',
@@ -52,8 +48,8 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
       action: 'LOGIN',
       service: 'auth',
       description: 'Local authentication',
-      ip: this.getRequestIp(req),
-      destinationIp: req.socket?.localAddress,
+      ip: getSourceIp(req),
+      destinationIp: getDestinationIp(req),
       userId: user.id,
       username: user.username,
       meta: {
