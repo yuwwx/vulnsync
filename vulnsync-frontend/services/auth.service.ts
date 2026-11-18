@@ -9,7 +9,6 @@ export interface LoginDto {
 }
 
 export interface AuthUser {
-  access_token: string;
   username: string;
   displayName: string;
   role: string;
@@ -32,7 +31,7 @@ export const AuthService = {
   async login(dto: LoginDto) {
     try {
       const { data } = await authApi.post<AuthUser>(LOGIN_ENDPOINT, dto);
-      localStorage.setItem("access_token", data.access_token);
+      // Токен не храним: он в HttpOnly-куке. Для UI достаточно профиля.
       localStorage.setItem("username", data.username);
       localStorage.setItem("displayName", data.displayName);
       localStorage.setItem("role", data.role);
@@ -59,7 +58,6 @@ export const AuthService = {
       // ignore
     }
 
-    localStorage.removeItem("access_token");
     localStorage.removeItem("username");
     localStorage.removeItem("displayName");
     localStorage.removeItem("role");

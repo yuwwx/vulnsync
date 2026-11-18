@@ -92,6 +92,7 @@ docker compose up -d --build
 | --- | --- |
 | `DATABASE_URL`, `POSTGRES_*` | Подключение к PostgreSQL |
 | `JWT_SECRET` | Секрет для подписи JWT |
+| `JWT_ACCESS_TTL`, `REFRESH_TOKEN_TTL_HOURS` | Сессия: время жизни access-токена (JWT) и refresh-токена |
 | `FRONTEND_URL`, `NEXT_PUBLIC_API_URL` | URL фронтенда и API для CORS/клиента |
 | `LDAP_*` | Подключение к LDAP/AD и маппинг групп (admin/user/viewer) |
 | `SMTP_*`, `DD_REPORT_*` | Почтовые отчёты: сервер, ящики, расписание Cron |

@@ -2,4 +2,6 @@ import axios from "axios";
 
 export const authApi = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api",
+  // Логин устанавливает HttpOnly-куку с access-токеном.
+  withCredentials: true,
 });

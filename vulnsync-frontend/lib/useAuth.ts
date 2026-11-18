@@ -1,6 +1,4 @@
 export function useAuth() {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
   const role =
     typeof window !== "undefined" ? localStorage.getItem("role") : null;
   const username =
@@ -8,12 +6,13 @@ export function useAuth() {
   const displayName =
     typeof window !== "undefined" ? localStorage.getItem("displayName") : null;
 
-  const isAuthenticated = !!token;
+  // Настоящая аутентификация — по HttpOnly-куке на бэкенде; здесь лишь
+  // профиль для UI. Если кука истекла, первый же запрос вернёт 401.
+  const isAuthenticated = !!username;
   const isAdmin = role === "ADMIN";
   const isUser = role === "USER";
 
   return {
-    token,
     role,
     username,
     displayName,

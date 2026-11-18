@@ -38,6 +38,31 @@ model User {
   allowedProductTypeIds Int[] @default([])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+}
+
+// Refresh-токены сессий. Хранится только SHA-256 хэш: сырой токен лежит
+// в HttpOnly-куке. Токен ротируется при каждом обновлении и отзывается при
+// выходе; familyId связывает цепочку ротаций для детекта повторного
+// использования (кражи) токена.
+model RefreshToken {
+  id                  String    @id @default(uuid())
+  tokenHash           String    @unique
+  userId              String
+  familyId            String
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  replacedByTokenHash String?
+  createdByIp         String?
+  userAgent           String?
+  createdAt           DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
 }
 
 model IntegrationSetting {

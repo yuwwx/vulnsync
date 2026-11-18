@@ -22,20 +22,42 @@ export class AuthService {
   ) {}
 
   login(user: AuthenticatedUser) {
-    // sess - момент начала сессии: продлеваем токен, но не дольше него.
-    const payload = {
+    // Access-токен отдаём отдельно: контроллер кладёт его в HttpOnly-куку,
+    // а в теле ответа уходят только данные профиля.
+    return {
+      accessToken: this.signAccessToken(user),
+      profile: {
+        username: user.username,
+        email: user?.email,
+        displayName: user?.displayName,
+        jobTitle: user?.jobTitle,
+        role: user.role,
+      },
+    };
+  }
+
+  signAccessToken(user: { id: string; username: string; role: string }) {
+    return this.jwtService.sign({
       sub: user.id,
       username: user.username,
       role: user.role,
-      sess: Math.floor(Date.now() / 1000),
-    };
+    });
+  }
+
+  // Данные пользователя для новой сессии (refresh): роль берём из БД,
+  // чтобы изменения доступа применялись не позднее следующего обновления.
+  async getSessionUser(userId: string): Promise<AuthenticatedUser | null> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) return null;
+
     return {
-      access_token: this.jwtService.sign(payload),
+      id: user.id,
       username: user.username,
-      email: user?.email,
-      displayName: user?.displayName,
-      jobTitle: user?.jobTitle,
       role: user.role,
+      email: user.email,
+      displayName: user.displayName,
+      jobTitle: user.jobTitle,
     };
   }
 

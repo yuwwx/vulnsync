@@ -8,9 +8,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+    // Токен в HttpOnly-куке, поэтому для UI проверяем сохранённый профиль.
+    const username = localStorage.getItem("username");
 
-    if (!token && pathname !== "/login") {
+    if (!username && pathname !== "/login") {
       window.location.href = "/login";
     }
   }, [pathname, router]);
